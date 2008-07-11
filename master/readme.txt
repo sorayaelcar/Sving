@@ -86,3 +86,18 @@ them on the editing panel. These correspond to the 3 highest levels of
 detail in Second Life so you can check how gracefully your sculptie
 degrades when viewed from a distance.
 
+**** Export to LSL ****
+
+Simply select "Second Life LSL" from the "File - Export" menu and
+choose a directory to export to. This will save the selected sculptie's
+map and texture plus a short LSL script to recreate the prim inworld.
+
+In Second Life, upload the .tga files from the directory. Create a new
+prim and edit the contents. Add the .tga files to the contents. Create
+a "New Script" in the contents and edit it.
+
+In a text editor open the .LSL file, select all and copy.
+
+Go back to Second Life and select all the script then paste the script
+you copied from the text editor over it. Save the script and it will run
+and turn the prim into the sculptie you exported from Blender.

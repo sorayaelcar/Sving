@@ -9,7 +9,7 @@ Tooltip: 'Export lsl and tga files for Second Life (to dir)'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.05"
+__version__ = "0.06"
 __bpydoc__ = """\
 
 LSL Exporter
@@ -18,6 +18,8 @@ This script exports Second Life sculpties in lsl + tga files
 """
 
 #Changes:
+#0.06 Domino Marama 2008-07-09
+#- minor bug fixes
 #0.05 Domino Marama 2008-06-29
 #- LSL now removes used items from prim contents
 #0.04 Domino Marama 2008-06-29
@@ -144,7 +146,7 @@ class texture:
 			self.face = 0
 		elif name[:5] == "UVTex":
 			self.face = int( name[6:] )
-		else
+		else:
 			self.face = -1
 
 	def toLSL( self ):
