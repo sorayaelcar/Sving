@@ -1,0 +1,88 @@
+
+Create, Import & Export Sculpties In Blender by Domino Marama
+Copyright 2007-2008 Domino Designs Limited
+
+**** Introduction ****
+
+These Blender scripts provide "sculptie map" ( https://wiki.secondlife.com/wiki/Sculpted_Prims:_FAQ )
+support to Blender. They use the addMultiresLevel feature that was introduced in Blender 2.46 which
+you can get from http://www.blender.org/download/get-blender/
+
+**** Installation ****
+
+copy the .py files to your Blender scripts directory as listed below.
+
+Linux: ~/.blender/scripts
+Mac: /Applications/blender/blender.app/Contents/MacOS/.blender/scripts/
+Windows XP: c:\Program Files\Blender Foundation\Blender\.blender\scripts
+Windows Vista: C:\Users\USERNAME\AppData\Roaming\Blender Foundation\Blender\.blender\scripts
+
+Note: The exact directory may change depending on install version, but
+should be something like the ones listed. Mac users may need to enable
+viewing all files to find the correct folder
+http://www.macworld.com/article/51830/2006/07/showallfinder.html
+
+If you can't find your scripts directory, then create a new text in Blender
+and paste the following code into it:
+
+import Blender
+print Blender.Get('scriptsdir')
+
+If you press alt-p ( File - Run Python Script ) then the correct directory 
+to install the scripts will be printed on the console.
+
+**** Checking Install ****
+
+Run Blender and in the "File - Import" menu you should see a new option
+for 'Second Life Sculptie'
+	
+If the option is missing, select the scripts window and use
+"Scripts - Update Menus" to refresh the menus.
+
+**** Creating a new Sculptie ****
+
+From the Blender menus select Add - Mesh - Sculpt Mesh.
+This will show a dialog where you can choose the sculptie type and
+alter the number of faces and multires levels. Normally you would
+only select the type as the default settings are correct. Changing
+the faces and multires level is provided for advanced techniques
+of Sculptie making.
+
+You can then move the vertice in edit mode or sculpt mode to create
+the desired sculptie shape. When finished you can create (or update)
+the sculptie map by selecting Render - Bake Second Life Sculpties
+from the menus.
+
+This will update the sculptie maps for all selected meshes. They will
+use the same scale, so if you want maximum detail only select one mesh
+before baking.
+
+If you are doing animated sculpties then all objects should have the
+same centre and any required offset done in mesh edit mode. Select all
+stages of the animation to bake at the same time.
+
+You can see and save the map images in the UV/Image Editor window.
+
+After saving, the sculptie map is scaled to one Blender Unit (1m in
+Second Life) in all three directions. If you prefer the sculptie to
+keep it's proportions at a sacrifice of some detail, then you can
+uncheck "Normalise". The console window will have the LSL script
+commands to recreate the sculpties in SL.
+
+The baker uses the UV map so any object mapped to a full flat square
+will work. If you have some mesh parts missing, then selecting
+"Fill Holes" will surface over missing pieces for the sculptie map.
+
+**** Importing an existing sculptie ****
+
+Simply select 'Second Life Sculptie' from the "File - Import" menu and
+choose the sculptie map to import (hint: click filename with middle mouse
+button to open quickly). You will be given an options dialog that will
+let you select the sculptured prim type and the scale (these match the
+sizes in Second Life).
+
+The mesh will be imported with 3 multires levels. You can switch between
+them on the editing panel. These correspond to the 3 highest levels of
+detail in Second Life so you can check how gracefully your sculptie
+degrades when viewed from a distance.
+
