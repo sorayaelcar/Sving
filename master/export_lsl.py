@@ -18,6 +18,8 @@ This script exports Second Life sculpties in lsl + tga files
 """
 
 #Changes:
+#0.07 Domino Marama 2008-07-10
+#- added linkset support
 #0.06 Domino Marama 2008-07-09
 #- minor bug fixes
 #0.05 Domino Marama 2008-06-29
@@ -59,6 +61,138 @@ This script exports Second Life sculpties in lsl + tga files
 
 import Blender
 from render_sculptie import updateSculptieMap, scaleRange
+
+#***********************************************
+# Templates
+#***********************************************
+
+MAIN_LSL = """string base = "Prim";
+list textures = [ %(textures)s ];
+vector myPos;
+
+integer isKey(key in)
+{
+	if(in) return 2;
+	return (in == NULL_KEY);
+}
+
+addPrim()
+{
+    llRezObject(base, myPos, ZERO_VECTOR, ZERO_ROTATION, 0 );
+}
+
+state default
+{
+	state_entry()
+	{
+		if ( llGetInventoryType( base ) != INVENTORY_OBJECT )
+		{
+			llOwnerSay( "Please add a prim called \"" + base + "\" to my contents" );
+			state needs_something;
+		}
+		tI = llGetListLength( textures );
+		while ( tI ):
+			if ( isKey( tS = llList2String( textures, tI = ~-tI ) ) == 0 )
+			{
+				if ( llGetInventoryType( tS ) != INVENTORY_TEXTURE )
+				{
+					llOwnerSay( "Please add texture \"" + tS + "\" to my contents" );
+					state needs_something;
+				}
+			}
+		}
+	        llRequestPermissions( llGetOwner(), PERMISSION_CHANGE_LINKS );
+	}
+
+	run_time_permissions( integer perm )
+	{
+		if ( perm & PERMISSION_CHANGE_LINKS )
+		{
+			state ready;
+		}
+		else
+		{
+			llOwnerSay( "You must give link permissions for the build to work. Click to try again." );
+			state needs_something;
+		}
+	}
+}
+
+state ready
+{
+	state_entry()
+	{
+		llOwnerSay( "Ready to build. Click to start." );
+	}
+
+	touch_start( integer num )
+	{
+		if ( llDetectedKey ( 0 ) == llGetOwner() )
+		{
+			state build;
+		}
+	}
+}
+
+state_build
+{
+	state_entry()
+	{
+		myPos = llGetPos();
+		addPrim();
+	}
+
+	object_rez( key id )
+	{
+		llCreateLink(id, FALSE );
+	}
+
+	changed( integer change )
+	{
+		if ( change & CHANGED_LINK )
+		{
+			tI = ~-llGetNumberOfPrims();
+			%(builder)s
+			{
+				llSetLinkPrimitiveParams( 1, [ %(rootParams)s ] );
+		                llBreakLink( llGetNumberOfPrims() );
+				llOwnerSay( "Finished!" );
+				state ready;
+			}
+		}
+	}
+}
+
+state needs_something
+{
+	on_rez( integer num)
+	{
+		state default;
+	}
+
+	changed( integer change )
+	{
+		if ( change & CHANGED_INVENTORY )
+		{
+			state default;
+		}
+	}
+
+	touch_start( integer num )
+	{
+		if ( llDetectedKey ( 0 ) == llGetOwner() )
+		{
+			state default;
+		}
+	}
+}
+"""
+LINK_LSL = """if ( tI == %(linkNum)i )
+			{
+				llSetLinkPrimitiveParams( 1, [ %(linkParams)s ] );
+				addPrim();
+			}
+			else """
 
 #***********************************************
 # classes
@@ -122,17 +256,20 @@ class prim:
 
 	def toLSL( self, prefix = "" ):
 		pt = ["missing","missing","missing","missing","missing","missing","missing","SCULPT"][ self.primtype ]
-		st = ["NONE", "SPHERE", "TORUS", "PLANE", "CYLINDER"][self.sculpttype]
-		lsl = prefix + "llSetPrimitiveParams( [ PRIM_TYPE, PRIM_TYPE_%s, "%( pt )
+		lsl = prefix + "llSetPrimitiveParams( [ " + self.toLSLParams() + " ] );\n"
+		lsl += prefix + "llSetObjectName( \"%s\" );\n"%( self.name )
+		return lsl
+
+	def toLSLParams( self ):
+		pt = ["missing","missing","missing","missing","missing","missing","missing","SCULPT"][ self.primtype ]
+		lsl = "PRIM_TYPE, PRIM_TYPE_%s, "%( pt )
 		if self.primtype == 7:
 			st = ["NONE", "SPHERE", "TORUS", "PLANE", "CYLINDER"][self.sculpttype]
 			lsl += "\"%s\", PRIM_SCULPT_TYPE_%s, "%( self.sculptimage.name, st )
 		lsl += "PRIM_SIZE, < %.5f, %.5f, %.5f >, "%( self.scale )
 		lsl += "PRIM_ROTATION, < %.5f, %.5f, %.5f, %.5f >"%( self.rotation )
 		for t in self.textures:
-			lsl += ", " + t.toLSL()
-		lsl += " ] );\n"
-		lsl += prefix + "llSetObjectName( \"%s\" );\n"%( self.name )
+			lsl += ", " + t.toLSLParams()
 		return lsl
 
 class texture:
@@ -149,7 +286,7 @@ class texture:
 		else:
 			self.face = -1
 
-	def toLSL( self ):
+	def toLSLParams( self ):
 		lsl = "PRIM_TEXTURE, "
 		if self.face == -1:
 			lsl += "ALL_SIDES, "
