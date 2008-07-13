@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.22"
+__version__ = "0.24"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -19,6 +19,10 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.24 Domino Marama 2008-07-13
+#- fixed centering of flat planes
+#0.23 Gaia Clary 2008-07-12
+#- round uv for triangle fill
 #0.22 Domino Marama 2008-07-06
 #- added compressible option requested by Aminom Marvin
 #0.21 Domino Marama 2008-06-29
@@ -183,9 +187,19 @@ class scaleRange:
 			self.y = self.maxy - self.miny
 			self.z = self.maxz - self.minz
 			# avoid divide by zero errors
-			if self.x == 0.0: self.x = 1.0
-			if self.y == 0.0: self.y = 1.0
-			if self.z == 0.0: self.z = 1.0
+			if self.x == 0.0:
+				self.minx -= 0.5
+				self.maxx += 0.5
+				self.x = 1.0
+			if self.y == 0.0:
+				self.y = 1.0
+				self.miny -= 0.5
+				self.maxy += 0.5
+			if self.z == 0.0:
+				self.minz -= 0.5
+				self.maxz += 0.5
+				self.z = 1.0
+
 	def normalise( self, co ):
 		return ( co[0] - self.minx ) / self.x, ( co[1] - self.miny ) / self.y, ( co[2] - self.minz ) / self.z
 		
@@ -381,8 +395,8 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 						r, g, b = scale.normalise( f.verts[ i ].co )
 						nf.append(
 							pixel(
-								f.uv[ i ][0] * sculptimage.size[0],
-								f.uv[ i ][1] * sculptimage.size[1],
+								round(f.uv[ i ][0] * sculptimage.size[0]),
+								round(f.uv[ i ][1] * sculptimage.size[1]),
 								round( r * 255.0 ) / 255.0, round( g * 255.0 ) / 255.0, round( b * 255.0 ) / 255.0
 							)
 						)
@@ -524,3 +538,4 @@ def main():
 
 if __name__ == '__main__':
 	main()
+
