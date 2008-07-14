@@ -8,7 +8,7 @@ Tooltip: 'Add a plane/torus/cylinder or sphere with square tiled UV map and mult
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.05"
+__version__ = "0.06"
 __bpydoc__ = """\
 
 Sculpt Mesh
@@ -16,6 +16,8 @@ Sculpt Mesh
 This script creates an object with a gridded UV map suitable for Second Life sculptie image maps.
 """
 
+#0.06 Domino Marama 2008-07-13
+#- Added hemi sculpt type
 #0.05 Domino Marama 2008-06-28
 #- settings ranges reduced to be mostly sensible
 #0.04 Domino Marama 2008-06-26
@@ -68,9 +70,10 @@ def main():
 	faces_x = Blender.Draw.Create( settings['x_faces'] )
 	faces_y = Blender.Draw.Create( settings['y_faces'] )
 	multires_levels = Blender.Draw.Create( settings['multires'] )
-	block.append (( "Mesh Type: ", sculpt_type, 1, 4 ))
+	block.append (( "Mesh Type: ", sculpt_type, 1, 5 ))
 	block.append (( "      1 Sphere  2 Torus" ))
 	block.append (( "      3 Plane   4 Cylinder" ))
+	block.append (( "      5 Hemi" ))
 	block.append (( "" ))
 	block.append (( "X Faces", faces_x, 2, 32 ))
 	block.append (( "Y Faces", faces_y, 2, 32 ))

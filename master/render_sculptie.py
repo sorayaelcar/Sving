@@ -239,7 +239,10 @@ def drawTri( image, verts ):
 		x = float(int(s1.x))
 		ex = float(int(e1.x))
 		while x <= ex and x <= image.size[0]:
-			s = ( x - s1.x ) / r1.x
+			if r1.x == 0:
+				s = ( x - s1.x )
+			else:
+				s = ( x - s1.x ) / r1.x
 			if s < 0.0:
 				x += 1.0
 				continue

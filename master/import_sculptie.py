@@ -9,7 +9,7 @@ Tooltip: 'Import from a Second Life sculptie image map (.tga)'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.29"
+__version__ = "0.30"
 __bpydoc__ = """\
 
 Sculptie Importer
@@ -18,6 +18,8 @@ This script creates an object from a Second Life sculptie image map
 """
 
 #Changes:
+#0.30 Domino Marama 2008-07-14
+#- added hemi generator
 #0.29 Domino Marama 2008-06-28
 #- sphere poles left as small circle
 #0.28 Domino Marama 2008-06-26
@@ -113,7 +115,7 @@ This script creates an object from a Second Life sculptie image map
 #***********************************************
 
 import Blender
-from math import sin, cos, pi
+from math import sin, cos, pi, sqrt
 
 #***********************************************
 # constants
@@ -123,6 +125,7 @@ SPHERE = 1
 TORUS = 2
 PLANE = 3
 CYLINDER = 4
+HEMI = 5
 FACES_X = 8
 FACES_Y = 8
 
@@ -200,6 +203,21 @@ def default_sculptie( mesh, sculptie_type, radius = 0.2 ):
 										sin( a ) * s,
 										cos( twopi * v ) / 2.0 * radius )
 
+				elif sculptie_type == HEMI:
+					b = sqrt( 2.0 )
+					z = -cos( twopi * min( u, v, 1.0 - u, 1.0 - v) ) / 2.0
+					u -= 0.5
+					v -= 0.5
+					h = sqrt(u * u + v * v)
+					a = pi + twopi * h
+					s = sqrt( sin( ( 0.5 - z ) * halfpi ) / 2.0 )
+					if h == 0.0: h = 1.0
+					x = u / h * s
+					y = v / h * s
+					f.verts[ vi ].co = Blender.Mathutils.Vector( x / b,
+										y / b ,
+										( 0.5 + z ) / 2.0 )
+
 	mesh.update()
 	mesh.sel = True
 	mesh.recalcNormals( 0 )
@@ -214,7 +232,7 @@ def new_sculptie( sculpt_type, faces_x=FACES_X, faces_y=FACES_Y, multires=2, fil
 		filebase = Blender.sys.basename(filename)
 		basename = Blender.sys.splitext(filebase)[0]
 	else:
-		basename = ("Sphere", "Torus", "Plane", "Cylinder")[sculpt_type -1]
+		basename = ("Sphere", "Torus", "Plane", "Cylinder", "Hemi")[sculpt_type -1]
 	scene = Blender.Scene.GetCurrent()
 	for ob in scene.objects:
 		ob.sel = False
@@ -231,7 +249,10 @@ def new_sculptie( sculpt_type, faces_x=FACES_X, faces_y=FACES_Y, multires=2, fil
 	ob.setLocation( Blender.Window.GetCursorPos() )
 	ob.sel = True
 	ob.addProperty( 'LL_PRIM_TYPE', 7 )
-	ob.addProperty( 'LL_SCULPT_TYPE', sculpt_type )
+	if sculpt_type == HEMI:
+		ob.addProperty( 'LL_SCULPT_TYPE', PLANE )
+	else:
+		ob.addProperty( 'LL_SCULPT_TYPE', sculpt_type )
 	if filename:
 		image = Blender.Image.Load( filename )
 		for f in mesh.faces:
@@ -277,7 +298,7 @@ def generate_base_mesh( name, sculpt_type, verts_x, verts_y ):
 	uv = []
 	verts = []
 	faces = []
-	wrap_x = ( sculpt_type != PLANE )
+	wrap_x = ( sculpt_type != PLANE ) & ( sculpt_type != HEMI )
 	wrap_y = ( sculpt_type == TORUS )
 	actual_x = verts_x - wrap_x
 	actual_y = verts_y - wrap_y
