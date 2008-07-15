@@ -9,7 +9,7 @@ Tooltip: 'Import from a Second Life sculptie image map (.tga)'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.30"
+__version__ = "0.31"
 __bpydoc__ = """\
 
 Sculptie Importer
@@ -214,7 +214,7 @@ def default_sculptie( mesh, sculptie_type, radius = 0.2 ):
 					s = sqrt( sin( ( 0.5 - z ) * halfpi ) / 2.0 )
 					if h == 0.0: h = 1.0
 					x = v / h * s
-					y = u / h * s
+					y = -1.0 * u / h * s
 					f.verts[ vi ].co = Blender.Mathutils.Vector( x / b,
 										y / b ,
 										( 0.5 + z ) / 2.0 )
