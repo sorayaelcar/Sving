@@ -71,6 +71,7 @@ def main( filename ):
 		except:
 				print "Skipping:", ob.name," is not a sculptie"
 				return
+
 		mesh = ob.getData( False, True)
 		if "sculptie" in mesh.getUVLayerNames():
 			mesh.activeUVLayer = "sculptie"
