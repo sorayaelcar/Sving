@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.24"
+__version__ = "0.25"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -19,6 +19,8 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.25 Domino Marama 2008-07-25
+#- fixed centering with normalise off
 #0.24 Domino Marama 2008-07-13
 #- fixed centering of flat planes
 #0.23 Gaia Clary 2008-07-12
@@ -154,7 +156,7 @@ class pixel:
 			str(self.b) + ")"
 
 class scaleRange:
-	def __init__ ( self, objects, normalised ):
+	def __init__ ( self, objects, normalised, centered = 0 ):
 		self.minx = None
 		for ob in objects:
 			if ob.type == 'Mesh':
@@ -183,6 +185,19 @@ class scaleRange:
 			if normalised == 0:
 				self.minx = self.miny = self.minz = min( self.minx, self.miny, self.minz )
 				self.maxx = self.maxy = self.maxz = max( self.maxx, self.maxy, self.maxz )
+			if centered == 1:
+				if -self.minx > self.maxx:
+					self.maxx = -self.minx
+				else:
+					self.minx = -self.maxx
+				if -self.miny > self.maxy:
+					self.maxy = -self.miny
+				else:
+					self.miny = -self.maxy
+				if -self.minz > self.maxz:
+					self.maxz = -self.minz
+				else:
+					self.minz = -self.maxz
 			self.x = self.maxx - self.minx
 			self.y = self.maxy - self.miny
 			self.z = self.maxz - self.minz
@@ -349,9 +364,9 @@ def expandPixels( image ):
 # bake UV map from XYZ
 #***********************************************
 
-def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True ):
+def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False ):
 	if scale == None:
-		scale = scaleRange( [ob], normalised )
+		scale = scaleRange( [ob], normalised, centered )
 	if ob.type == 'Mesh':
 		try:
 			primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
@@ -495,8 +510,10 @@ def main():
 	doFill = Blender.Draw.Create( False )
 	doNorm = Blender.Draw.Create( True )
 	doExpand = Blender.Draw.Create( True )
+	doCentre = Blender.Draw.Create( False )
 	block.append (( "Fill Holes", doFill ))
 	block.append (( "Normalise", doNorm ))
+	block.append (( "Keep Center", doCentre ))
 	block.append (( "Compressible", doExpand ))
 
 	if Blender.Draw.PupBlock( "Sculptie Bake Options", block ):
@@ -506,13 +523,13 @@ def main():
 		editmode = Blender.Window.EditMode()
 		if editmode: Blender.Window.EditMode(0)
 		Blender.Window.WaitCursor(1)
-		meshscale = scaleRange( scene.objects.selected , doNorm )
+		meshscale = scaleRange( scene.objects.selected , doNorm.val, doCentre.val )
 		if meshscale.minx == None:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
 		else:
 			for ob in scene.objects.selected:			
 				if ob.type == 'Mesh':
-					sculptie_map = updateSculptieMap( ob , meshscale, doFill.val, doNorm.val, doExpand.val )
+					sculptie_map = updateSculptieMap( ob , meshscale, doFill.val, doNorm.val, doExpand.val, doCentre.val )
 					try:
 						scale = ob.getSize()
 						primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
