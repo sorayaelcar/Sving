@@ -422,6 +422,27 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 		except ValueError:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["The UV map is outside","the image area"] )
 			return
+		if not centered:
+			mesh = ob.getData()
+			loc = ob.getLocation()
+			x = scale.minx + ( scale.x * 0.5 )
+			y = scale.miny + ( scale.y * 0.5 )
+			z = scale.minz + ( scale.z * 0.5 )
+			if (x, y, z) != ( 0.0, 0.0, 0.0 ):
+				x += loc[0]
+				y += loc[1]
+				z += loc[2]
+				mat = ob.getMatrix()
+				tran = Blender.Mathutils.TranslationMatrix( Blender.Mathutils.Vector( loc ) )
+				mesh.transform( tran )
+				mesh.update()
+				mat[3] = [0.0, 0.0, 0.0, 1.0]
+				ob.setMatrix( mat )
+				tran = Blender.Mathutils.TranslationMatrix( Blender.Mathutils.Vector( x, y, z ) * -1.0 )
+				mesh.transform( tran )
+				mesh.update()
+				mat[3] = [x, y, z , 1.0]
+				ob.setMatrix( mat )
 		if fill:
 			def getFirstX( y ):
 				for x in xrange( sculptimage.size[0] ):
