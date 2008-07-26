@@ -21,6 +21,8 @@ positions to the prim's sculptie map image.
 #Changes
 #0.25 Domino Marama 2008-07-25
 #- fixed centering with normalise off
+#- scaleRange now uses bounding box
+#- WIP: bake updates object scale (under rt:55)
 #0.24 Domino Marama 2008-07-13
 #- fixed centering of flat planes
 #0.23 Gaia Clary 2008-07-12
@@ -160,60 +162,55 @@ class scaleRange:
 		self.minx = None
 		for ob in objects:
 			if ob.type == 'Mesh':
-				mesh = Blender.Mesh.New()
-				mesh.getFromObject( ob, 0, 1 )
+				bb = ob.getBoundBox( 0 )
 				if self.minx == None:
-					self.minx = mesh.verts[0].co.x
-					self.maxx = self.minx
-					self.miny = mesh.verts[0].co.y
-					self.maxy = self.miny
-					self.minz = mesh.verts[0].co.z
-					self.maxz = self.minz
-				for v in mesh.verts[1:-1]:
-					if v.co.x < self.minx :
-						self.minx = v.co.x
-					elif v.co.x > self.maxx :
-						self.maxx = v.co.x
-					if v.co.y < self.miny :
-						self.miny = v.co.y
-					elif v.co.y > self.maxy :
-						self.maxy = v.co.y
-					if v.co.z < self.minz :
-						self.minz = v.co.z
-					elif v.co.z > self.maxz :
-						self.maxz = v.co.z
-			if normalised == 0:
-				self.minx = self.miny = self.minz = min( self.minx, self.miny, self.minz )
-				self.maxx = self.maxy = self.maxz = max( self.maxx, self.maxy, self.maxz )
-			if centered == 1:
-				if -self.minx > self.maxx:
-					self.maxx = -self.minx
+					self.minx, self.miny, self.minz = bb[0]
+					self.maxx, self.maxy, self.maxz = bb[6]
 				else:
-					self.minx = -self.maxx
-				if -self.miny > self.maxy:
-					self.maxy = -self.miny
-				else:
-					self.miny = -self.maxy
-				if -self.minz > self.maxz:
-					self.maxz = -self.minz
-				else:
-					self.minz = -self.maxz
-			self.x = self.maxx - self.minx
-			self.y = self.maxy - self.miny
-			self.z = self.maxz - self.minz
-			# avoid divide by zero errors
-			if self.x == 0.0:
-				self.minx -= 0.5
-				self.maxx += 0.5
-				self.x = 1.0
-			if self.y == 0.0:
-				self.y = 1.0
-				self.miny -= 0.5
-				self.maxy += 0.5
-			if self.z == 0.0:
-				self.minz -= 0.5
-				self.maxz += 0.5
-				self.z = 1.0
+					if bb[0][0] < self.minx:
+						self.minx = bb[0][0]
+					if bb[0][1] < self.miny:
+						self.miny = bb[0][1]
+					if bb[0][2] < self.minz:
+						self.minz = bb[0][2]
+					if bb[6][0] > self.maxx:
+						self.maxx = bb[6][0]
+					if bb[6][1] > self.maxy:
+						self.maxy = bb[6][1]
+					if bb[6][2] > self.maxz:
+						self.maxz = bb[6][2]
+				if normalised == 0:
+					self.minx = self.miny = self.minz = min( self.minx, self.miny, self.minz )
+					self.maxx = self.maxy = self.maxz = max( self.maxx, self.maxy, self.maxz )
+				if centered == 1:
+					if -self.minx > self.maxx:
+						self.maxx = -self.minx
+					else:
+						self.minx = -self.maxx
+					if -self.miny > self.maxy:
+						self.maxy = -self.miny
+					else:
+						self.miny = -self.maxy
+					if -self.minz > self.maxz:
+						self.maxz = -self.minz
+					else:
+						self.minz = -self.maxz
+				self.x = self.maxx - self.minx
+				self.y = self.maxy - self.miny
+				self.z = self.maxz - self.minz
+				# avoid divide by zero errors
+				if self.x == 0.0:
+					self.minx -= 0.5
+					self.maxx += 0.5
+					self.x = 1.0
+				if self.y == 0.0:
+					self.y = 1.0
+					self.miny -= 0.5
+					self.maxy += 0.5
+				if self.z == 0.0:
+					self.minz -= 0.5
+					self.maxz += 0.5
+					self.z = 1.0
 
 	def normalise( self, co ):
 		return ( co[0] - self.minx ) / self.x, ( co[1] - self.miny ) / self.y, ( co[2] - self.minz ) / self.z
@@ -365,6 +362,7 @@ def expandPixels( image ):
 #***********************************************
 
 def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False ):
+	rt = Blender.Get( 'rt' )
 	if scale == None:
 		scale = scaleRange( [ob], normalised, centered )
 	if ob.type == 'Mesh':
@@ -443,6 +441,19 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 				mesh.update()
 				mat[3] = [x, y, z , 1.0]
 				ob.setMatrix( mat )
+		if rt == 55:
+			s = ob.getSize()
+			nf = n = Blender.Mathutils.Vector( s[0] * scale.x, s[1] * scale.y, s[2] * scale.z )
+			sc = scaleRange( [ ob ], normalised, centered )
+			print sc.x, sc.y, sc.z, scale.x, scale.y, scale.z, s, normalised, centered
+			# only works with default settings, and only once.
+			tran = Blender.Mathutils.Matrix( [ n.x, 0.0, 0.0 ], [0.0, n.y, 0.0], [0.0, 0.0, n.z] ).resize4x4().invert()
+			mat = ob.getMatrix()
+			mat[0][0] = mat[1][1] = mat[2][2] = 1.0
+			mesh.transform( tran )
+			mesh.update()
+			ob.setMatrix( mat )
+			ob.setSize( nf )
 		if fill:
 			def getFirstX( y ):
 				for x in xrange( sculptimage.size[0] ):
