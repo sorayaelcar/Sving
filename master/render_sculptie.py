@@ -361,7 +361,7 @@ def expandPixels( image ):
 # bake UV map from XYZ
 #***********************************************
 
-def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False ):
+def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False, clear = True ):
 	rt = Blender.Get( 'rt' )
 	if scale == None:
 		scale = scaleRange( [ob], normalised, centered )
@@ -400,9 +400,10 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 			mesh.update()
 		mesh = Blender.Mesh.New()
 		mesh.getFromObject( ob, 0, 1 )
-		for u in xrange( sculptimage.size[0] ):
-			for v in xrange( sculptimage.size[1] ):
-				sculptimage.setPixelI(u, v, (0, 0, 0, 0))
+		if clear:
+			for u in xrange( sculptimage.size[0] ):
+				for v in xrange( sculptimage.size[1] ):
+					sculptimage.setPixelI(u, v, (0, 0, 0, 0))
 		try:
 			for f in mesh.faces:
 				for t in Blender.Geometry.PolyFill([ f.uv ]):
@@ -420,13 +421,15 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 		except ValueError:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["The UV map is outside","the image area"] )
 			return
+		offset = ( 0.0, 0.0, 0.0 )
 		if not centered:
 			mesh = ob.getData()
 			loc = ob.getLocation()
 			x = scale.minx + ( scale.x * 0.5 )
 			y = scale.miny + ( scale.y * 0.5 )
 			z = scale.minz + ( scale.z * 0.5 )
-			if (x, y, z) != ( 0.0, 0.0, 0.0 ):
+			if (x, y, z) != offset:
+				offset = Blender.Mathutils.Vector( x, y, z )
 				x += loc[0]
 				y += loc[1]
 				z += loc[2]
@@ -445,7 +448,7 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 			s = ob.getSize()
 			nf = n = Blender.Mathutils.Vector( s[0] * scale.x, s[1] * scale.y, s[2] * scale.z )
 			sc = scaleRange( [ ob ], normalised, centered )
-			print sc.x, sc.y, sc.z, scale.x, scale.y, scale.z, s, normalised, centered
+			print sc.x, sc.y, sc.z, offset, scale.x, scale.y, scale.z, s, normalised, centered
 			# only works with default settings, and only once.
 			tran = Blender.Mathutils.Matrix( [ n.x, 0.0, 0.0 ], [0.0, n.y, 0.0], [0.0, 0.0, n.z] ).resize4x4().invert()
 			mat = ob.getMatrix()
@@ -543,6 +546,8 @@ def main():
 	doNorm = Blender.Draw.Create( True )
 	doExpand = Blender.Draw.Create( True )
 	doCentre = Blender.Draw.Create( False )
+	doClear = Blender.Draw.Create( True )
+	block.append (( "Clear", doClear ))
 	block.append (( "Fill Holes", doFill ))
 	block.append (( "Normalise", doNorm ))
 	block.append (( "Keep Center", doCentre ))
@@ -561,7 +566,7 @@ def main():
 		else:
 			for ob in scene.objects.selected:			
 				if ob.type == 'Mesh':
-					sculptie_map = updateSculptieMap( ob , meshscale, doFill.val, doNorm.val, doExpand.val, doCentre.val )
+					sculptie_map = updateSculptieMap( ob , meshscale, doFill.val, doNorm.val, doExpand.val, doCentre.val, doClear.val )
 					try:
 						scale = ob.getSize()
 						primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
