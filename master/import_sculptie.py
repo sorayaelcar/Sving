@@ -18,8 +18,10 @@ This script creates an object from a Second Life sculptie image map
 """
 
 #Changes:
+#0.32 Domino Marama 2008-08-05
+#- corrected hemi rotation bug introduced by last "fix"
 #0.31 Domino Marama 2008-07-14
-#- corrected rotation on hemi
+#- corrected normals on hemi
 #0.30 Domino Marama 2008-07-14
 #- added hemi generator
 #0.29 Domino Marama 2008-06-28
@@ -213,8 +215,8 @@ def default_sculptie( mesh, sculptie_type, radius = 0.2 ):
 					h = sqrt(u * u + v * v)
 					s = sqrt( sin( ( 0.5 - z ) * halfpi ) / 2.0 )
 					if h == 0.0: h = 1.0
-					x = v / h * s
-					y = -1.0 * u / h * s
+					y = v / h * s
+					x = 1.0 * u / h * s
 					f.verts[ vi ].co = Blender.Mathutils.Vector( x / b,
 										y / b ,
 										( 0.5 + z ) / 2.0 )

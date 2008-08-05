@@ -446,17 +446,24 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 				ob.setMatrix( mat )
 		if rt == 55:
 			s = ob.getSize()
+			mat = ob.getMatrix().scalePart()
+			print mat
 			nf = n = Blender.Mathutils.Vector( s[0] * scale.x, s[1] * scale.y, s[2] * scale.z )
 			sc = scaleRange( [ ob ], normalised, centered )
-			print sc.x, sc.y, sc.z, offset, scale.x, scale.y, scale.z, s, normalised, centered
-			# only works with default settings, and only once.
-			tran = Blender.Mathutils.Matrix( [ n.x, 0.0, 0.0 ], [0.0, n.y, 0.0], [0.0, 0.0, n.z] ).resize4x4().invert()
+			sx = sc.x / scale.x
+			sy = sc.y / scale.y
+			sz = sc.z / scale.z
+			print sc.x, sc.y, sc.z, offset, scale.x, scale.y, scale.z, s, normalised, centered, sx, sy, sz
+			#tran = Blender.Mathutils.Matrix( [ n.x, 0.0, 0.0 ], [0.0, n.y, 0.0], [0.0, 0.0, n.z] ).resize4x4()
+			tran = Blender.Mathutils.Matrix( [ mat.x, 0.0, 0.0 ], [0.0, mat.y, 0.0], [0.0, 0.0, mat.z] ).resize4x4()
 			mat = ob.getMatrix()
-			mat[0][0] = mat[1][1] = mat[2][2] = 1.0
+			mat[0][0] = sx
+			mat[1][1] = sy
+			mat[2][2] = sz
 			mesh.transform( tran )
 			mesh.update()
 			ob.setMatrix( mat )
-			ob.setSize( nf )
+			ob.setSize( Blender.Mathutils.Vector( sx, sy, sz ) )
 		if fill:
 			def getFirstX( y ):
 				for x in xrange( sculptimage.size[0] ):
