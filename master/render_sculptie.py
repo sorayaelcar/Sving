@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.25"
+__version__ = "0.26"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -19,6 +19,8 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.26 Domino Marama 2008-08-27
+#- added support for oblong sculpties
 #0.25 Domino Marama 2008-07-25
 #- fixed centering with normalise off
 #- scaleRange now uses bounding box
@@ -330,29 +332,22 @@ def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 			sb = 1.0
 
 def expandPixels( image ):
-	dx = image.size[0] / 32
-	if ( dx != int(dx) ):
-		print "Unable to make " + image.name + "' compressible as X size is not a multiple of 32"
-		return
-	dy = image.size[1] / 32
-	if ( dy != int(dy) ):
-		print "Unable to make '" + image.name + "' compressible as Y size is not a multiple of 32"
-		return
-	for y in xrange( 0, image.size[1], dy ):
+	d = 2
+	for y in xrange( 0, image.size[1], d ):
 		for x in xrange( 0, image.size[0] - 1):
-			if x % dx:
+			if x % d:
 				image.setPixelF( x, y, c )
 			else:
 				c = image.getPixelF( x, y )
 	y = image.size[1] - 1
 	for x in xrange( 0, image.size[0] - 1):
-			if x % dx:
+			if x % d:
 				image.setPixelF( x, y, c )
 			else:
 				c = image.getPixelF( x, y )
 	for x in xrange( 0, image.size[0] ):
 		for y in xrange( 0, image.size[1] -1 ):
-			if y % dy:
+			if y % d:
 				image.setPixelF( x, y, c )
 			else:
 				c = image.getPixelF( x, y )
