@@ -19,6 +19,8 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.27 Domino Marama 2008-09-14
+#- Fixed overshoot on triangle fill
 #0.26 Domino Marama 2008-08-27
 #- added support for oblong sculpties
 #0.25 Domino Marama 2008-07-25
@@ -279,7 +281,7 @@ def drawHLine( image, y, s, e, sr, sg, sb, er, eg, eb ):
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
-	for u in xrange( s, e + 1 ):
+	for u in xrange( s, e  ):
 		image.setPixelF( u, y, ( sr, sg, sb, 1.0 ) )
 		sr += dr
 		sg += dg
@@ -310,7 +312,7 @@ def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
-	for v in xrange( s, e + 1 ):
+	for v in xrange( s, e  ):
 		if v == image.size[1]:
 			image.setPixelF( x, v - 1, ( sr, sg, sb, 1.0 ) )
 		else:
