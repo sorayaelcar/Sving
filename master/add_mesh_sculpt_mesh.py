@@ -8,14 +8,16 @@ Tooltip: 'Add a plane/torus/cylinder or sphere with square tiled UV map and mult
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.08"
+__version__ = "0.09"
 __bpydoc__ = """\
 
 Sculpt Mesh
 
 This script creates an object with a gridded UV map suitable for Second Life sculptie image maps.
 """
-#0.08 Domino Marama 2008-08-27
+#0.09 Domino Marama 2008-10-17
+#- Added subsurf modifer for lod levels
+#0.08 Domino Marama 2008-10-17
 #- Added clean LODs option and proper oblong support
 #0.07 Domino Marama 2008-08-27
 #- Increased max faces for oblong sculpties
@@ -66,7 +68,7 @@ PLANE = 3
 CYLINDER = 4
 HEMI = 5
 
-settings = {'x_faces':8,'y_faces':8,'type':1,'multires':2, 'clean_lod':True, 'radius':0.25}
+settings = {'x_faces':8,'y_faces':8,'type':1,'multires':2, 'clean_lod':True, 'radius':0.25, 'subsurf':False}
 
 def adjust_size( width, height, s, t ):
 	ratio = float(width) / float(height)
@@ -100,7 +102,7 @@ def calc_map_size( requested_SizeS, requested_SizeT, levels ):
 		ct = False
 	return s, t, w, h, cs, ct
 
-def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = True ):
+def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = True, subsurf = False ):
 	Blender.Window.WaitCursor(1)
 	basename = ("Sphere", "Torus", "Plane", "Cylinder", "Hemi")[sculpt_type -1]
 	scene = Blender.Scene.GetCurrent()
@@ -121,10 +123,33 @@ def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 		Blender.Registry.SetKey('Import-Sculptie', settings, True) # save latest settings
 	mesh = generate_base_mesh( basename, sculpt_type, faces_x, faces_y, multires, clean_lods )
 	ob = scene.objects.new( mesh, basename )
-	ob.setLocation( Blender.Window.GetCursorPos() )
 	ob.sel = True
+	ob.setLocation( Blender.Window.GetCursorPos() )
 	if sculpt_type == PLANE:
 		mesh.flipNormals()
+	if multires:
+		if subsurf:
+			mods = ob.modifiers
+			mod = mods.append(Blender.Modifier.Types.SUBSURF)
+			mod[Blender.Modifier.Settings.LEVELS] = multires
+		else:
+			mesh.multires = True
+			mesh.addMultiresLevel( multires )
+			for v in mesh.verts:
+				v.sel = True
+			scale = ob.getBoundBox()[-2]
+			x = 0.5 / scale[0]
+			y = 0.5 / scale[1]
+			if sculpt_type == TORUS:
+				z = settings['radius'] * 0.5 / scale[2]
+			elif sculpt_type == PLANE:
+				z = 0.0
+			else:
+				z = 0.5 / scale[2]
+			tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
+			mesh.transform( tran )
+		if sculpt_type == HEMI:
+			mesh.toSphere()
 	ob.addProperty( 'LL_PRIM_TYPE', 7 )
 	if sculpt_type == HEMI:
 		ob.addProperty( 'LL_SCULPT_TYPE', PLANE )
@@ -260,6 +285,7 @@ def main():
 			settings['multires'] = rdict['multires']
 			settings['type'] = rdict['type']
 			settings['clean_lod'] = rdict['clean_lod']
+			settings['subsurf'] = rdict['subsurf']
 		except:
 			pass
 	block = []
@@ -268,13 +294,14 @@ def main():
 	faces_y = Blender.Draw.Create( settings['y_faces'] )
 	multires_levels = Blender.Draw.Create( settings['multires'] )
 	clean_lod = Blender.Draw.Create( settings['clean_lod'] )
+	subsurf = Blender.Draw.Create( settings['subsurf'] )
 	block.append (( "Mesh Type: ", sculpt_type, 1, 5 ))
-	block.append (( "      1 Sphere  2 Torus" ))
-	block.append (( "      3 Plane   4 Cylinder" ))
-	block.append (( "      5 Hemi" ))
+	block.append (( "  1 Sphere  2 Torus  3 Plane" ))
+	block.append (( "      4 Cylinder  5 Hemi" ))
 	block.append (( "X Faces", faces_x, 2, 256 ))
 	block.append (( "Y Faces", faces_y, 2, 256 ))
 	block.append (( "Multires Levels", multires_levels, 0, 16 ))
+	block.append (( "Use Subsurf", subsurf ))
 	block.append (( "Clean LODs", clean_lod ))
 	if Blender.Draw.PupBlock( "Sculpt Mesh Options", block ):
 		settings['x_faces'] = faces_x.val
@@ -282,6 +309,7 @@ def main():
 		settings['multires'] = multires_levels.val
 		settings['type'] = sculpt_type.val
 		settings['clean_lod'] = clean_lod.val
+		settings['subsurf'] = subsurf.val
 		Blender.Registry.SetKey('AddMesh-SculptMesh', settings, True)
 		in_editmode = Blender.Window.EditMode()
 		# MUST leave edit mode before changing an active mesh:
@@ -292,7 +320,7 @@ def main():
 				in_editmode = Blender.Get('add_editmode')
 			except:
 				pass
-		ob = new_sculptie( sculpt_type.val, faces_x.val, faces_y.val, multires_levels.val, clean_lod.val )
+		ob = new_sculptie( sculpt_type.val, faces_x.val, faces_y.val, multires_levels.val, clean_lod.val, subsurf.val )
 		if in_editmode:
 			Blender.Window.EditMode(1)
 
