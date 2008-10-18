@@ -324,4 +324,5 @@ def main():
 		if in_editmode:
 			Blender.Window.EditMode(1)
 
-main()
+if __name__ == '__main__':
+	main()
