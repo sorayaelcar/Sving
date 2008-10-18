@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.25"
+__version__ = "0.26"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -19,6 +19,10 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.27 Domino Marama 2008-09-14
+#- Fixed overshoot on triangle fill
+#0.26 Domino Marama 2008-08-27
+#- added support for oblong sculpties
 #0.25 Domino Marama 2008-07-25
 #- fixed centering with normalise off
 #- scaleRange now uses bounding box
@@ -277,7 +281,7 @@ def drawHLine( image, y, s, e, sr, sg, sb, er, eg, eb ):
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
-	for u in xrange( s, e + 1 ):
+	for u in xrange( s, e  ):
 		image.setPixelF( u, y, ( sr, sg, sb, 1.0 ) )
 		sr += dr
 		sg += dg
@@ -308,7 +312,7 @@ def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
-	for v in xrange( s, e + 1 ):
+	for v in xrange( s, e  ):
 		if v == image.size[1]:
 			image.setPixelF( x, v - 1, ( sr, sg, sb, 1.0 ) )
 		else:
@@ -330,29 +334,22 @@ def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 			sb = 1.0
 
 def expandPixels( image ):
-	dx = image.size[0] / 32
-	if ( dx != int(dx) ):
-		print "Unable to make " + image.name + "' compressible as X size is not a multiple of 32"
-		return
-	dy = image.size[1] / 32
-	if ( dy != int(dy) ):
-		print "Unable to make '" + image.name + "' compressible as Y size is not a multiple of 32"
-		return
-	for y in xrange( 0, image.size[1], dy ):
+	d = 2
+	for y in xrange( 0, image.size[1], d ):
 		for x in xrange( 0, image.size[0] - 1):
-			if x % dx:
+			if x % d:
 				image.setPixelF( x, y, c )
 			else:
 				c = image.getPixelF( x, y )
 	y = image.size[1] - 1
 	for x in xrange( 0, image.size[0] - 1):
-			if x % dx:
+			if x % d:
 				image.setPixelF( x, y, c )
 			else:
 				c = image.getPixelF( x, y )
 	for x in xrange( 0, image.size[0] ):
 		for y in xrange( 0, image.size[1] -1 ):
-			if y % dy:
+			if y % d:
 				image.setPixelF( x, y, c )
 			else:
 				c = image.getPixelF( x, y )
@@ -446,17 +443,24 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 				ob.setMatrix( mat )
 		if rt == 55:
 			s = ob.getSize()
+			mat = ob.getMatrix().scalePart()
+			print mat
 			nf = n = Blender.Mathutils.Vector( s[0] * scale.x, s[1] * scale.y, s[2] * scale.z )
 			sc = scaleRange( [ ob ], normalised, centered )
-			print sc.x, sc.y, sc.z, offset, scale.x, scale.y, scale.z, s, normalised, centered
-			# only works with default settings, and only once.
-			tran = Blender.Mathutils.Matrix( [ n.x, 0.0, 0.0 ], [0.0, n.y, 0.0], [0.0, 0.0, n.z] ).resize4x4().invert()
+			sx = sc.x / scale.x
+			sy = sc.y / scale.y
+			sz = sc.z / scale.z
+			print sc.x, sc.y, sc.z, offset, scale.x, scale.y, scale.z, s, normalised, centered, sx, sy, sz
+			#tran = Blender.Mathutils.Matrix( [ n.x, 0.0, 0.0 ], [0.0, n.y, 0.0], [0.0, 0.0, n.z] ).resize4x4()
+			tran = Blender.Mathutils.Matrix( [ mat.x, 0.0, 0.0 ], [0.0, mat.y, 0.0], [0.0, 0.0, mat.z] ).resize4x4()
 			mat = ob.getMatrix()
-			mat[0][0] = mat[1][1] = mat[2][2] = 1.0
+			mat[0][0] = sx
+			mat[1][1] = sy
+			mat[2][2] = sz
 			mesh.transform( tran )
 			mesh.update()
 			ob.setMatrix( mat )
-			ob.setSize( nf )
+			ob.setSize( Blender.Mathutils.Vector( sx, sy, sz ) )
 		if fill:
 			def getFirstX( y ):
 				for x in xrange( sculptimage.size[0] ):

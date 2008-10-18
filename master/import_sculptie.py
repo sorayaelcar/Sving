@@ -9,7 +9,7 @@ Tooltip: 'Import from a Second Life sculptie image map (.tga)'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.31"
+__version__ = "0.33"
 __bpydoc__ = """\
 
 Sculptie Importer
@@ -18,8 +18,12 @@ This script creates an object from a Second Life sculptie image map
 """
 
 #Changes:
+#0.33 Domino Marama 2008-08-27
+#- added support for oblong sculpties
+#0.32 Domino Marama 2008-08-05
+#- corrected hemi rotation bug introduced by last "fix"
 #0.31 Domino Marama 2008-07-14
-#- corrected rotation on hemi
+#- corrected normals on hemi
 #0.30 Domino Marama 2008-07-14
 #- added hemi generator
 #0.29 Domino Marama 2008-06-28
@@ -213,8 +217,8 @@ def default_sculptie( mesh, sculptie_type, radius = 0.2 ):
 					h = sqrt(u * u + v * v)
 					s = sqrt( sin( ( 0.5 - z ) * halfpi ) / 2.0 )
 					if h == 0.0: h = 1.0
-					x = v / h * s
-					y = -1.0 * u / h * s
+					y = v / h * s
+					x = 1.0 * u / h * s
 					f.verts[ vi ].co = Blender.Mathutils.Vector( x / b,
 										y / b ,
 										( 0.5 + z ) / 2.0 )
@@ -232,17 +236,22 @@ def new_sculptie( sculpt_type, faces_x=FACES_X, faces_y=FACES_Y, multires=2, fil
 	if filename:
 		filebase = Blender.sys.basename(filename)
 		basename = Blender.sys.splitext(filebase)[0]
+		image = Blender.Image.Load( filename )
+		faces_x, faces_y = image.size
+		faces_x /= 2 ** multires
+		faces_y /= 2 ** multires
 	else:
 		basename = ("Sphere", "Torus", "Plane", "Cylinder", "Hemi")[sculpt_type -1]
+		image = Blender.Image.New( basename,
+				faces_x * (2 ** (multires + 1)), faces_y  * (2 ** (multires + 1)), 32 )
 	scene = Blender.Scene.GetCurrent()
 	for ob in scene.objects:
 		ob.sel = False
 	mesh = generate_base_mesh( basename, sculpt_type, faces_x + 1, faces_y + 1 )
 	if multires and 'addMultiresLevel' not in dir( mesh ):
 		print "Warning: this version of Blender does not support addMultiresLevel, get 2.46 or later from http://www.blender.org for full functionality"
-		for i in range(multires):
-			faces_x *= 2
-			faces_y *= 2
+		faces_x *= 2 ** multires
+		faces_y *= 2 ** multires
 		multires = 0
 		del( mesh )
 		mesh = generate_base_mesh( basename, sculpt_type, faces_x + 1, faces_y + 1 )
@@ -254,11 +263,9 @@ def new_sculptie( sculpt_type, faces_x=FACES_X, faces_y=FACES_Y, multires=2, fil
 		ob.addProperty( 'LL_SCULPT_TYPE', PLANE )
 	else:
 		ob.addProperty( 'LL_SCULPT_TYPE', sculpt_type )
-	if filename:
-		image = Blender.Image.Load( filename )
-		for f in mesh.faces:
-			f.image = image
-	elif sculpt_type == TORUS:
+	for f in mesh.faces:
+		f.image = image
+	if sculpt_type == TORUS and filename == None:
 		rdict = Blender.Registry.GetKey('Import-Sculptie', True) # True to check on disk also
 		if rdict: # if found, get the values saved there
 			try:
