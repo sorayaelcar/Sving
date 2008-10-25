@@ -9,7 +9,7 @@ Tooltip: 'Import from a Second Life sculptie image map (.tga)'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.34"
+__version__ = "0.36"
 __bpydoc__ = """\
 
 Sculptie Importer
@@ -18,6 +18,10 @@ This script creates an object from a Second Life sculptie image map
 """
 
 #Changes:
+#0.36 Domino Marama 2008-10-25
+#- Wrapped edges are marked as seams
+#0.35 Domino Marama 2008-10-19
+#- Added face counts on multires calculation
 #0.34 Domino Marama 2008-10-18
 #- Jira VWR-9384 style oblong support
 #- add mesh api support removed as it's now in add_mesh_sculpt_mesh.py
@@ -146,9 +150,9 @@ def adjust_size( width, height, s, t ):
 	if width != height:
 		verts = verts & 0xfff8
 	t = int(sqrt( verts / ratio))
-	t = max( t, 4.0 )
+	t = max( t, 4 )
 	s = verts // t
-	s = max( s, 4.0 )
+	s = max( s, 4 )
 	t = verts // s
 	return int(s), int(t)
 
@@ -203,7 +207,7 @@ def new_sculptie( sculpt_type, filename ):
 	faces_x, faces_y = image.size
 	faces_x, faces_y = adjust_size( faces_x, faces_y, 32, 32 )
 	multires = 0
-	while multires < 2 and not ( (faces_x & 1) or (faces_y & 1) ):
+	while multires < 2 and faces_x >= 8 and faces_y >= 8 and not ( (faces_x & 1) or (faces_y & 1) ):
 		faces_x = faces_x >> 1
 		faces_y = faces_y >> 1
 		multires += 1
@@ -244,6 +248,7 @@ def generate_base_mesh( name, sculpt_type, verts_x, verts_y ):
 	mesh = Blender.Mesh.New("%s.mesh"%name)
 	uv = []
 	verts = []
+	seams = []
 	faces = []
 	wrap_x = ( sculpt_type != PLANE ) & ( sculpt_type != HEMI )
 	wrap_y = ( sculpt_type == TORUS )
@@ -261,8 +266,16 @@ def generate_base_mesh( name, sculpt_type, verts_x, verts_y ):
 			verts.append( mesh.verts[-1] )
 		if wrap_x:
 			verts.append( mesh.verts[ -actual_x ] )
+			if y:
+				seams.append( ( (y - 1) * actual_x, y * actual_x ) )
+				if wrap_y:
+					if y == actual_y - 1:
+						seams.append( ( 0, y * actual_x ) )
 	if wrap_y:
 		verts.extend( verts[:verts_x] )
+		for x in xrange( actual_x - 1 ):
+			seams.append( ( x, x + 1 ) )
+		seams.append( ( 0, actual_x - 1 ) )
 	for y in xrange( verts_y - 1 ):
 		offset_y = y * verts_x
 		for x in xrange( verts_x - 1 ):
@@ -284,6 +297,9 @@ def generate_base_mesh( name, sculpt_type, verts_x, verts_y ):
 	for f in xrange( len(mesh.faces) ):
 		mesh.faces[ f ].uv = uv[ f ]
 	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" );
+	if seams != []:
+		for e in mesh.findEdges( seams ):
+			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
 	return mesh	
 
 #***********************************************

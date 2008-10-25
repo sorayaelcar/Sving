@@ -8,13 +8,15 @@ Tooltip: 'Add a plane/torus/cylinder or sphere with square tiled UV map and mult
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.09"
+__version__ = "0.10"
 __bpydoc__ = """\
 
 Sculpt Mesh
 
 This script creates an object with a gridded UV map suitable for Second Life sculptie image maps.
 """
+#0.10 Domino Marama 2008-10-25
+#- Wrapped edges are marked as seams
 #0.09 Domino Marama 2008-10-17
 #- Added subsurf modifer for lod levels
 #0.08 Domino Marama 2008-10-17
@@ -76,9 +78,9 @@ def adjust_size( width, height, s, t ):
 	if width != height:
 		verts = verts & 0xfff8
 	t = int(sqrt( verts / ratio))
-	t = max( t, 4.0 )
+	t = max( t, 4 )
 	s = verts // t
-	s = max( s, 4.0 )
+	s = max( s, 4 )
 	t = verts // s
 	return int(s), int(t)
 
@@ -180,6 +182,7 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 	uv = []
 	verts = []
 	faces = []
+	seams = []
 	uvgrid_s = []
 	uvgrid_t = []
 	s, t, w, h, clean_s, clean_t = calc_map_size( faces_x, faces_y, levels )
@@ -250,8 +253,16 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 			verts.append ( mesh.verts[-1] )
 		if wrap_x:
 			verts.append( mesh.verts[ -verts_s ] )
+			if i:
+				seams.append( ( (i - 1) * verts_s, i * verts_s ) )
+				if wrap_y:
+					if i == verts_t - 1:
+						seams.append( ( 0, i * verts_s ) )
 	if wrap_y:
 		verts.extend( verts[:(s+1)] )
+		for x in xrange( verts_s - 1 ):
+			seams.append( ( x, x + 1 ) )
+		seams.append( ( 0, verts_s - 1 ) )
 	for y in xrange( t ):
 		offset_y = y * (s +1)
 		for x in xrange( s ):
@@ -274,6 +285,9 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 		mesh.faces[ f ].uv = uv[ f ]
 		mesh.faces[ f ].image = image
 	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" )
+	if seams != []:
+		for e in mesh.findEdges( seams ):
+			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
 	return mesh
 
 def main():
