@@ -8,13 +8,15 @@ Tooltip: 'Add a plane/torus/cylinder or sphere with square tiled UV map and mult
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.10"
+__version__ = "0.11"
 __bpydoc__ = """\
 
 Sculpt Mesh
 
 This script creates an object with a gridded UV map suitable for Second Life sculptie image maps.
 """
+#0.11 Domino Marama 2008-10-27
+#- Use getBB from render_sculptie.py
 #0.10 Domino Marama 2008-10-25
 #- Wrapped edges are marked as seams
 #0.09 Domino Marama 2008-10-17
@@ -59,6 +61,7 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 
 import Blender
 from math import log, ceil, sqrt, pi, sin, cos
+from render_sculptie import getBB
 
 #***********************************************
 # constants
@@ -139,19 +142,17 @@ def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 			mesh.addMultiresLevel( multires )
 			for v in mesh.verts:
 				v.sel = True
-			scale = ob.getBoundBox()[-2]
-			x = 0.5 / scale[0]
-			y = 0.5 / scale[1]
-			if sculpt_type == TORUS:
-				z = settings['radius'] * 0.5 / scale[2]
-			elif sculpt_type == PLANE:
-				z = 0.0
-			else:
-				z = 0.5 / scale[2]
-			tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
-			mesh.transform( tran )
-		if sculpt_type == HEMI:
-			mesh.toSphere()
+		scale = getBB( ob )[1]
+		x = 0.5 / scale[0]
+		y = 0.5 / scale[1]
+		if sculpt_type == TORUS:
+			z = settings['radius'] * 0.5 / scale[2]
+		elif sculpt_type == PLANE:
+			z = 0.0
+		else:
+			z = 0.5 / scale[2]
+		tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
+		mesh.transform( tran )
 	ob.addProperty( 'LL_PRIM_TYPE', 7 )
 	if sculpt_type == HEMI:
 		ob.addProperty( 'LL_SCULPT_TYPE', PLANE )
