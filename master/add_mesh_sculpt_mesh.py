@@ -3,7 +3,7 @@
 Name: 'Sculpt Mesh'
 Blender: 246
 Group: 'AddMesh'
-Tooltip: 'Add a plane/torus/cylinder or sphere with square tiled UV map and multires'
+Tooltip: 'Add a Second Life sculptie compatible mesh'
 """
 
 __author__ = ["Domino Marama"]
@@ -13,7 +13,7 @@ __bpydoc__ = """\
 
 Sculpt Mesh
 
-This script creates an object with a gridded UV map suitable for Second Life sculptie image maps.
+This script creates an object with a gridded UV map suitable for Second Life sculpties.
 """
 #0.11 Domino Marama 2008-10-27
 #- Use getBB from render_sculptie.py
@@ -315,7 +315,7 @@ def main():
 	block.append (( "      4 Cylinder  5 Hemi" ))
 	block.append (( "X Faces", faces_x, 2, 256 ))
 	block.append (( "Y Faces", faces_y, 2, 256 ))
-	block.append (( "Multires Levels", multires_levels, 0, 16 ))
+	block.append (( "Subdivision Levels", multires_levels, 0, 16 ))
 	block.append (( "Use Subsurf", subsurf ))
 	block.append (( "Clean LODs", clean_lod ))
 	if Blender.Draw.PupBlock( "Sculpt Mesh Options", block ):
