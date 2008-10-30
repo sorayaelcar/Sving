@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.28"
+__version__ = "0.29"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -19,6 +19,8 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.29 Domino Marama 2008-10-30
+#- Alpha channel preview protection added
 #0.28 Domino Marama 2008-10-26
 #- scaleRange uses calculation when modifiers involved
 #0.27 Domino Marama 2008-09-14
@@ -385,6 +387,22 @@ def expandPixels( image ):
 			else:
 				c = image.getPixelF( x, y )
 
+def protectMap( image ):
+	for x in xrange( image.size[0] ):
+		for y in xrange( image.size[1] ):
+			c1 = image.getPixelF( x, y )
+			c1[3] = 0.0
+			image.setPixelF( x, y, c1 )
+	for x in xrange( image.size[0] ):
+		for y in xrange( image.size[1] ):
+			c1 = image.getPixelF( x, y )
+			s = int( (image.size[0] - 1) * (0.5 + (0.5 - c1[0]) * c1[1] ))
+			t = int( (image.size[1] - 1) * ( 0.5 + (0.5 - c1[2]) * c1[1]) )
+			c2 = image.getPixelF( s, t )
+			if c2[3] < c1[1]:
+				c2[3] = c1[1]
+				image.setPixelF( s, t, c2 )
+
 #***********************************************
 # bake UV map from XYZ
 #***********************************************
@@ -582,11 +600,13 @@ def main():
 	doExpand = Blender.Draw.Create( True )
 	doCentre = Blender.Draw.Create( False )
 	doClear = Blender.Draw.Create( True )
+	doProtect = Blender.Draw.Create( True )
 	block.append (( "Clear", doClear ))
 	block.append (( "Fill Holes", doFill ))
 	block.append (( "Normalise", doNorm ))
 	block.append (( "Keep Center", doCentre ))
 	block.append (( "Compressible", doExpand ))
+	block.append (( "Protect Map", doProtect ))
 
 	if Blender.Draw.PupBlock( "Sculptie Bake Options", block ):
 		print "--------------------------------"
@@ -619,6 +639,13 @@ def main():
 								rotation[0]
 							)
 							print "llSetPrimitiveParams( [ PRIM_TYPE, PRIM_TYPE_SCULPT, \"%s\", PRIM_SCULPT_TYPE_%s, PRIM_SIZE, < %.5f, %.5f, %.5f >, PRIM_ROTATION, < %.5f, %.5f, %.5f, %.5f > ] );"%priminfo
+							if doProtect.val:
+								mesh = ob.getData( False, True)
+								if "sculptie" in mesh.getUVLayerNames():
+									mesh.activeUVLayer = "sculptie"
+									mesh.update()
+								image = mesh.faces[0].image
+								protectMap( image )
 					except:
 						pass
 
@@ -630,4 +657,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-
