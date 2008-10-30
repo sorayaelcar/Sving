@@ -396,8 +396,8 @@ def protectMap( image ):
 	for x in xrange( image.size[0] ):
 		for y in xrange( image.size[1] ):
 			c1 = image.getPixelF( x, y )
-			s = int( (image.size[0] - 1) * (0.5 + (0.5 - c1[0]) * c1[1] ))
-			t = int( (image.size[1] - 1) * ( 0.5 + (0.5 - c1[2]) * c1[1]) )
+			s = int( (image.size[0] - 1) * (0.5 - (0.5 - c1[0]) * c1[1]))
+			t = int( (image.size[1] - 1) * (0.5 - (0.5 - c1[2]) * c1[1]))
 			c2 = image.getPixelF( s, t )
 			if c2[3] < c1[1]:
 				c2[3] = c1[1]
