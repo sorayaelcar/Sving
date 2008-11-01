@@ -597,7 +597,7 @@ def main():
 	block = []
 	doFill = Blender.Draw.Create( False )
 	doNorm = Blender.Draw.Create( True )
-	doExpand = Blender.Draw.Create( True )
+	doExpand = Blender.Draw.Create( False )
 	doCentre = Blender.Draw.Create( False )
 	doClear = Blender.Draw.Create( True )
 	doProtect = Blender.Draw.Create( True )

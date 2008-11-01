@@ -128,6 +128,8 @@ def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 		Blender.Registry.SetKey('Import-Sculptie', settings, True) # save latest settings
 	mesh = generate_base_mesh( basename, sculpt_type, faces_x, faces_y, multires, clean_lods )
 	ob = scene.objects.new( mesh, basename )
+	if sculpt_type != PLANE:
+		mesh.flipNormals()
 	ob.sel = True
 	ob.setLocation( Blender.Window.GetCursorPos() )
 	if sculpt_type == PLANE:
@@ -137,6 +139,7 @@ def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 			mods = ob.modifiers
 			mod = mods.append(Blender.Modifier.Types.SUBSURF)
 			mod[Blender.Modifier.Settings.LEVELS] = multires
+			mod[Blender.Modifier.Settings.UV] = False
 		else:
 			mesh.multires = True
 			mesh.addMultiresLevel( multires )
@@ -221,20 +224,20 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 			if sculpt_type == CYLINDER:
 				a = pi + twopi * path
 				vert = Blender.Mathutils.Vector( sin( a )/2.0,
-									cos( a  )/2.0,
+									-cos( a  )/2.0,
 									profile - 0.5 )
 			elif sculpt_type == SPHERE:
 				a = pi + twopi * path
 				ps = sin( pi * profile ) / 2.0
 				vert = Blender.Mathutils.Vector( sin( a ) * ps,
-									cos( a ) * ps,
+									-cos( a ) * ps,
 									-cos( pi * profile ) / 2.0 )
 
 			elif sculpt_type == TORUS:
 				a = pi + twopi * path
 				ps = (( 1.0 - settings['radius'] ) - sin( 2.0 * pi * profile) * settings['radius']) / 2.0
 				vert = Blender.Mathutils.Vector( sin( a ) * ps,
-									cos( a ) * ps,
+									-cos( a ) * ps,
 									cos( twopi * profile ) / 2.0 * settings['radius'] )
 
 			elif sculpt_type == HEMI:
@@ -247,7 +250,7 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 				if ph == 0.0: ph = 1.0
 				y = pa / ph * ps
 				x = pr / ph * ps
-				vert = Blender.Mathutils.Vector( x / b, y / b , ( 0.5 + z ) / 2.0 )
+				vert = Blender.Mathutils.Vector( x / b, -y / b , ( 0.5 + z ) / 2.0 )
 			else:
 				vert = Blender.Mathutils.Vector( path - 0.5, profile - 0.5, 0.0 )
 			mesh.verts.extend( [ vert ] )
