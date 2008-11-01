@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.29"
+__version__ = "0.30"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -19,6 +19,8 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.30 Domino Marama 2008-11-01
+#- bug fix to getBB
 #0.29 Domino Marama 2008-10-30
 #- Alpha channel preview protection added
 #0.28 Domino Marama 2008-10-26
@@ -235,32 +237,27 @@ if version_info[0] == 2 and version_info[1] < 4:
 	    return newseq
 
 def getBB( obj ):
-	if len(obj.modifiers) == 0:
-		bb = obj.getBoundBox( 0 )
-		min_x, min_y, min_z = bb[0]
-		max_x, max_y, max_z = bb[6]
-	else:
-		mesh = Blender.Mesh.New()
-		mesh.getFromObject( obj, 0, 1 )
-		min_x = mesh.verts[0].co.x
-		max_x = min_x
-		min_y = mesh.verts[0].co.y
-		max_y = min_y
-		min_z = mesh.verts[0].co.z
-		max_z = min_z
-		for v in mesh.verts[1:-1]:
-			if v.co.x < min_x :
-				min_x = v.co.x
-			elif v.co.x > max_x :
-				max_x = v.co.x
-			if v.co.y < min_y :
-				min_y = v.co.y
-			elif v.co.y > max_y :
-				max_y = v.co.y
-			if v.co.z < min_z :
-				min_z = v.co.z
-			elif v.co.z > max_z :
-				max_z = v.co.z
+	mesh = Blender.Mesh.New()
+	mesh.getFromObject( obj, 0, 1 )
+	min_x = mesh.verts[0].co.x
+	max_x = min_x
+	min_y = mesh.verts[0].co.y
+	max_y = min_y
+	min_z = mesh.verts[0].co.z
+	max_z = min_z
+	for v in mesh.verts[1:-1]:
+		if v.co.x < min_x :
+			min_x = v.co.x
+		elif v.co.x > max_x :
+			max_x = v.co.x
+		if v.co.y < min_y :
+			min_y = v.co.y
+		elif v.co.y > max_y :
+			max_y = v.co.y
+		if v.co.z < min_z :
+			min_z = v.co.z
+		elif v.co.z > max_z :
+			max_z = v.co.z
 	return ( min_x, min_y, min_z ), ( max_x, max_y, max_z )
 
 def drawTri( image, verts ):
