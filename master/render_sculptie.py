@@ -285,13 +285,13 @@ def drawTri( image, verts ):
 		scanlines = scanlines[4:]
 		r1 = e1 - s1
 		r2 = e2 - s2
-		x = float(int(s1.x))
+		x = xs = float(int(s1.x))
 		ex = float(int(e1.x))
 		while x <= ex and x <= image.size[0]:
 			if r1.x == 0:
-				s = ( x - s1.x )
+				s = ( x - xs )
 			else:
-				s = ( x - s1.x ) / r1.x
+				s = ( x - xs ) / r1.x
 			if s < 0.0:
 				x += 1.0
 				continue
@@ -314,8 +314,11 @@ def drawHLine( image, y, s, e, sr, sg, sb, er, eg, eb ):
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
-	for u in xrange( s, e  ):
-		image.setPixelF( u, y, ( sr, sg, sb, 1.0 ) )
+	for u in xrange( s, e + 1  ):
+		if u == image.size[0]:
+			image.setPixelF( u - 1, y, ( sr, sg, sb, 1.0 ) )
+		else:
+			image.setPixelF( u, y, ( sr, sg, sb, 1.0 ) )
 		sr += dr
 		sg += dg
 		sb += db
@@ -345,7 +348,7 @@ def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
-	for v in xrange( s, e  ):
+	for v in xrange( s, e + 1 ):
 		if v == image.size[1]:
 			image.setPixelF( x, v - 1, ( sr, sg, sb, 1.0 ) )
 		else:
