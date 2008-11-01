@@ -250,7 +250,7 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 				if ph == 0.0: ph = 1.0
 				y = pa / ph * ps
 				x = pr / ph * ps
-				vert = Blender.Mathutils.Vector( x / b, -y / b , ( 0.5 + z ) / 2.0 )
+				vert = Blender.Mathutils.Vector( y / b, x / b , ( 0.5 + z ) / 2.0 )
 			else:
 				vert = Blender.Mathutils.Vector( path - 0.5, profile - 0.5, 0.0 )
 			mesh.verts.extend( [ vert ] )
