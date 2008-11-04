@@ -95,6 +95,10 @@ def calc_map_size( requested_SizeS, requested_SizeT, levels ):
 	t = min( h, requested_SizeT )
 	w = int(pow(2, levels + 1 + ceil( log(w>>levels) / log(2))))
 	h = int(pow(2, levels + 1 + ceil( log(h>>levels) / log(2))))
+	if w == h == 8:
+		# 8 x 8 won't upload
+		w = 16
+		h = 16
 	cs = True
 	ct = True
 	if ( s<<(levels + 1) > w ):

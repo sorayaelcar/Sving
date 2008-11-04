@@ -340,6 +340,18 @@ def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 	if s - e == 0:
 		if s == image.size[1]:
 			s -= 1
+		if sr < 0:
+			sr = 0
+		if sg < 0:
+			sg = 0
+		if sb < 0:
+			sb = 0
+		if sr > 1.0:
+			sr = 1.0
+		if sg > 1.0:
+			sg = 1.0
+		if sb > 1.0:
+			sb = 1.0
 		image.setPixelF( x, s, ( sr, sg, sb, 1.0 ) )
 		return
 	dr = ( er - sr ) / ( e - s )
@@ -584,7 +596,6 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 			if skipx: fillX()
 		if expand:
 			expandPixels ( sculptimage )
-		sculptimage.makeCurrent()
 		return Blender.sys.splitext( sculptimage.name )[0]
 	else:
 		return None
@@ -596,16 +607,16 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 def main():
 	block = []
 	doFill = Blender.Draw.Create( False )
-	doNorm = Blender.Draw.Create( True )
+	doScale = Blender.Draw.Create( False )
 	doExpand = Blender.Draw.Create( False )
 	doCentre = Blender.Draw.Create( False )
 	doClear = Blender.Draw.Create( True )
 	doProtect = Blender.Draw.Create( True )
 	block.append (( "Clear", doClear ))
 	block.append (( "Fill Holes", doFill ))
-	block.append (( "Normalise", doNorm ))
+	block.append (( "Keep Scale", doScale ))
 	block.append (( "Keep Center", doCentre ))
-	block.append (( "Compressible", doExpand ))
+	block.append (( "True Mirror", doExpand ))
 	block.append (( "Protect Map", doProtect ))
 
 	if Blender.Draw.PupBlock( "Sculptie Bake Options", block ):
@@ -615,13 +626,13 @@ def main():
 		editmode = Blender.Window.EditMode()
 		if editmode: Blender.Window.EditMode(0)
 		Blender.Window.WaitCursor(1)
-		meshscale = scaleRange( scene.objects.selected , doNorm.val, doCentre.val )
+		meshscale = scaleRange( scene.objects.selected , not doScale.val, doCentre.val )
 		if meshscale.minx == None:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
 		else:
 			for ob in scene.objects.selected:			
 				if ob.type == 'Mesh':
-					sculptie_map = updateSculptieMap( ob , meshscale, doFill.val, doNorm.val, doExpand.val, doCentre.val, doClear.val )
+					sculptie_map = updateSculptieMap( ob , meshscale, doFill.val, not doScale.val, doExpand.val, doCentre.val, doClear.val )
 					try:
 						scale = ob.getSize()
 						primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
