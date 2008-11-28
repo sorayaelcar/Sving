@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.30"
+__version__ = "0.31"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -19,6 +19,10 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.31 Domino Marama 2008-11-28
+#- RGB range adjustment added
+#- Preview improved & made optional
+#- Map name updated on bake if appropriate
 #0.30 Domino Marama 2008-11-01
 #- bug fix to getBB
 #0.29 Domino Marama 2008-10-30
@@ -168,8 +172,14 @@ class pixel:
 			str(self.b) + ")"
 
 class scaleRange:
-	def __init__ ( self, objects, normalised, centered = 0 ):
+	def __init__ ( self, objects, normalised, centered = 0, colourRange= ( 0,255,0,255,0,255 )):
 		self.minx = None
+		self.minr = colourRange[0]
+		self.r = colourRange[1] - self.minr
+		self.ming = colourRange[2]
+		self.g = colourRange[3] - self.ming
+		self.minb = colourRange[4]
+		self.b = colourRange[5] - self.minb
 		for ob in objects:
 			if ob.type == 'Mesh':
 				bb = getBB( ob )
@@ -225,6 +235,10 @@ class scaleRange:
 	def normalise( self, co ):
 		return ( co[0] - self.minx ) / self.x, ( co[1] - self.miny ) / self.y, ( co[2] - self.minz ) / self.z
 		
+	def adjusted( self, co ):
+		r, g, b = self.normalise( co )
+		return (self.minr + ( r * self.r )) / 255.0, (self.ming + ( g * self.g )) / 255.0,  (self.minb + ( b * self.b )) / 255.0
+
 #***********************************************
 # Functions
 #***********************************************
@@ -399,21 +413,23 @@ def expandPixels( image ):
 			else:
 				c = image.getPixelF( x, y )
 
-def protectMap( image ):
+def protectMap( image, preview ):
 	for x in xrange( image.size[0] ):
 		for y in xrange( image.size[1] ):
 			c1 = image.getPixelF( x, y )
 			c1[3] = 0.0
 			image.setPixelF( x, y, c1 )
-	for x in xrange( image.size[0] ):
-		for y in xrange( image.size[1] ):
-			c1 = image.getPixelF( x, y )
-			s = int( (image.size[0] - 1) * (0.5 - (0.5 - c1[0]) * c1[1]))
-			t = int( (image.size[1] - 1) * (0.5 - (0.5 - c1[2]) * c1[1]))
-			c2 = image.getPixelF( s, t )
-			if c2[3] < c1[1]:
-				c2[3] = c1[1]
-				image.setPixelF( s, t, c2 )
+	if preview:
+		for x in xrange( image.size[0] ):
+			for y in xrange( image.size[1] ):
+				c1 = image.getPixelF( x, y )
+				f = (c1[1] * 0.35) + 0.65
+				s = int( (image.size[0] - 1) * (0.5 - (0.5 - c1[0]) * f))
+				t = int( (image.size[1] - 1) * (0.5 - (0.5 - c1[2]) * f))
+				c2 = image.getPixelF( s, t )
+				if c2[3] < c1[1]:
+					c2[3] = c1[1]
+					image.setPixelF( s, t, c2 )
 
 #***********************************************
 # bake UV map from XYZ
@@ -467,7 +483,7 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 				for t in Blender.Geometry.PolyFill([ f.uv ]):
 					nf = []
 					for i in t:
-						r, g, b = scale.normalise( f.verts[ i ].co )
+						r, g, b = scale.adjusted( f.verts[ i ].co )
 						nf.append(
 							pixel(
 								round(f.uv[ i ][0] * sculptimage.size[0]),
@@ -596,7 +612,14 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 			if skipx: fillX()
 		if expand:
 			expandPixels ( sculptimage )
-		return Blender.sys.splitext( sculptimage.name )[0]
+		n = Blender.sys.splitext( sculptimage.name )
+		if n[-1] in ["tga", "TGA"]:
+			n = n[:-2]
+		if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map" ]:
+			sculptimage.name = ob.name + "_map"
+			return sculptimage.name
+		sep = "."
+		return sep.join( n )
 	else:
 		return None
 
@@ -612,12 +635,28 @@ def main():
 	doCentre = Blender.Draw.Create( False )
 	doClear = Blender.Draw.Create( True )
 	doProtect = Blender.Draw.Create( True )
+	doPreview = Blender.Draw.Create( True )
+	minR = Blender.Draw.Create( 0 )
+	maxR = Blender.Draw.Create( 255 )
+	minG = Blender.Draw.Create( 0 )
+	maxG = Blender.Draw.Create( 255 )
+	minB = Blender.Draw.Create( 0 )
+	maxB = Blender.Draw.Create( 255 )
 	block.append (( "Clear", doClear ))
 	block.append (( "Fill Holes", doFill ))
 	block.append (( "Keep Scale", doScale ))
 	block.append (( "Keep Center", doCentre ))
 	block.append (( "True Mirror", doExpand ))
 	block.append (( "Protect Map", doProtect ))
+	block.append (( "With Preview", doPreview ))
+	block.append (( " " ))
+	block.append (( "   Color Range Adjustment" ))
+	block.append (( "Min R:", minR, 0, 255 ))
+	block.append (( "Max R:", maxR, 0, 255 ))
+	block.append (( "Min G:", minG, 0, 255 ))
+	block.append (( "Max G:", maxG, 0, 255 ))
+	block.append (( "Min B:", minB, 0, 255 ))
+	block.append (( "Max B:", maxB, 0, 255 ))
 
 	if Blender.Draw.PupBlock( "Sculptie Bake Options", block ):
 		print "--------------------------------"
@@ -626,7 +665,7 @@ def main():
 		editmode = Blender.Window.EditMode()
 		if editmode: Blender.Window.EditMode(0)
 		Blender.Window.WaitCursor(1)
-		meshscale = scaleRange( scene.objects.selected , not doScale.val, doCentre.val )
+		meshscale = scaleRange( scene.objects.selected , not doScale.val, doCentre.val, (minR.val,maxR.val,minG.val,maxG.val,minB.val,maxB.val) )
 		if meshscale.minx == None:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
 		else:
@@ -656,7 +695,7 @@ def main():
 									mesh.activeUVLayer = "sculptie"
 									mesh.update()
 								image = mesh.faces[0].image
-								protectMap( image )
+								protectMap( image, doPreview.val )
 					except:
 						pass
 

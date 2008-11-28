@@ -73,7 +73,7 @@ PLANE = 3
 CYLINDER = 4
 HEMI = 5
 
-settings = {'x_faces':8,'y_faces':8,'type':1,'multires':2, 'clean_lod':True, 'radius':0.25, 'subsurf':False}
+settings = {'x_faces':8,'y_faces':8,'type':1,'multires':2, 'clean_lod':True, 'radius':0.25, 'subsurf':True}
 
 def adjust_size( width, height, s, t ):
 	ratio = float(width) / float(height)
