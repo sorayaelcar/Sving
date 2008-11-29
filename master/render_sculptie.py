@@ -613,13 +613,11 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 		if expand:
 			expandPixels ( sculptimage )
 		n = Blender.sys.splitext( sculptimage.name )
-		if n[-1] in ["tga", "TGA"]:
-			n = n[:-2]
+		n = n[:-1]
 		if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map" ]:
 			sculptimage.name = ob.name + "_map"
 			return sculptimage.name
-		sep = "."
-		return sep.join( n )
+		return ".".join( n )
 	else:
 		return None
 

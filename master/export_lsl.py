@@ -192,7 +192,7 @@ def export_lsl( filename ):
             newprim.fromOb( ob )
             if newprim.primtype == 7 and newprim.sculpttype > 0:
                 if newprim.sculptimage == None:
-                    sn = updateSculptieMap( ob , None, True )
+                    sn = updateSculptieMap( ob )
                     newprim.sculptimage = texture( sn , Blender.Image.Get( sn ) )
             prims.append( newprim )
 
