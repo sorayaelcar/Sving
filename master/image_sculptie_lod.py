@@ -8,7 +8,7 @@ Tooltip: 'Bake a sculptie LOD to image'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.01"
+__version__ = "0.02"
 __bpydoc__ = """\
 
 Bake Sculptie LOD
@@ -16,6 +16,8 @@ Bake Sculptie LOD
 This script bakes a sculptie LOD helper to the active image
 """
 
+#0.02 Domino Marama 2008-11-29
+#- Adjust size used to match other scripts
 #0.01 Domino Marama 2008-11-29
 #- Initial Version
 
@@ -43,18 +45,17 @@ This script bakes a sculptie LOD helper to the active image
 import Blender
 from math import sqrt
 
-def fixed_size( width, height, detail ):
-	sides = float([ 6, 8, 16, 32 ][detail])
+def adjust_size( width, height, s, t ):
 	ratio = float(width) / float(height)
-	verts = int(min( 0.25 * width * height, sides * sides))
+	verts = int(min( 0.25 * width * height, s * t ))
 	#if width != height:
 	#	verts = verts & 0xfff8
-	s = int(sqrt( verts / ratio))
-	s = max( s, 4.0 )
-	t = verts // s
-	t = max( t, 4.0 )
+	t = int(sqrt( verts / ratio))
+	t = max( t, 4 )
 	s = verts // t
-	return int(t), int(s)
+	s = max( s, 4 )
+	t = verts // s
+	return int(s), int(t)
 
 def main():
 	image = Blender.Image.GetCurrent()
@@ -65,20 +66,21 @@ def main():
 			for v in range(y):
 				image.setPixelF( u, v, ( float(u) / x, float(v) / y, 0.0, 1.0 ) )
 		for l in range(4):
-			t, s = fixed_size( x, y, l )
+			sides = [ 6, 8, 16, 32 ][l]
+			s, t = adjust_size( x , y, sides, sides )
 			ts = []
 			ss = []
-			for k in range( t ):
-				ts.append( int(x * k / float(t)) )
 			for k in range( s ):
-				ss.append( int(y * k / float(s)) )
-			ts.append( x - 1 )
-			ss.append( y - 1)
-			for u in ts:
-				for v in ss:
-					c = image.getPixelF( u, v )
+				ss.append( int(x * k / float(s)) )
+			for k in range( t ):
+				ts.append( int(y * k / float(t)) )
+			ts.append( y - 1)
+			ss.append( x - 1 )
+			for s in ss:
+				for t in ts:
+					c = image.getPixelF( s, t )
 					c[2] += 0.25
-					image.setPixelF( u, v, c )
+					image.setPixelF( s, t, c )
 
 if __name__ == '__main__':
 	main()
