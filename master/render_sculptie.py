@@ -435,7 +435,7 @@ def protectMap( image, preview ):
 # bake UV map from XYZ
 #***********************************************
 
-def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False, clear = True ):
+def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False, clear = True, scaleRGB = True ):
 	rt = Blender.Get( 'rt' )
 	if scale == None:
 		scale = scaleRange( [ob], normalised, centered )
@@ -451,9 +451,6 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 			sculptie_type = Blender.Draw.PupMenu( "Sculpt Type?%t|Sphere|Torus|Plane|Cylinder" )
 			ob.addProperty( 'LL_PRIM_TYPE', 7 )
 			ob.addProperty( 'LL_SCULPT_TYPE', sculptie_type )
-			ob.addProperty( 'X_SCALE', scale.x )
-			ob.addProperty( 'Y_SCALE', scale.y )
-			ob.addProperty( 'Z_SCALE', scale.z )
 		if sculptie_type < 1:
 			print "Skipping:", ob.name, " - sculptie type is 'NONE'"
 			return
@@ -518,26 +515,13 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 				mesh.update()
 				mat[3] = [x, y, z , 1.0]
 				ob.setMatrix( mat )
-		if rt == 55:
-			s = ob.getSize()
-			mat = ob.getMatrix().scalePart()
-			print mat
-			nf = n = Blender.Mathutils.Vector( s[0] * scale.x, s[1] * scale.y, s[2] * scale.z )
-			sc = scaleRange( [ ob ], normalised, centered )
-			sx = sc.x / scale.x
-			sy = sc.y / scale.y
-			sz = sc.z / scale.z
-			print sc.x, sc.y, sc.z, offset, scale.x, scale.y, scale.z, s, normalised, centered, sx, sy, sz
-			#tran = Blender.Mathutils.Matrix( [ n.x, 0.0, 0.0 ], [0.0, n.y, 0.0], [0.0, 0.0, n.z] ).resize4x4()
-			tran = Blender.Mathutils.Matrix( [ mat.x, 0.0, 0.0 ], [0.0, mat.y, 0.0], [0.0, 0.0, mat.z] ).resize4x4()
-			mat = ob.getMatrix()
-			mat[0][0] = sx
-			mat[1][1] = sy
-			mat[2][2] = sz
-			mesh.transform( tran )
-			mesh.update()
-			ob.setMatrix( mat )
-			ob.setSize( Blender.Mathutils.Vector( sx, sy, sz ) )
+		if scaleRGB:
+			sf = scale.adjusted( (scale.minx + scale.x, scale.miny + scale.y, scale.minz + scale.z ) )
+		else:
+			sf = scale.normalise( (scale.minx + scale.x, scale.miny + scale.y, scale.minz + scale.z ) )
+		sculptimage.properties['scale_x'] = sf[0]
+		sculptimage.properties['scale_y'] = sf[1]
+		sculptimage.properties['scale_z'] = sf[2]
 		if fill:
 			def getFirstX( y ):
 				for x in xrange( sculptimage.size[0] ):
@@ -640,6 +624,7 @@ def main():
 	maxG = Blender.Draw.Create( 255 )
 	minB = Blender.Draw.Create( 0 )
 	maxB = Blender.Draw.Create( 255 )
+	doScaleRGB = Blender.Draw.Create( True )
 	block.append (( "Clear", doClear ))
 	block.append (( "Fill Holes", doFill ))
 	block.append (( "Keep Scale", doScale ))
@@ -655,6 +640,7 @@ def main():
 	block.append (( "Max G:", maxG, 0, 255 ))
 	block.append (( "Min B:", minB, 0, 255 ))
 	block.append (( "Max B:", maxB, 0, 255 ))
+	block.append (( "Include in Size", doScaleRGB ))
 
 	if Blender.Draw.PupBlock( "Sculptie Bake Options", block ):
 		print "--------------------------------"

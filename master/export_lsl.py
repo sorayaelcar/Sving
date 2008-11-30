@@ -86,27 +86,24 @@ class prim:
         if self.primtype == 7:
             self.sculpttype = ob.getProperty( 'LL_SCULPT_TYPE' ).getData()
             mesh = ob.getData( False, True )
-            try:
-                ms = ( ob.getProperty( 'SCALE_X' ).getData(),
-                        ob.getProperty( 'SCALE_Y' ).getData(),
-                        ob.getProperty( 'SCALE_Z' ).getData() )
-            except:
-                ms = scaleRange( [ ob ], True )
-                ms = ( ms.x, ms.y, ms.z )
-            self.location = ( ob.loc[0], ob.loc[1], ob.loc[2] )
-            self.scale = ( ob.SizeX * ms[0], ob.SizeY * ms[1], ob.SizeZ * ms[2] )
+            ms = scaleRange( [ ob ], True )
+            ms = ( ms.x, ms.y, ms.z )
             currentUV = mesh.activeUVLayer
             if "sculptie" in mesh.getUVLayerNames():
                 mesh.activeUVLayer = "sculptie"
                 mesh.update()
                 image = mesh.faces[0].image
                 if image:
-                    filebase = Blender.sys.basename( image.filename )
+                    filebase = Blender.sys.basename( image.name )
                     if filebase[-4:] in [ ".tga", ".TGA" ]:
                         si = Blender.sys.splitext(filebase)[0]
                     else:
                         si = filebase
                     self.sculptimage = texture( si, image )
+                    if 'scale_x' in image.properties:
+			    ms = ( ms[0] / image.properties['scale_x'],
+				ms[1] / image.properties['scale_y'],
+				ms[2] / image.properties['scale_z'] )
                 else:
                     self.sculptimage = None
             if "UVTex" in mesh.getUVLayerNames():
@@ -122,6 +119,8 @@ class prim:
                     self.textures.append( newtex )
             mesh.activeUVLayer = currentUV
             mesh.update()
+            self.location = ( ob.loc[0], ob.loc[1], ob.loc[2] )
+            self.scale = ( ob.SizeX * ms[0], ob.SizeY * ms[1], ob.SizeZ * ms[2] )
 
     def toLSL( self, prefix = "" ):
         pt = ["missing","missing","missing","missing","missing","missing","missing","SCULPT"][ self.primtype ]
