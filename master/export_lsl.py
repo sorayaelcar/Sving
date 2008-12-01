@@ -87,7 +87,7 @@ class prim:
             self.sculpttype = ob.getProperty( 'LL_SCULPT_TYPE' ).getData()
             mesh = ob.getData( False, True )
             ms = scaleRange( [ ob ], True )
-            ms = ( ms.x, ms.y, ms.z )
+            self.scale = ( ms.x, ms.y, ms.z )
             currentUV = mesh.activeUVLayer
             if "sculptie" in mesh.getUVLayerNames():
                 mesh.activeUVLayer = "sculptie"
@@ -101,9 +101,13 @@ class prim:
                         si = filebase
                     self.sculptimage = texture( si, image )
                     if 'scale_x' in image.properties:
-			    ms = ( ms[0] / image.properties['scale_x'],
-				ms[1] / image.properties['scale_y'],
-				ms[2] / image.properties['scale_z'] )
+			    print image.name
+			    print image.properties['scale_x'],image.properties['scale_y'],image.properties['scale_z']
+			    print self.scale
+			    self.scale = ( self.scale[0] * image.properties['scale_x'],
+				self.scale[1] * image.properties['scale_y'],
+				self.scale[2] * image.properties['scale_z'] )
+			    print self.scale
                 else:
                     self.sculptimage = None
             if "UVTex" in mesh.getUVLayerNames():
@@ -120,7 +124,6 @@ class prim:
             mesh.activeUVLayer = currentUV
             mesh.update()
             self.location = ( ob.loc[0], ob.loc[1], ob.loc[2] )
-            self.scale = ( ob.SizeX * ms[0], ob.SizeY * ms[1], ob.SizeZ * ms[2] )
 
     def toLSL( self, prefix = "" ):
         pt = ["missing","missing","missing","missing","missing","missing","missing","SCULPT"][ self.primtype ]

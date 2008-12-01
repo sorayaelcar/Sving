@@ -233,11 +233,20 @@ class scaleRange:
 					self.z = 1.0
 
 	def normalise( self, co ):
-		return ( co[0] - self.minx ) / self.x, ( co[1] - self.miny ) / self.y, ( co[2] - self.minz ) / self.z
+		r = ( co[0] - self.minx ) / self.x
+		g = ( co[1] - self.miny ) / self.y
+		b = ( co[2] - self.minz ) / self.z
+		if r > 1.0: r = 1.0
+		if g > 1.0: g = 1.0
+		if b > 1.0: b = 1.0
+		return r, g, b
 		
 	def adjusted( self, co ):
 		r, g, b = self.normalise( co )
-		return (self.minr + ( r * self.r )) / 255.0, (self.ming + ( g * self.g )) / 255.0,  (self.minb + ( b * self.b )) / 255.0
+		r = (self.minr + ( r * self.r )) / 255.0
+		g = (self.ming + ( g * self.g )) / 255.0
+		b = (self.minb + ( b * self.b )) / 255.0
+		return r, g, b
 
 #***********************************************
 # Functions
@@ -515,13 +524,14 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 				mesh.update()
 				mat[3] = [x, y, z , 1.0]
 				ob.setMatrix( mat )
+		bb = getBB( ob )
 		if scaleRGB:
-			sf = scale.adjusted( (scale.minx + scale.x, scale.miny + scale.y, scale.minz + scale.z ) )
+			sf = ( scale.r / 255.0, scale.g / 255.0, scale.b / 255.0 )
 		else:
-			sf = scale.normalise( (scale.minx + scale.x, scale.miny + scale.y, scale.minz + scale.z ) )
-		sculptimage.properties['scale_x'] = sf[0]
-		sculptimage.properties['scale_y'] = sf[1]
-		sculptimage.properties['scale_z'] = sf[2]
+			sf = ( 1.0, 1.0, 1.0 )
+		sculptimage.properties['scale_x'] = scale.x / (( bb[1][0] - bb[0][0] ) * sf[0])
+		sculptimage.properties['scale_y'] = scale.y / (( bb[1][1] - bb[0][1] ) * sf[1])
+		sculptimage.properties['scale_z'] = scale.z / (( bb[1][2] - bb[0][2] ) * sf[2])
 		if fill:
 			def getFirstX( y ):
 				for x in xrange( sculptimage.size[0] ):
