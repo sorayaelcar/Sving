@@ -334,7 +334,7 @@ def drawHLine( image, y, s, e, sr, sg, sb, er, eg, eb ):
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
-	for u in xrange( s, e + 1  ):
+	for u in xrange( s, e ):
 		if u == image.size[0]:
 			image.setPixelF( u - 1, y, ( sr, sg, sb, 1.0 ) )
 		else:
@@ -529,9 +529,18 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 			sf = ( scale.r / 255.0, scale.g / 255.0, scale.b / 255.0 )
 		else:
 			sf = ( 1.0, 1.0, 1.0 )
-		sculptimage.properties['scale_x'] = scale.x / (( bb[1][0] - bb[0][0] ) * sf[0])
-		sculptimage.properties['scale_y'] = scale.y / (( bb[1][1] - bb[0][1] ) * sf[1])
-		sculptimage.properties['scale_z'] = scale.z / (( bb[1][2] - bb[0][2] ) * sf[2])
+		try:
+			sculptimage.properties['scale_x'] = scale.x / (( bb[1][0] - bb[0][0] ) * sf[0])
+		except:
+			sculptimage.properties['scale_x'] = scale.x * sf[0]
+		try:
+			sculptimage.properties['scale_y'] = scale.y / (( bb[1][1] - bb[0][1] ) * sf[1])
+		except:
+			sculptimage.properties['scale_y'] = scale.y * sf[1]
+		try:
+			sculptimage.properties['scale_z'] = scale.z / (( bb[1][2] - bb[0][2] ) * sf[2])
+		except:
+			sculptimage.properties['scale_z'] = scale.z * sf[2]
 		if fill:
 			def getFirstX( y ):
 				for x in xrange( sculptimage.size[0] ):
