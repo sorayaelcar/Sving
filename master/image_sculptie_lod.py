@@ -81,6 +81,8 @@ def main():
 					c = image.getPixelF( s, t )
 					c[2] += 0.25
 					image.setPixelF( s, t, c )
+	else:
+		Blender.Draw.PupBlock( "Sculptie Bake Error", ["No current image"] )
 
 if __name__ == '__main__':
 	main()
