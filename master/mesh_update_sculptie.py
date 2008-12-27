@@ -93,5 +93,5 @@ def main( filename ):
 # Request image file
 #***********************************************
 
-Blender.Window.ImageSelector( main, 'Select Sculptie Map', '.tga' )
+Blender.Window.FileSelector( main, 'Select Sculptie Map', '.tga' )
 
