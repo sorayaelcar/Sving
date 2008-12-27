@@ -10,26 +10,35 @@ you can get from http://www.blender.org/download/get-blender/
 
 **** Installation ****
 
-copy the .py files to your Blender scripts directory as listed below.
+copy the .py files to your Blender scripts directory. The exact directory varies depending on the
+options you selected during the install of Blender.
 
-Linux: ~/.blender/scripts
-Mac: /Applications/blender/blender.app/Contents/MacOS/.blender/scripts/
-Windows XP: c:\Program Files\Blender Foundation\Blender\.blender\scripts
-Windows Vista: C:\Users\USERNAME\AppData\Roaming\Blender Foundation\Blender\.blender\scripts
+If you go to Help - System - System Information it will create a text document with the correct path in.
 
-Note: The exact directory may change depending on install version, but
-should be something like the ones listed. Mac users may need to enable
-viewing all files to find the correct folder
-http://www.macworld.com/article/51830/2006/07/showallfinder.html
+Go to the "Text Editor" and you should see a toolbar icon that looks like up and down triangles.
 
-If you can't find your scripts directory, then create a new text in Blender
-and paste the following code into it:
+Click that and select "system-info.txt" Scroll up and you should see the directories listed.
 
-import Blender
-print Blender.Get('scriptsdir')
+--------->8-------------
+- Directories:
 
-If you press alt-p ( File - Run Python Script ) then the correct directory 
-to install the scripts will be printed on the console.
+Blender home dir:
+/home/domino/.blender
+
+Default dir for scripts:
+/home/domino/.blender/scripts
+
+Default "bpydata/" data dir for scripts:
+/home/domino/.blender/scripts/bpydata
+
+User defined dir for scripts:
+/media/data/blender_scripts/
+
+------------>8--------------
+
+You can put the scripts in either "Default dir for scripts" or "User defined dir for scripts"
+
+http://wiki.blender.org/index.php/Manual/Python_Scripting has more information on the text editor.
 
 **** Checking Install ****
 
@@ -47,6 +56,55 @@ alter the number of faces and multires levels. Normally you would
 only select the type as the default settings are correct. Changing
 the faces and multires level is provided for advanced techniques
 of Sculptie making.
+
+Here's a list of the choices of faces and subdivision levels that will
+give unique sculptie map sizes for modeling in Blender.
+
+For All Viewers:
+
+8 x 8 x 2, 16 x 16 x 1, 32 x 32 x 0
+
+Viewer 1.21 and later:
+
+5 x 204 x 0
+11 x 23 x 1, 22 x 46 x 0
+11 x 93 x 0
+
+https://jira.secondlife.com/browse/VWR-9384 (maint-viewer-11 branch):
+
+4 x 4 x 0
+4 x 16 x 0
+4 x 16 x 1, 8 x 32 x 0
+4 x 16 x 2, 8 x 32 x 1, 16 x 64 x 0
+4 x 32 x 0
+4 x 64 x 0
+4 x 64 x 1, 8 x 128 x 0
+4 x 128 x 0
+4 x 256 x 0
+8 x 8 x 0
+8 x 8 x 1, 16 x 16 x 0
+8 x 16 x 0
+8 x 16 x 1, 16 x 32 x 0
+8 x 64 x 0
+
+&fff8 patch (see vwr-9384 discussion for details)
+
+4 x 8 x 0
+4 x 8 x 1, 8 x 16 x 0
+4 x 8 x 2, 8 x 16 x 1, 16 x 32 x 0
+
+After adding the sculpt mesh, you can go to the UV Image Editor and
+select "Image - Bake Sculptie LODs". The blue dots show where SL will
+read the sculpt map, the brighter the blue, the more LODs use that
+pixel. It's normal for the Blender UV points to be at the bottom left of
+the pixel they refer to.
+
+You can specify other values when creating your sculptie, and the
+scripts will find the nearest of these map versions to use.
+
+These should be supported in SL clients when vwr-9384 is in.
+If you want all clients to work with your sculpties, then 8 x 8 x 2 and
+it's alternatives are all that are fully supported.
 
 You can then move the vertice in edit mode or sculpt mode to create
 the desired sculptie shape. When finished you can create (or update)

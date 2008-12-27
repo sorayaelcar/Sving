@@ -3,18 +3,22 @@
 Name: 'Sculpt Mesh'
 Blender: 246
 Group: 'AddMesh'
-Tooltip: 'Add a plane/torus/cylinder or sphere with square tiled UV map and multires'
+Tooltip: 'Add a Second Life sculptie compatible mesh'
 """
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.09"
+__version__ = "0.11"
 __bpydoc__ = """\
 
 Sculpt Mesh
 
-This script creates an object with a gridded UV map suitable for Second Life sculptie image maps.
+This script creates an object with a gridded UV map suitable for Second Life sculpties.
 """
+#0.11 Domino Marama 2008-10-27
+#- Use getBB from render_sculptie.py
+#0.10 Domino Marama 2008-10-25
+#- Wrapped edges are marked as seams
 #0.09 Domino Marama 2008-10-17
 #- Added subsurf modifer for lod levels
 #0.08 Domino Marama 2008-10-17
@@ -57,6 +61,7 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 
 import Blender
 from math import log, ceil, sqrt, pi, sin, cos
+from render_sculptie import getBB
 
 #***********************************************
 # constants
@@ -68,7 +73,7 @@ PLANE = 3
 CYLINDER = 4
 HEMI = 5
 
-settings = {'x_faces':8,'y_faces':8,'type':1,'multires':2, 'clean_lod':True, 'radius':0.25, 'subsurf':False}
+settings = {'x_faces':8,'y_faces':8,'type':1,'multires':2, 'clean_lod':True, 'radius':0.25, 'subsurf':True}
 
 def adjust_size( width, height, s, t ):
 	ratio = float(width) / float(height)
@@ -76,9 +81,9 @@ def adjust_size( width, height, s, t ):
 	if width != height:
 		verts = verts & 0xfff8
 	t = int(sqrt( verts / ratio))
-	t = max( t, 4.0 )
+	t = max( t, 4 )
 	s = verts // t
-	s = max( s, 4.0 )
+	s = max( s, 4 )
 	t = verts // s
 	return int(s), int(t)
 
@@ -90,6 +95,10 @@ def calc_map_size( requested_SizeS, requested_SizeT, levels ):
 	t = min( h, requested_SizeT )
 	w = int(pow(2, levels + 1 + ceil( log(w>>levels) / log(2))))
 	h = int(pow(2, levels + 1 + ceil( log(h>>levels) / log(2))))
+	if w == h == 8:
+		# 8 x 8 won't upload
+		w = 16
+		h = 16
 	cs = True
 	ct = True
 	if ( s<<(levels + 1) > w ):
@@ -123,6 +132,8 @@ def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 		Blender.Registry.SetKey('Import-Sculptie', settings, True) # save latest settings
 	mesh = generate_base_mesh( basename, sculpt_type, faces_x, faces_y, multires, clean_lods )
 	ob = scene.objects.new( mesh, basename )
+	if sculpt_type != PLANE:
+		mesh.flipNormals()
 	ob.sel = True
 	ob.setLocation( Blender.Window.GetCursorPos() )
 	if sculpt_type == PLANE:
@@ -132,24 +143,23 @@ def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 			mods = ob.modifiers
 			mod = mods.append(Blender.Modifier.Types.SUBSURF)
 			mod[Blender.Modifier.Settings.LEVELS] = multires
+			mod[Blender.Modifier.Settings.UV] = False
 		else:
 			mesh.multires = True
 			mesh.addMultiresLevel( multires )
 			for v in mesh.verts:
 				v.sel = True
-			scale = ob.getBoundBox()[-2]
-			x = 0.5 / scale[0]
-			y = 0.5 / scale[1]
-			if sculpt_type == TORUS:
-				z = settings['radius'] * 0.5 / scale[2]
-			elif sculpt_type == PLANE:
-				z = 0.0
-			else:
-				z = 0.5 / scale[2]
-			tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
-			mesh.transform( tran )
-		if sculpt_type == HEMI:
-			mesh.toSphere()
+		scale = getBB( ob )[1]
+		x = 0.5 / scale[0]
+		y = 0.5 / scale[1]
+		if sculpt_type == TORUS:
+			z = settings['radius'] * 0.5 / scale[2]
+		elif sculpt_type == PLANE:
+			z = 0.0
+		else:
+			z = 0.5 / scale[2]
+		tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
+		mesh.transform( tran )
 	ob.addProperty( 'LL_PRIM_TYPE', 7 )
 	if sculpt_type == HEMI:
 		ob.addProperty( 'LL_SCULPT_TYPE', PLANE )
@@ -180,6 +190,7 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 	uv = []
 	verts = []
 	faces = []
+	seams = []
 	uvgrid_s = []
 	uvgrid_t = []
 	s, t, w, h, clean_s, clean_t = calc_map_size( faces_x, faces_y, levels )
@@ -217,20 +228,20 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 			if sculpt_type == CYLINDER:
 				a = pi + twopi * path
 				vert = Blender.Mathutils.Vector( sin( a )/2.0,
-									cos( a  )/2.0,
+									-cos( a  )/2.0,
 									profile - 0.5 )
 			elif sculpt_type == SPHERE:
 				a = pi + twopi * path
 				ps = sin( pi * profile ) / 2.0
 				vert = Blender.Mathutils.Vector( sin( a ) * ps,
-									cos( a ) * ps,
+									-cos( a ) * ps,
 									-cos( pi * profile ) / 2.0 )
 
 			elif sculpt_type == TORUS:
 				a = pi + twopi * path
 				ps = (( 1.0 - settings['radius'] ) - sin( 2.0 * pi * profile) * settings['radius']) / 2.0
 				vert = Blender.Mathutils.Vector( sin( a ) * ps,
-									cos( a ) * ps,
+									-cos( a ) * ps,
 									cos( twopi * profile ) / 2.0 * settings['radius'] )
 
 			elif sculpt_type == HEMI:
@@ -243,15 +254,23 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 				if ph == 0.0: ph = 1.0
 				y = pa / ph * ps
 				x = pr / ph * ps
-				vert = Blender.Mathutils.Vector( x / b, y / b , ( 0.5 + z ) / 2.0 )
+				vert = Blender.Mathutils.Vector( y / b, x / b , ( 0.5 + z ) / 2.0 )
 			else:
 				vert = Blender.Mathutils.Vector( path - 0.5, profile - 0.5, 0.0 )
 			mesh.verts.extend( [ vert ] )
 			verts.append ( mesh.verts[-1] )
 		if wrap_x:
 			verts.append( mesh.verts[ -verts_s ] )
+			if i:
+				seams.append( ( (i - 1) * verts_s, i * verts_s ) )
+				if wrap_y:
+					if i == verts_t - 1:
+						seams.append( ( 0, i * verts_s ) )
 	if wrap_y:
 		verts.extend( verts[:(s+1)] )
+		for x in xrange( verts_s - 1 ):
+			seams.append( ( x, x + 1 ) )
+		seams.append( ( 0, verts_s - 1 ) )
 	for y in xrange( t ):
 		offset_y = y * (s +1)
 		for x in xrange( s ):
@@ -274,6 +293,9 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 		mesh.faces[ f ].uv = uv[ f ]
 		mesh.faces[ f ].image = image
 	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" )
+	if seams != []:
+		for e in mesh.findEdges( seams ):
+			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
 	return mesh
 
 def main():
@@ -300,7 +322,7 @@ def main():
 	block.append (( "      4 Cylinder  5 Hemi" ))
 	block.append (( "X Faces", faces_x, 2, 256 ))
 	block.append (( "Y Faces", faces_y, 2, 256 ))
-	block.append (( "Multires Levels", multires_levels, 0, 16 ))
+	block.append (( "Subdivision Levels", multires_levels, 0, 16 ))
 	block.append (( "Use Subsurf", subsurf ))
 	block.append (( "Clean LODs", clean_lod ))
 	if Blender.Draw.PupBlock( "Sculpt Mesh Options", block ):
@@ -324,4 +346,5 @@ def main():
 		if in_editmode:
 			Blender.Window.EditMode(1)
 
-main()
+if __name__ == '__main__':
+	main()

@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.26"
+__version__ = "0.31"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -19,6 +19,16 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.31 Domino Marama 2008-11-28
+#- RGB range adjustment added
+#- Preview improved & made optional
+#- Map name updated on bake if appropriate
+#0.30 Domino Marama 2008-11-01
+#- bug fix to getBB
+#0.29 Domino Marama 2008-10-30
+#- Alpha channel preview protection added
+#0.28 Domino Marama 2008-10-26
+#- scaleRange uses calculation when modifiers involved
 #0.27 Domino Marama 2008-09-14
 #- Fixed overshoot on triangle fill
 #0.26 Domino Marama 2008-08-27
@@ -162,14 +172,20 @@ class pixel:
 			str(self.b) + ")"
 
 class scaleRange:
-	def __init__ ( self, objects, normalised, centered = 0 ):
+	def __init__ ( self, objects, normalised, centered = 0, colourRange= ( 0,255,0,255,0,255 )):
 		self.minx = None
+		self.minr = colourRange[0]
+		self.r = colourRange[1] - self.minr
+		self.ming = colourRange[2]
+		self.g = colourRange[3] - self.ming
+		self.minb = colourRange[4]
+		self.b = colourRange[5] - self.minb
 		for ob in objects:
 			if ob.type == 'Mesh':
-				bb = ob.getBoundBox( 0 )
+				bb = getBB( ob )
 				if self.minx == None:
 					self.minx, self.miny, self.minz = bb[0]
-					self.maxx, self.maxy, self.maxz = bb[6]
+					self.maxx, self.maxy, self.maxz = bb[1]
 				else:
 					if bb[0][0] < self.minx:
 						self.minx = bb[0][0]
@@ -177,12 +193,12 @@ class scaleRange:
 						self.miny = bb[0][1]
 					if bb[0][2] < self.minz:
 						self.minz = bb[0][2]
-					if bb[6][0] > self.maxx:
-						self.maxx = bb[6][0]
-					if bb[6][1] > self.maxy:
-						self.maxy = bb[6][1]
-					if bb[6][2] > self.maxz:
-						self.maxz = bb[6][2]
+					if bb[1][0] > self.maxx:
+						self.maxx = bb[1][0]
+					if bb[1][1] > self.maxy:
+						self.maxy = bb[1][1]
+					if bb[1][2] > self.maxz:
+						self.maxz = bb[1][2]
 				if normalised == 0:
 					self.minx = self.miny = self.minz = min( self.minx, self.miny, self.minz )
 					self.maxx = self.maxy = self.maxz = max( self.maxx, self.maxy, self.maxz )
@@ -217,8 +233,21 @@ class scaleRange:
 					self.z = 1.0
 
 	def normalise( self, co ):
-		return ( co[0] - self.minx ) / self.x, ( co[1] - self.miny ) / self.y, ( co[2] - self.minz ) / self.z
+		r = ( co[0] - self.minx ) / self.x
+		g = ( co[1] - self.miny ) / self.y
+		b = ( co[2] - self.minz ) / self.z
+		if r > 1.0: r = 1.0
+		if g > 1.0: g = 1.0
+		if b > 1.0: b = 1.0
+		return r, g, b
 		
+	def adjusted( self, co ):
+		r, g, b = self.normalise( co )
+		r = (self.minr + ( r * self.r )) / 255.0
+		g = (self.ming + ( g * self.g )) / 255.0
+		b = (self.minb + ( b * self.b )) / 255.0
+		return r, g, b
+
 #***********************************************
 # Functions
 #***********************************************
@@ -229,6 +258,30 @@ if version_info[0] == 2 and version_info[1] < 4:
 	    newseq = seq[:]
 	    newseq.sort()
 	    return newseq
+
+def getBB( obj ):
+	mesh = Blender.Mesh.New()
+	mesh.getFromObject( obj, 0, 1 )
+	min_x = mesh.verts[0].co.x
+	max_x = min_x
+	min_y = mesh.verts[0].co.y
+	max_y = min_y
+	min_z = mesh.verts[0].co.z
+	max_z = min_z
+	for v in mesh.verts[1:-1]:
+		if v.co.x < min_x :
+			min_x = v.co.x
+		elif v.co.x > max_x :
+			max_x = v.co.x
+		if v.co.y < min_y :
+			min_y = v.co.y
+		elif v.co.y > max_y :
+			max_y = v.co.y
+		if v.co.z < min_z :
+			min_z = v.co.z
+		elif v.co.z > max_z :
+			max_z = v.co.z
+	return ( min_x, min_y, min_z ), ( max_x, max_y, max_z )
 
 def drawTri( image, verts ):
 	scanlines = [ verts[0] ]
@@ -252,13 +305,13 @@ def drawTri( image, verts ):
 		scanlines = scanlines[4:]
 		r1 = e1 - s1
 		r2 = e2 - s2
-		x = float(int(s1.x))
+		x = xs = float(int(s1.x))
 		ex = float(int(e1.x))
 		while x <= ex and x <= image.size[0]:
 			if r1.x == 0:
-				s = ( x - s1.x )
+				s = ( x - xs )
 			else:
-				s = ( x - s1.x ) / r1.x
+				s = ( x - xs ) / r1.x
 			if s < 0.0:
 				x += 1.0
 				continue
@@ -281,8 +334,11 @@ def drawHLine( image, y, s, e, sr, sg, sb, er, eg, eb ):
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
-	for u in xrange( s, e  ):
-		image.setPixelF( u, y, ( sr, sg, sb, 1.0 ) )
+	for u in xrange( s, e ):
+		if u == image.size[0]:
+			image.setPixelF( u - 1, y, ( sr, sg, sb, 1.0 ) )
+		else:
+			image.setPixelF( u, y, ( sr, sg, sb, 1.0 ) )
 		sr += dr
 		sg += dg
 		sb += db
@@ -307,12 +363,24 @@ def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 	if s - e == 0:
 		if s == image.size[1]:
 			s -= 1
+		if sr < 0:
+			sr = 0
+		if sg < 0:
+			sg = 0
+		if sb < 0:
+			sb = 0
+		if sr > 1.0:
+			sr = 1.0
+		if sg > 1.0:
+			sg = 1.0
+		if sb > 1.0:
+			sb = 1.0
 		image.setPixelF( x, s, ( sr, sg, sb, 1.0 ) )
 		return
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
-	for v in xrange( s, e  ):
+	for v in xrange( s, e + 1 ):
 		if v == image.size[1]:
 			image.setPixelF( x, v - 1, ( sr, sg, sb, 1.0 ) )
 		else:
@@ -354,11 +422,29 @@ def expandPixels( image ):
 			else:
 				c = image.getPixelF( x, y )
 
+def protectMap( image, preview ):
+	for x in xrange( image.size[0] ):
+		for y in xrange( image.size[1] ):
+			c1 = image.getPixelF( x, y )
+			c1[3] = 0.0
+			image.setPixelF( x, y, c1 )
+	if preview:
+		for x in xrange( image.size[0] ):
+			for y in xrange( image.size[1] ):
+				c1 = image.getPixelF( x, y )
+				f = (c1[1] * 0.35) + 0.65
+				s = int( (image.size[0] - 1) * (0.5 - (0.5 - c1[0]) * f))
+				t = int( (image.size[1] - 1) * (0.5 - (0.5 - c1[2]) * f))
+				c2 = image.getPixelF( s, t )
+				if c2[3] < c1[1]:
+					c2[3] = c1[1]
+					image.setPixelF( s, t, c2 )
+
 #***********************************************
 # bake UV map from XYZ
 #***********************************************
 
-def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False, clear = True ):
+def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False, clear = True, scaleRGB = True ):
 	rt = Blender.Get( 'rt' )
 	if scale == None:
 		scale = scaleRange( [ob], normalised, centered )
@@ -374,9 +460,6 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 			sculptie_type = Blender.Draw.PupMenu( "Sculpt Type?%t|Sphere|Torus|Plane|Cylinder" )
 			ob.addProperty( 'LL_PRIM_TYPE', 7 )
 			ob.addProperty( 'LL_SCULPT_TYPE', sculptie_type )
-			ob.addProperty( 'X_SCALE', scale.x )
-			ob.addProperty( 'Y_SCALE', scale.y )
-			ob.addProperty( 'Z_SCALE', scale.z )
 		if sculptie_type < 1:
 			print "Skipping:", ob.name, " - sculptie type is 'NONE'"
 			return
@@ -406,7 +489,7 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 				for t in Blender.Geometry.PolyFill([ f.uv ]):
 					nf = []
 					for i in t:
-						r, g, b = scale.normalise( f.verts[ i ].co )
+						r, g, b = scale.adjusted( f.verts[ i ].co )
 						nf.append(
 							pixel(
 								round(f.uv[ i ][0] * sculptimage.size[0]),
@@ -441,26 +524,23 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 				mesh.update()
 				mat[3] = [x, y, z , 1.0]
 				ob.setMatrix( mat )
-		if rt == 55:
-			s = ob.getSize()
-			mat = ob.getMatrix().scalePart()
-			print mat
-			nf = n = Blender.Mathutils.Vector( s[0] * scale.x, s[1] * scale.y, s[2] * scale.z )
-			sc = scaleRange( [ ob ], normalised, centered )
-			sx = sc.x / scale.x
-			sy = sc.y / scale.y
-			sz = sc.z / scale.z
-			print sc.x, sc.y, sc.z, offset, scale.x, scale.y, scale.z, s, normalised, centered, sx, sy, sz
-			#tran = Blender.Mathutils.Matrix( [ n.x, 0.0, 0.0 ], [0.0, n.y, 0.0], [0.0, 0.0, n.z] ).resize4x4()
-			tran = Blender.Mathutils.Matrix( [ mat.x, 0.0, 0.0 ], [0.0, mat.y, 0.0], [0.0, 0.0, mat.z] ).resize4x4()
-			mat = ob.getMatrix()
-			mat[0][0] = sx
-			mat[1][1] = sy
-			mat[2][2] = sz
-			mesh.transform( tran )
-			mesh.update()
-			ob.setMatrix( mat )
-			ob.setSize( Blender.Mathutils.Vector( sx, sy, sz ) )
+		bb = getBB( ob )
+		if scaleRGB:
+			sf = ( scale.r / 255.0, scale.g / 255.0, scale.b / 255.0 )
+		else:
+			sf = ( 1.0, 1.0, 1.0 )
+		try:
+			sculptimage.properties['scale_x'] = scale.x / (( bb[1][0] - bb[0][0] ) * sf[0])
+		except:
+			sculptimage.properties['scale_x'] = scale.x * sf[0]
+		try:
+			sculptimage.properties['scale_y'] = scale.y / (( bb[1][1] - bb[0][1] ) * sf[1])
+		except:
+			sculptimage.properties['scale_y'] = scale.y * sf[1]
+		try:
+			sculptimage.properties['scale_z'] = scale.z / (( bb[1][2] - bb[0][2] ) * sf[2])
+		except:
+			sculptimage.properties['scale_z'] = scale.z * sf[2]
 		if fill:
 			def getFirstX( y ):
 				for x in xrange( sculptimage.size[0] ):
@@ -535,8 +615,12 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 			if skipx: fillX()
 		if expand:
 			expandPixels ( sculptimage )
-		sculptimage.makeCurrent()
-		return Blender.sys.splitext( sculptimage.name )[0]
+		n = Blender.sys.splitext( sculptimage.name )
+		n = n[:-1]
+		if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
+			sculptimage.name = ob.name + "_map"
+			return sculptimage.name
+		return ".".join( n )
 	else:
 		return None
 
@@ -547,15 +631,35 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 def main():
 	block = []
 	doFill = Blender.Draw.Create( False )
-	doNorm = Blender.Draw.Create( True )
-	doExpand = Blender.Draw.Create( True )
+	doScale = Blender.Draw.Create( False )
+	doExpand = Blender.Draw.Create( False )
 	doCentre = Blender.Draw.Create( False )
 	doClear = Blender.Draw.Create( True )
+	doProtect = Blender.Draw.Create( True )
+	doPreview = Blender.Draw.Create( True )
+	minR = Blender.Draw.Create( 0 )
+	maxR = Blender.Draw.Create( 255 )
+	minG = Blender.Draw.Create( 0 )
+	maxG = Blender.Draw.Create( 255 )
+	minB = Blender.Draw.Create( 0 )
+	maxB = Blender.Draw.Create( 255 )
+	doScaleRGB = Blender.Draw.Create( True )
 	block.append (( "Clear", doClear ))
 	block.append (( "Fill Holes", doFill ))
-	block.append (( "Normalise", doNorm ))
+	block.append (( "Keep Scale", doScale ))
 	block.append (( "Keep Center", doCentre ))
-	block.append (( "Compressible", doExpand ))
+	block.append (( "True Mirror", doExpand ))
+	block.append (( "Protect Map", doProtect ))
+	block.append (( "With Preview", doPreview ))
+	block.append (( " " ))
+	block.append (( "   Color Range Adjustment" ))
+	block.append (( "Min R:", minR, 0, 255 ))
+	block.append (( "Max R:", maxR, 0, 255 ))
+	block.append (( "Min G:", minG, 0, 255 ))
+	block.append (( "Max G:", maxG, 0, 255 ))
+	block.append (( "Min B:", minB, 0, 255 ))
+	block.append (( "Max B:", maxB, 0, 255 ))
+	block.append (( "Include in Size", doScaleRGB ))
 
 	if Blender.Draw.PupBlock( "Sculptie Bake Options", block ):
 		print "--------------------------------"
@@ -564,13 +668,13 @@ def main():
 		editmode = Blender.Window.EditMode()
 		if editmode: Blender.Window.EditMode(0)
 		Blender.Window.WaitCursor(1)
-		meshscale = scaleRange( scene.objects.selected , doNorm.val, doCentre.val )
+		meshscale = scaleRange( scene.objects.selected , not doScale.val, doCentre.val, (minR.val,maxR.val,minG.val,maxG.val,minB.val,maxB.val) )
 		if meshscale.minx == None:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
 		else:
 			for ob in scene.objects.selected:			
 				if ob.type == 'Mesh':
-					sculptie_map = updateSculptieMap( ob , meshscale, doFill.val, doNorm.val, doExpand.val, doCentre.val, doClear.val )
+					sculptie_map = updateSculptieMap( ob , meshscale, doFill.val, not doScale.val, doExpand.val, doCentre.val, doClear.val )
 					try:
 						scale = ob.getSize()
 						primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
@@ -588,6 +692,13 @@ def main():
 								rotation[0]
 							)
 							print "llSetPrimitiveParams( [ PRIM_TYPE, PRIM_TYPE_SCULPT, \"%s\", PRIM_SCULPT_TYPE_%s, PRIM_SIZE, < %.5f, %.5f, %.5f >, PRIM_ROTATION, < %.5f, %.5f, %.5f, %.5f > ] );"%priminfo
+							if doProtect.val:
+								mesh = ob.getData( False, True)
+								if "sculptie" in mesh.getUVLayerNames():
+									mesh.activeUVLayer = "sculptie"
+									mesh.update()
+								image = mesh.faces[0].image
+								protectMap( image, doPreview.val )
 					except:
 						pass
 
@@ -599,4 +710,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-

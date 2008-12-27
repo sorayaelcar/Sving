@@ -2,14 +2,14 @@
 
 """
 Name: 'Second Life Sculptie (.tga)'
-Blender: 245
+Blender: 246
 Group: 'Import'
 Tooltip: 'Import from a Second Life sculptie image map (.tga)'
 """
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.33"
+__version__ = "0.36"
 __bpydoc__ = """\
 
 Sculptie Importer
@@ -18,6 +18,13 @@ This script creates an object from a Second Life sculptie image map
 """
 
 #Changes:
+#0.36 Domino Marama 2008-10-25
+#- Wrapped edges are marked as seams
+#0.35 Domino Marama 2008-10-19
+#- Added face counts on multires calculation
+#0.34 Domino Marama 2008-10-18
+#- Jira VWR-9384 style oblong support
+#- add mesh api support removed as it's now in add_mesh_sculpt_mesh.py
 #0.33 Domino Marama 2008-08-27
 #- added support for oblong sculpties
 #0.32 Domino Marama 2008-08-05
@@ -137,6 +144,18 @@ FACES_Y = 8
 
 settings = {'radius':0.25}
 
+def adjust_size( width, height, s, t ):
+	ratio = float(width) / float(height)
+	verts = int(min( 0.25 * width * height, s * t ))
+	if width != height:
+		verts = verts & 0xfff8
+	t = int(sqrt( verts / ratio))
+	t = max( t, 4 )
+	s = verts // t
+	s = max( s, 4 )
+	t = verts // s
+	return int(s), int(t)
+
 #***********************************************
 # update vertex positions in sculptie mesh
 #***********************************************
@@ -147,7 +166,7 @@ def update_sculptie_from_map(mesh, image, sculpt_type):
 	verts = range( len( mesh.verts ) )
 	for f in mesh.faces:
 		f.image = image
-		for vi in xrange( 4 ):
+		for vi in xrange( len( f.verts) ):
 			if f.verts[ vi ].index in verts:
 				verts.remove( f.verts[ vi ].index )
 				u, v = f.uv[ vi ]
@@ -176,85 +195,26 @@ def update_sculptie_from_map(mesh, image, sculpt_type):
 	mesh.sel = True
 	mesh.recalcNormals( 0 )
 
-def default_sculptie( mesh, sculptie_type, radius = 0.2 ):
-	verts = range( len( mesh.verts ) )
-	halfpi = pi * 0.5
-	twopi = pi * 2.0
-	for f in mesh.faces:
-		for vi in xrange( 4 ):
-			if f.verts[ vi ].index in verts:
-				verts.remove( f.verts[ vi ].index )
-				u, v = f.uv[ vi ]
-				if sculptie_type == PLANE:
-					f.verts[ vi ].co = Blender.Mathutils.Vector( u - 0.5, v -0.5, 0.0 )
-
-				elif sculptie_type == CYLINDER:
-					a = pi + twopi * u
-					f.verts[ vi ].co = Blender.Mathutils.Vector( cos( a )/2.0,
-										sin( a )/2.0,
-										v - 0.5 )
-				elif sculptie_type == SPHERE:
-					if v == 1.0: v = 0.9995
-					elif v == 0.0: v = 0.0005
-					a = pi + twopi * u
-					s = sin( pi * v ) / 2.0
-					f.verts[ vi ].co = Blender.Mathutils.Vector( cos( a ) * s,
-										sin( a ) * s,
-										-cos( pi * v ) / 2.0 )
-
-				elif sculptie_type == TORUS:
-					a = pi + twopi * u
-					s = (( 1.0 - radius ) - sin( 2.0 * pi * v) * radius) / 2.0
-					f.verts[ vi ].co = Blender.Mathutils.Vector( cos( a ) * s,
-										sin( a ) * s,
-										cos( twopi * v ) / 2.0 * radius )
-
-				elif sculptie_type == HEMI:
-					b = sqrt( 2.0 )
-					z = -cos( twopi * min( u, v, 1.0 - u, 1.0 - v) ) / 2.0
-					u -= 0.5
-					v -= 0.5
-					h = sqrt(u * u + v * v)
-					s = sqrt( sin( ( 0.5 - z ) * halfpi ) / 2.0 )
-					if h == 0.0: h = 1.0
-					y = v / h * s
-					x = 1.0 * u / h * s
-					f.verts[ vi ].co = Blender.Mathutils.Vector( x / b,
-										y / b ,
-										( 0.5 + z ) / 2.0 )
-
-	mesh.update()
-	mesh.sel = True
-	mesh.recalcNormals( 0 )
-
 #***********************************************
 # generate sculptie mesh
 #***********************************************
 
-def new_sculptie( sculpt_type, faces_x=FACES_X, faces_y=FACES_Y, multires=2, filename=None ):
+def new_sculptie( sculpt_type, filename ):
 	Blender.Window.WaitCursor(1)
-	if filename:
-		filebase = Blender.sys.basename(filename)
-		basename = Blender.sys.splitext(filebase)[0]
-		image = Blender.Image.Load( filename )
-		faces_x, faces_y = image.size
-		faces_x /= 2 ** multires
-		faces_y /= 2 ** multires
-	else:
-		basename = ("Sphere", "Torus", "Plane", "Cylinder", "Hemi")[sculpt_type -1]
-		image = Blender.Image.New( basename,
-				faces_x * (2 ** (multires + 1)), faces_y  * (2 ** (multires + 1)), 32 )
+	filebase = Blender.sys.basename(filename)
+	basename = Blender.sys.splitext(filebase)[0]
+	image = Blender.Image.Load( filename )
+	faces_x, faces_y = image.size
+	faces_x, faces_y = adjust_size( faces_x, faces_y, 32, 32 )
+	multires = 0
+	while multires < 2 and faces_x >= 8 and faces_y >= 8 and not ( (faces_x & 1) or (faces_y & 1) ):
+		faces_x = faces_x >> 1
+		faces_y = faces_y >> 1
+		multires += 1
 	scene = Blender.Scene.GetCurrent()
 	for ob in scene.objects:
 		ob.sel = False
 	mesh = generate_base_mesh( basename, sculpt_type, faces_x + 1, faces_y + 1 )
-	if multires and 'addMultiresLevel' not in dir( mesh ):
-		print "Warning: this version of Blender does not support addMultiresLevel, get 2.46 or later from http://www.blender.org for full functionality"
-		faces_x *= 2 ** multires
-		faces_y *= 2 ** multires
-		multires = 0
-		del( mesh )
-		mesh = generate_base_mesh( basename, sculpt_type, faces_x + 1, faces_y + 1 )
 	ob = scene.objects.new( mesh, basename )
 	ob.setLocation( Blender.Window.GetCursorPos() )
 	ob.sel = True
@@ -265,28 +225,11 @@ def new_sculptie( sculpt_type, faces_x=FACES_X, faces_y=FACES_Y, multires=2, fil
 		ob.addProperty( 'LL_SCULPT_TYPE', sculpt_type )
 	for f in mesh.faces:
 		f.image = image
-	if sculpt_type == TORUS and filename == None:
-		rdict = Blender.Registry.GetKey('Import-Sculptie', True) # True to check on disk also
-		if rdict: # if found, get the values saved there
-			try:
-				settings['radius'] = rdict['radius']
-			except:
-				pass
-		radius = Blender.Draw.Create( settings['radius'] )
-		Blender.Window.WaitCursor(0)
-		retval = Blender.Draw.PupBlock( "Torus Options", [( "Radius: ", radius, 0.05, 0.5 )] )
-		Blender.Window.WaitCursor(1)
-		settings['radius'] = radius.val
-		Blender.Registry.SetKey('Import-Sculptie', settings, True) # save latest settings
-		ob.addProperty( 'LL_HOLE_SIZE_Y', settings['radius'] )
 	mesh.flipNormals()
 	if multires:
 		mesh.multires = True
 		mesh.addMultiresLevel( multires )
-	if filename:
-		update_sculptie_from_map( mesh, image, sculpt_type )
-	else:
-		default_sculptie( mesh, sculpt_type, settings['radius'] )
+	update_sculptie_from_map( mesh, image, sculpt_type )
 	try:
 		quat = None
 		if Blender.Get('add_view_align'):
@@ -305,6 +248,7 @@ def generate_base_mesh( name, sculpt_type, verts_x, verts_y ):
 	mesh = Blender.Mesh.New("%s.mesh"%name)
 	uv = []
 	verts = []
+	seams = []
 	faces = []
 	wrap_x = ( sculpt_type != PLANE ) & ( sculpt_type != HEMI )
 	wrap_y = ( sculpt_type == TORUS )
@@ -322,8 +266,16 @@ def generate_base_mesh( name, sculpt_type, verts_x, verts_y ):
 			verts.append( mesh.verts[-1] )
 		if wrap_x:
 			verts.append( mesh.verts[ -actual_x ] )
+			if y:
+				seams.append( ( (y - 1) * actual_x, y * actual_x ) )
+				if wrap_y:
+					if y == actual_y - 1:
+						seams.append( ( 0, y * actual_x ) )
 	if wrap_y:
 		verts.extend( verts[:verts_x] )
+		for x in xrange( actual_x - 1 ):
+			seams.append( ( x, x + 1 ) )
+		seams.append( ( 0, actual_x - 1 ) )
 	for y in xrange( verts_y - 1 ):
 		offset_y = y * verts_x
 		for x in xrange( verts_x - 1 ):
@@ -345,6 +297,9 @@ def generate_base_mesh( name, sculpt_type, verts_x, verts_y ):
 	for f in xrange( len(mesh.faces) ):
 		mesh.faces[ f ].uv = uv[ f ]
 	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" );
+	if seams != []:
+		for e in mesh.findEdges( seams ):
+			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
 	return mesh	
 
 #***********************************************
@@ -377,7 +332,7 @@ def load_sculptie(filename):
 	block.append (( "Scale Z: ", scale_z, 0.01, 100.0 ))
 	retval = Blender.Draw.PupBlock( "Sculptie Options", block )
 	time1 = Blender.sys.time()  #for timing purposes
-	ob = new_sculptie( sculpt_type.val, filename=filename )
+	ob = new_sculptie( sculpt_type.val, filename )
 	ob.setSize( scale_x.val, scale_y.val, scale_z.val )
 	if in_editmode:
 		Blender.Window.EditMode(1)

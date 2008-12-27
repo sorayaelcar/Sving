@@ -9,7 +9,7 @@ Tooltip: 'Export lsl and tga files for Second Life (to dir)'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.06"
+__version__ = "0.08"
 __bpydoc__ = """\
 
 LSL Exporter
@@ -18,8 +18,10 @@ This script exports Second Life sculpties in lsl + tga files
 """
 
 #Changes:
-#0.07 Domino Marama 2008-07-10
-#- added linkset support
+#0.08 Domino Marama 2008-12-19
+#- refactor to allow better linkset support
+# 0.07 BETLOG Hax 2008-10-22
+#- added PRIM_POSITION and altered output LSL  to include offsets when in a linkset
 #0.06 Domino Marama 2008-07-09
 #- minor bug fixes
 #0.05 Domino Marama 2008-06-29
@@ -215,48 +217,52 @@ class prim:
 		r = ob.getMatrix().rotationPart().invert().toQuat()
 		self.rotation = ( r[1], r[2], r[3], r[0] )
 		if self.primtype == 7:
-			self.sculpttype = ob.getProperty( 'LL_SCULPT_TYPE' ).getData()
-			mesh = ob.getData( False, True )
-			try:
-				ms = ( ob.getProperty( 'SCALE_X' ).getData(),
-						ob.getProperty( 'SCALE_Y' ).getData(),
-						ob.getProperty( 'SCALE_Z' ).getData() )
-			except:
-				ms = scaleRange( [ ob ], True )
-				ms = ( ms.x, ms.y, ms.z )
-			self.location = ( ob.loc[0], ob.loc[1], ob.loc[2] )
-			self.scale = ( ob.SizeX * ms[0], ob.SizeY * ms[1], ob.SizeZ * ms[2] )
-			currentUV = mesh.activeUVLayer
-			if "sculptie" in mesh.getUVLayerNames():					
-				mesh.activeUVLayer = "sculptie"
-				mesh.update()
-				image = mesh.faces[0].image
-				if image:
-					filebase = Blender.sys.basename( image.filename )
-					if filebase[-4:] in [ ".tga", ".TGA" ]:
-						si = Blender.sys.splitext(filebase)[0]
-					else:
-						si = filebase
-					self.sculptimage = texture( si, image )
-				else:
-					self.sculptimage = None
-			if "UVTex" in mesh.getUVLayerNames():
-				mesh.activeUVLayer = "UVTex"
-				mesh.update()
-				image = mesh.faces[0].image
-				if image:
-					filebase = Blender.sys.basename( image.filename )
-					if filebase[-4:] in [ ".tga", ".TGA" ]:
-						newtex = texture( Blender.sys.splitext(filebase)[0], image )
-					else:
-						newtex = texture( filebase, image )
-					self.textures.append( newtex )
-			mesh.activeUVLayer = currentUV
+		    self.sculpttype = ob.getProperty( 'LL_SCULPT_TYPE' ).getData()
+		    mesh = ob.getData( False, True )
+		    ms = scaleRange( [ ob ], True )
+		    self.scale = ( ms.x, ms.y, ms.z )
+		    currentUV = mesh.activeUVLayer
+		    if "sculptie" in mesh.getUVLayerNames():
+			mesh.activeUVLayer = "sculptie"
 			mesh.update()
+			image = mesh.faces[0].image
+			if image:
+			    filebase = Blender.sys.basename( image.name )
+			    if filebase[-4:] in [ ".tga", ".TGA" ]:
+				si = Blender.sys.splitext(filebase)[0]
+			    else:
+				si = filebase
+			    self.sculptimage = texture( si, image )
+			    if 'scale_x' in image.properties:
+				    print image.name
+				    print image.properties['scale_x'],image.properties['scale_y'],image.properties['scale_z']
+				    print self.scale
+				    self.scale = ( self.scale[0] * image.properties['scale_x'],
+					self.scale[1] * image.properties['scale_y'],
+					self.scale[2] * image.properties['scale_z'] )
+				    print self.scale
+			else:
+			    self.sculptimage = None
+		    if "UVTex" in mesh.getUVLayerNames():
+			mesh.activeUVLayer = "UVTex"
+			mesh.update()
+			image = mesh.faces[0].image
+			if image:
+			    filebase = Blender.sys.basename( image.filename )
+			    if filebase[-4:] in [ ".tga", ".TGA" ]:
+				newtex = texture( Blender.sys.splitext(filebase)[0], image )
+			    else:
+				newtex = texture( filebase, image )
+			    self.textures.append( newtex )
+		    mesh.activeUVLayer = currentUV
+		    mesh.update()
+		    self.location = ( ob.loc[0], ob.loc[1], ob.loc[2] )
 
 	def toLSL( self, prefix = "" ):
 		pt = ["missing","missing","missing","missing","missing","missing","missing","SCULPT"][ self.primtype ]
 		lsl = prefix + "llSetPrimitiveParams( [ " + self.toLSLParams() + " ] );\n"
+	        lsl += prefix + "if (llGetLinkNumber() > 1)\n"
+		lsl += prefix + "\tllSetPrimitiveParams( [PRIM_POSITION, < %.5f, %.5f, %.5f > ] );\n"%( self.location )
 		lsl += prefix + "llSetObjectName( \"%s\" );\n"%( self.name )
 		return lsl
 
@@ -290,9 +296,11 @@ class texture:
 		lsl = "PRIM_TEXTURE, "
 		if self.face == -1:
 			lsl += "ALL_SIDES, "
+			f = "0"
 		else:
 			lsl += str( self.face ) + ", "
-		lsl += "tK" + str( self.face ) + ", "
+			f = str( self.face )
+		lsl += "tK" + f + ", "
 		lsl += "<" + str( self.repeat[0] ) + ", " + str( self.repeat[1] ) + ", 0.0>, "
 		lsl += "<" + str( self.offset[0] ) + ", " + str( self.offset[1] ) + ", 0.0>, "
 		lsl += str( self.rotation )
@@ -309,51 +317,53 @@ class texture:
 #***********************************************
 
 def export_lsl( filename ):
-	Blender.Window.WaitCursor(1)
-	prims = []
-	basepath = Blender.sys.dirname( filename )
-	scene = Blender.Scene.GetCurrent()
-	for ob in scene.objects.selected:
-		# collect prims
-		if ob.type == 'Mesh':
-			try:				
-				primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
-			except:
-				continue
-			newprim = prim( ob.name )
-			newprim.fromOb( ob )
-			if newprim.primtype == 7 and newprim.sculpttype > 0:
-				if newprim.sculptimage == None:
-					sn = updateSculptieMap( ob , None, True )
-					newprim.sculptimage = texture( sn , Blender.Image.Get( sn ) )
-			prims.append( newprim )
+    Blender.Window.WaitCursor(1)
+    prims = []
+    basepath = Blender.sys.dirname( filename )
+    scene = Blender.Scene.GetCurrent()
+    for ob in scene.objects.selected:
+        # collect prims
+        if ob.type == 'Mesh':
+            try:
+                primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
+            except:
+                continue
+            newprim = prim( ob.name )
+            newprim.fromOb( ob )
+            if newprim.primtype == 7 and newprim.sculpttype > 0:
+                if newprim.sculptimage == None:
+                    sn = updateSculptieMap( ob )
+                    newprim.sculptimage = texture( sn , Blender.Image.Get( sn ) )
+            prims.append( newprim )
 
-	# save prims
-	for p in prims:
-		lsl_t_h = ""
-		if p.sculptimage:
-			p.sculptimage.saveImageAs( Blender.sys.join( basepath, p.sculptimage.name + ".tga" ) )
-		i = 0
-		for t in p.textures:
-			t.saveImageAs( Blender.sys.join( basepath, t.name + ".tga" ) )
-			lsl_t_h += "\t\tkey tK" + str( t.face ) + " = llGetInventoryKey( \"" + t.name + "\" );"
-			lsl_t_h += "\t\tllRemoveInventory( \"" + t.name + "\" );"
-		lsl =  "string tS;\n\ndefault\n{\n\tstate_entry()\n\t{\n" 
-		lsl += lsl_t_h + p.toLSL( "\t\t" )
-		if p.sculptimage:
-			lsl += "\t\tllRemoveInventory( \"" + p.sculptimage.name +"\" );"
-		lsl += "\t\tllRemoveInventory( tS = llGetScriptName() );\n\t\tllSetScriptState( tS, FALSE );\t}\n}\n" 
-		f = open( Blender.sys.join( basepath, p.name + ".lsl" ), 'w' )
-		f.write( lsl )
-		f.close()
+    # save prims
+    for p in prims:
+        lsl_t_h = ""
+        if p.sculptimage:
+            p.sculptimage.saveImageAs( Blender.sys.join( basepath, p.sculptimage.name + ".tga" ) )
+        i = 0
+        for t in p.textures:
+            t.saveImageAs( Blender.sys.join( basepath, t.name + ".tga" ) )
+	    f = str( t.face )
+	    if f == "-1": f = "0"
+            lsl_t_h += "\t\tkey tK" + f + " = llGetInventoryKey( \"" + t.name + "\" );\n"
+            lsl_t_h += "\t\tllRemoveInventory( \"" + t.name + "\" );\n"
+        lsl =  "string tS;\ndefault\n{\n\ton_rez(integer start_param)\n\t{\n\t\tllResetScript();\n\t}\n\tstate_entry()\n\t{\n"
+        lsl += lsl_t_h + p.toLSL( "\t\t" )
+        if p.sculptimage:
+            lsl += "\t\tllRemoveInventory( \"" + p.sculptimage.name +"\" );\n"
+        lsl += "\t\tllRemoveInventory( tS = llGetScriptName() );\n\t\tllSetScriptState( tS, FALSE );\n\t}\n\tchanged(integer change)\n\t{\n\t\tif (change & CHANGED_LINK)\n\t\t\tllResetScript();\n\t}\n}"
+        f = open( Blender.sys.join( basepath, p.name + ".lsl" ), 'w' )
+        f.write( lsl )
+        f.close()
 
-	Blender.Window.WaitCursor(0)
+    Blender.Window.WaitCursor(0)
 
 #***********************************************
 # register callback
 #***********************************************
 def my_callback(filename):
-	export_lsl(filename)
+    export_lsl(filename)
 
 if __name__ == '__main__':
-	Blender.Window.FileSelector(my_callback, "Export LSL", '.')
+    Blender.Window.FileSelector(my_callback, "Export LSL", '.')
