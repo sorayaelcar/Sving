@@ -490,10 +490,18 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 					nf = []
 					for i in t:
 						r, g, b = scale.adjusted( f.verts[ i ].co )
+						if f.uv[i][0] == 1.0:
+							u = sculptimage.size[0] - 1
+						else:
+							u = round(f.uv[ i ][0] * sculptimage.size[0])
+						if f.uv[i][1] == 1.0:
+							v = sculptimage.size[1] - 1
+						else:
+							v = round(f.uv[ i ][1] * sculptimage.size[1])
 						nf.append(
 							pixel(
-								round(f.uv[ i ][0] * sculptimage.size[0]),
-								round(f.uv[ i ][1] * sculptimage.size[1]),
+								u,
+								v,
 								round( r * 255.0 ) / 255.0, round( g * 255.0 ) / 255.0, round( b * 255.0 ) / 255.0
 							)
 						)
