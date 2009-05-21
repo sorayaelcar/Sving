@@ -75,6 +75,8 @@ from render_sculptie import updateSculptieMap, scaleRange
 MAIN_LSL = """string base = "Prim";
 list textures = %(textures)s;
 vector myPos;
+integer tI;
+string tS;
 
 integer isKey(key in)
 {
@@ -97,7 +99,7 @@ state default
 			state needs_something;
 		}
 		tI = llGetListLength( textures );
-		while ( tI ):
+		while ( tI ){
 			if ( isKey( tS = llList2String( textures, tI = ~-tI ) ) == 0 )
 			{
 				if ( llGetInventoryType( tS ) != INVENTORY_TEXTURE )
@@ -140,7 +142,7 @@ state ready
 	}
 }
 
-state_build
+state build
 {
 	state_entry()
 	{
@@ -159,7 +161,8 @@ state_build
 		if ( change & CHANGED_LINK )
 		{
 			tI = ~-llGetNumberOfPrims();
-			%(builder)sif (tI > 0 ) {
+			%(builder)sif (tI > 0 )
+			{
 				llSetLinkPrimitiveParams( 1, [ %(rootParams)s ] );
 				llBreakLink( llGetNumberOfPrims() );
 			}
@@ -249,7 +252,7 @@ class prim:
 			lsl += "\"%s\", PRIM_SCULPT_TYPE_%s, "%( self.sculptimage.name, mapType( self.sculptimage.image ) )
 		lsl += "PRIM_SIZE, < %.5f, %.5f, %.5f >, "%( self.scale )
 		lsl += "PRIM_ROTATION, < %.5f, %.5f, %.5f, %.5f >, "%( self.rotation )
-		lsl += "PRIM_LOCATION, myPos + < %.5f, %.5f, %.5f >"%( self.location )
+		lsl += "PRIM_POSITION, myPos + < %.5f, %.5f, %.5f >"%( self.location )
 		for t in self.textures:
 			lsl += ", " + t.toLSLParams()
 		return lsl
@@ -414,6 +417,7 @@ def export_lsl( filename ):
 					textures.append( t.name )
 		f = open( Blender.sys.join( basepath, r.name + ".lsl" ), 'w' )
 		t = str( textures )
+		t = t.replace("'", "\"")
 		f.write( MAIN_LSL%{ "textures": t.replace(", ",",\n\t\t\t"), "builder":builder, "rootParams": r.toLSLParams() } )
 		f.close()
 
