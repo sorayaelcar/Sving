@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.31"
+__version__ = "0.32"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -19,6 +19,10 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.32 Domino Marama 2009-05-20
+#- Removed sculpt_type as now autodetected in export_lsl from mesh
+#- Corrected 1.0 UV handling
+#- Support for multiple sculpties per mesh
 #0.31 Domino Marama 2008-11-28
 #- RGB range adjustment added
 #- Preview improved & made optional
@@ -255,9 +259,9 @@ class scaleRange:
 if version_info[0] == 2 and version_info[1] < 4:
 	# sorted function for python 2.3
 	def sorted(seq):
-	    newseq = seq[:]
-	    newseq.sort()
-	    return newseq
+		newseq = seq[:]
+		newseq.sort()
+		return newseq
 
 def getBB( obj ):
 	mesh = Blender.Mesh.New()
@@ -444,7 +448,7 @@ def protectMap( image, preview ):
 # bake UV map from XYZ
 #***********************************************
 
-def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False, clear = True, scaleRGB = True ):
+def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False, clear = True, scaleRGB = True, protect = True ):
 	rt = Blender.Get( 'rt' )
 	if scale == None:
 		scale = scaleRange( [ob], normalised, centered )
@@ -454,183 +458,146 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 			if primtype != 7:
 				print "Skipping:", ob.name,"prim type is not a sculptie"
 				return
-			else:
-				sculptie_type = ob.getProperty( 'LL_SCULPT_TYPE' ).getData()
 		except:
-			sculptie_type = Blender.Draw.PupMenu( "Sculpt Type?%t|Sphere|Torus|Plane|Cylinder" )
 			ob.addProperty( 'LL_PRIM_TYPE', 7 )
-			ob.addProperty( 'LL_SCULPT_TYPE', sculptie_type )
-		if sculptie_type < 1:
-			print "Skipping:", ob.name, " - sculptie type is 'NONE'"
-			return
 		mesh = ob.getData( False, True)
 		if "sculptie" in mesh.getUVLayerNames():
 			mesh.activeUVLayer = "sculptie"
 			mesh.update()
-		sculptimage = mesh.faces[0].image
-		if sculptimage == None:
-			sculptimage = Blender.Image.New( ob.name, 64, 64, 32 )
-			if mesh.multires:
-				mr = mesh.multiresDrawLevel
-				mesh.multiresDrawLevel = 1
-			for f in mesh.faces:
-				f.image = sculptimage
-			if mesh.multires:
-				mesh.multiresDrawLevel = mr
-			mesh.update()
 		mesh = Blender.Mesh.New()
 		mesh.getFromObject( ob, 0, 1 )
+		images = []
+		for f in mesh.faces:
+			if f.image != None:
+				if f.image not in images:
+					images.append( f.image )
 		if clear:
-			for u in xrange( sculptimage.size[0] ):
-				for v in xrange( sculptimage.size[1] ):
-					sculptimage.setPixelI(u, v, (0, 0, 0, 0))
+			for i in images:
+				for u in xrange( i.size[0] ):
+					for v in xrange( i.size[1] ):
+						i.setPixelI(u, v, (0, 0, 0, 0))
 		try:
 			for f in mesh.faces:
-				for t in Blender.Geometry.PolyFill([ f.uv ]):
-					nf = []
-					for i in t:
-						r, g, b = scale.adjusted( f.verts[ i ].co )
-						if f.uv[i][0] == 1.0:
-							u = sculptimage.size[0] - 1
-						else:
-							u = round(f.uv[ i ][0] * sculptimage.size[0])
-						if f.uv[i][1] == 1.0:
-							v = sculptimage.size[1] - 1
-						else:
-							v = round(f.uv[ i ][1] * sculptimage.size[1])
-						nf.append(
-							pixel(
-								u,
-								v,
-								round( r * 255.0 ) / 255.0, round( g * 255.0 ) / 255.0, round( b * 255.0 ) / 255.0
+				if f.image != None:
+					for t in Blender.Geometry.PolyFill([ f.uv ]):
+						nf = []
+						for i in t:
+							r, g, b = scale.adjusted( f.verts[ i ].co )
+							if f.uv[i][0] == 1.0:
+								u = f.image.size[0] - 1
+							else:
+								u = round(f.uv[ i ][0] * f.image.size[0])
+							if f.uv[i][1] == 1.0:
+								v = f.image.size[1] - 1
+							else:
+								v = round(f.uv[ i ][1] * f.image.size[1])
+							nf.append(
+								pixel(
+									u,
+									v,
+									round( r * 255.0 ) / 255.0, round( g * 255.0 ) / 255.0, round( b * 255.0 ) / 255.0
+								)
 							)
-						)
-					drawTri( sculptimage, sorted( nf ) )
+						drawTri( f.image, sorted( nf ) )
 		except ValueError:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["The UV map is outside","the image area"] )
 			return
-		offset = ( 0.0, 0.0, 0.0 )
-		if not centered:
-			mesh = ob.getData()
-			loc = ob.getLocation()
-			x = scale.minx + ( scale.x * 0.5 )
-			y = scale.miny + ( scale.y * 0.5 )
-			z = scale.minz + ( scale.z * 0.5 )
-			if (x, y, z) != offset:
-				offset = Blender.Mathutils.Vector( x, y, z )
-				x += loc[0]
-				y += loc[1]
-				z += loc[2]
-				mat = ob.getMatrix()
-				tran = Blender.Mathutils.TranslationMatrix( Blender.Mathutils.Vector( loc ) )
-				mesh.transform( tran )
-				mesh.update()
-				mat[3] = [0.0, 0.0, 0.0, 1.0]
-				ob.setMatrix( mat )
-				tran = Blender.Mathutils.TranslationMatrix( Blender.Mathutils.Vector( x, y, z ) * -1.0 )
-				mesh.transform( tran )
-				mesh.update()
-				mat[3] = [x, y, z , 1.0]
-				ob.setMatrix( mat )
 		bb = getBB( ob )
 		if scaleRGB:
 			sf = ( scale.r / 255.0, scale.g / 255.0, scale.b / 255.0 )
 		else:
 			sf = ( 1.0, 1.0, 1.0 )
-		try:
-			sculptimage.properties['scale_x'] = scale.x / (( bb[1][0] - bb[0][0] ) * sf[0])
-		except:
-			sculptimage.properties['scale_x'] = scale.x * sf[0]
-		try:
-			sculptimage.properties['scale_y'] = scale.y / (( bb[1][1] - bb[0][1] ) * sf[1])
-		except:
-			sculptimage.properties['scale_y'] = scale.y * sf[1]
-		try:
-			sculptimage.properties['scale_z'] = scale.z / (( bb[1][2] - bb[0][2] ) * sf[2])
-		except:
-			sculptimage.properties['scale_z'] = scale.z * sf[2]
-		if fill:
-			def getFirstX( y ):
-				for x in xrange( sculptimage.size[0] ):
-					c = sculptimage.getPixelF( x, y )
-					if c[3] != 0:
-						if x > 0: fill = True
-						return c
-				return None
-			def getFirstY( x ):
-				for y in xrange( sculptimage.size[1] ):
-					c = sculptimage.getPixelF( x, y )
-					if c[3] != 0:
-						if y > 0: fill = True
-						return c
-				return None
-			def fillX():
-				skipx = fill = False
-				for v in xrange( sculptimage.size[1] ):
-					c = getFirstX( v )
-					if not c : 
-						skipx= True
-						continue
-					sr = c[0]
-					sg = c[1]
-					sb = c[2]
-					s = 0
-					for u in xrange( 1, sculptimage.size[0] ):
-						nc = sculptimage.getPixelF( u, v )
-						if nc[3] == 0:
-							if not fill:
-								fill = True
-						else:
-							if fill:
-								fill = False
-								drawHLine( sculptimage, v, s, u, sr, sg, sb, nc[0], nc[1], nc[2] )
-							s = u
-							sr = nc[0]
-							sg = nc[1]
-							sb = nc[2]
-					if fill:
-						fill = False
-						drawHLine( sculptimage, v, s, u, sr, sg, sb, sr, sg, sb )
-				return skipx
-			def fillY():
-				fill = False
-				for u in xrange( sculptimage.size[0] ):
-					c = getFirstY( u )
-					if not c :
-						continue
-					sr = c[0]
-					sg = c[1]
-					sb = c[2]
-					s = 0
-					for v in xrange( 1, sculptimage.size[1] ):
-						nc = sculptimage.getPixelF( u, v )
-						if nc[3] == 0:
-							if not fill:
-								fill = True
-						else:
-							if fill:
-								fill = False
-								drawVLine( sculptimage, u, s, v, sr, sg, sb, nc[0], nc[1], nc[2] )
-							s = v
-							sr = nc[0]
-							sg = nc[1]
-							sb = nc[2]
-					if fill:
-						fill = False
-						drawVLine( sculptimage, u, s, v, sr, sg, sb, sr, sg, sb )
-			skipx = fillX()
-			fillY()
-			if skipx: fillX()
-		if expand:
-			expandPixels ( sculptimage )
-		n = Blender.sys.splitext( sculptimage.name )
-		n = n[:-1]
-		if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
-			sculptimage.name = ob.name + "_map"
-			return sculptimage.name
-		return ".".join( n )
-	else:
-		return None
+		for sculptimage in images:
+			try:
+				sculptimage.properties['scale_x'] = scale.x / (( bb[1][0] - bb[0][0] ) * sf[0])
+			except:
+				sculptimage.properties['scale_x'] = scale.x * sf[0]
+			try:
+				sculptimage.properties['scale_y'] = scale.y / (( bb[1][1] - bb[0][1] ) * sf[1])
+			except:
+				sculptimage.properties['scale_y'] = scale.y * sf[1]
+			try:
+				sculptimage.properties['scale_z'] = scale.z / (( bb[1][2] - bb[0][2] ) * sf[2])
+			except:
+				sculptimage.properties['scale_z'] = scale.z * sf[2]
+			if fill:
+				def getFirstX( y ):
+					for x in xrange( sculptimage.size[0] ):
+						c = sculptimage.getPixelF( x, y )
+						if c[3] != 0:
+							if x > 0: fill = True
+							return c
+					return None
+				def getFirstY( x ):
+					for y in xrange( sculptimage.size[1] ):
+						c = sculptimage.getPixelF( x, y )
+						if c[3] != 0:
+							if y > 0: fill = True
+							return c
+					return None
+				def fillX():
+					skipx = fill = False
+					for v in xrange( sculptimage.size[1] ):
+						c = getFirstX( v )
+						if not c :
+							skipx= True
+							continue
+						sr = c[0]
+						sg = c[1]
+						sb = c[2]
+						s = 0
+						for u in xrange( 1, sculptimage.size[0] ):
+							nc = sculptimage.getPixelF( u, v )
+							if nc[3] == 0:
+								if not fill:
+									fill = True
+							else:
+								if fill:
+									fill = False
+									drawHLine( sculptimage, v, s, u, sr, sg, sb, nc[0], nc[1], nc[2] )
+								s = u
+								sr = nc[0]
+								sg = nc[1]
+								sb = nc[2]
+						if fill:
+							fill = False
+							drawHLine( sculptimage, v, s, u, sr, sg, sb, sr, sg, sb )
+					return skipx
+				def fillY():
+					fill = False
+					for u in xrange( sculptimage.size[0] ):
+						c = getFirstY( u )
+						if not c :
+							continue
+						sr = c[0]
+						sg = c[1]
+						sb = c[2]
+						s = 0
+						for v in xrange( 1, sculptimage.size[1] ):
+							nc = sculptimage.getPixelF( u, v )
+							if nc[3] == 0:
+								if not fill:
+									fill = True
+							else:
+								if fill:
+									fill = False
+									drawVLine( sculptimage, u, s, v, sr, sg, sb, nc[0], nc[1], nc[2] )
+								s = v
+								sr = nc[0]
+								sg = nc[1]
+								sb = nc[2]
+						if fill:
+							fill = False
+							drawVLine( sculptimage, u, s, v, sr, sg, sb, sr, sg, sb )
+				skipx = fillX()
+				fillY()
+				if skipx: fillX()
+			if expand:
+				expandPixels ( sculptimage )
+			n = Blender.sys.splitext( sculptimage.name )
+			if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
+				sculptimage.name = ob.name
+	return images
 
 #***********************************************
 # main
@@ -680,35 +647,40 @@ def main():
 		if meshscale.minx == None:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
 		else:
-			for ob in scene.objects.selected:			
+			if not doCentre.val:
+				offset = ( 0.0, 0.0, 0.0 )
+				for ob in scene.objects.selected:
+					if ob.type == 'Mesh':
+						mesh = ob.getData( False, True)
+						if 'sculptie' in mesh.getUVLayerNames():
+							loc = ob.getLocation()
+							x = meshscale.minx + ( meshscale.x * 0.5 )
+							y = meshscale.miny + ( meshscale.y * 0.5 )
+							z = meshscale.minz + ( meshscale.z * 0.5 )
+							if (x, y, z) != offset:
+								offset = Blender.Mathutils.Vector( x, y, z )
+								x += loc[0]
+								y += loc[1]
+								z += loc[2]
+								mat = ob.getMatrix()
+								tran = Blender.Mathutils.TranslationMatrix( Blender.Mathutils.Vector( loc ) )
+								mesh.transform( tran )
+								mesh.update()
+								mat[3] = [0.0, 0.0, 0.0, 1.0]
+								ob.setMatrix( mat )
+								tran = Blender.Mathutils.TranslationMatrix( Blender.Mathutils.Vector( x, y, z ) * -1.0 )
+								mesh.transform( tran )
+								mesh.update()
+								mat[3] = [x, y, z , 1.0]
+								ob.setMatrix( mat )
+				meshscale = scaleRange( scene.objects.selected , not doScale.val, True, (minR.val,maxR.val,minG.val,maxG.val,minB.val,maxB.val) )
+
+			for ob in scene.objects.selected:
 				if ob.type == 'Mesh':
-					sculptie_map = updateSculptieMap( ob , meshscale, doFill.val, not doScale.val, doExpand.val, doCentre.val, doClear.val )
-					try:
-						scale = ob.getSize()
-						primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
-						if primtype == 7:
-							sculptie_type = ob.getProperty( 'LL_SCULPT_TYPE' ).getData()
-							rotation = ob.getMatrix().rotationPart().invert().toQuat()
-							priminfo = ( sculptie_map,
-								["NONE", "SPHERE", "TORUS", "PLANE", "CYLINDER"][sculptie_type],
-								meshscale.x * scale[0],
-								meshscale.y * scale[1],
-								meshscale.z * scale[2],
-								rotation[1],
-								rotation[2],
-								rotation[3],
-								rotation[0]
-							)
-							print "llSetPrimitiveParams( [ PRIM_TYPE, PRIM_TYPE_SCULPT, \"%s\", PRIM_SCULPT_TYPE_%s, PRIM_SIZE, < %.5f, %.5f, %.5f >, PRIM_ROTATION, < %.5f, %.5f, %.5f, %.5f > ] );"%priminfo
-							if doProtect.val:
-								mesh = ob.getData( False, True)
-								if "sculptie" in mesh.getUVLayerNames():
-									mesh.activeUVLayer = "sculptie"
-									mesh.update()
-								image = mesh.faces[0].image
-								protectMap( image, doPreview.val )
-					except:
-						pass
+					images = updateSculptieMap( ob , meshscale, doFill.val, not doScale.val, doExpand.val, doCentre.val, doClear.val )
+					for image in images:
+						if doProtect.val:
+							protectMap( image, doPreview.val )
 
 		print "--------------------------------"
 		print 'finished baking: in %.4f sec.' % ((Blender.sys.time()-time1))

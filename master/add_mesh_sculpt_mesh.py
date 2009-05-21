@@ -118,7 +118,7 @@ def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 	for ob in scene.objects:
 		ob.sel = False
 	if sculpt_type == TORUS:
-		rdict = Blender.Registry.GetKey('Import-Sculptie', True) # True to check on disk also
+		rdict = Blender.Registry.GetKey('ImportSculptie', True) # True to check on disk also
 		if rdict: # if found, get the values saved there
 			try:
 				settings['radius'] = rdict['radius']
@@ -129,7 +129,7 @@ def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 		retval = Blender.Draw.PupBlock( "Torus Options", [( "Radius: ", radius, 0.05, 0.5 )] )
 		Blender.Window.WaitCursor(1)
 		settings['radius'] = radius.val
-		Blender.Registry.SetKey('Import-Sculptie', settings, True) # save latest settings
+		Blender.Registry.SetKey('ImportSculptie', settings, True) # save latest settings
 	mesh = generate_base_mesh( basename, sculpt_type, faces_x, faces_y, multires, clean_lods )
 	ob = scene.objects.new( mesh, basename )
 	if sculpt_type != PLANE:
@@ -220,9 +220,6 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 	verts_t = t + 1 - wrap_y
 	for i in xrange( verts_t ):
 		profile = float(i)/t
-		if sculpt_type == SPHERE:
-			if profile == 1.0: profile = 0.9995
-			elif profile == 0.0: profile = 0.0005
 		for k in xrange( verts_s ):
 			path = float(k)/s
 			if sculpt_type == CYLINDER:

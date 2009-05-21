@@ -9,7 +9,7 @@ Tooltip: 'Export lsl and tga files for Second Life (to dir)'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.08"
+__version__ = "0.09"
 __bpydoc__ = """\
 
 LSL Exporter
@@ -18,6 +18,10 @@ This script exports Second Life sculpties in lsl + tga files
 """
 
 #Changes:
+#0.09 Domino Marama 2009-05-19
+#- replaced sculpttype with automatic map detection in mapType function
+#- added support for multiple sculpt maps
+#- new single LSL script export with linkset support via parenting
 #0.08 Domino Marama 2008-12-19
 #- refactor to allow better linkset support
 # 0.07 BETLOG Hax 2008-10-22
@@ -69,7 +73,7 @@ from render_sculptie import updateSculptieMap, scaleRange
 #***********************************************
 
 MAIN_LSL = """string base = "Prim";
-list textures = [ %(textures)s ];
+list textures = %(textures)s;
 vector myPos;
 
 integer isKey(key in)
@@ -80,7 +84,7 @@ integer isKey(key in)
 
 addPrim()
 {
-    llRezObject(base, myPos, ZERO_VECTOR, ZERO_ROTATION, 0 );
+	llRezObject(base, myPos, ZERO_VECTOR, ZERO_ROTATION, 0 );
 }
 
 state default
@@ -89,7 +93,7 @@ state default
 	{
 		if ( llGetInventoryType( base ) != INVENTORY_OBJECT )
 		{
-			llOwnerSay( "Please add a prim called \"" + base + "\" to my contents" );
+			llOwnerSay( "Please add a prim called \\"" + base + "\\" to my contents" );
 			state needs_something;
 		}
 		tI = llGetListLength( textures );
@@ -98,12 +102,12 @@ state default
 			{
 				if ( llGetInventoryType( tS ) != INVENTORY_TEXTURE )
 				{
-					llOwnerSay( "Please add texture \"" + tS + "\" to my contents" );
+					llOwnerSay( "Please add texture \\"" + tS + "\\" to my contents" );
 					state needs_something;
 				}
 			}
 		}
-	        llRequestPermissions( llGetOwner(), PERMISSION_CHANGE_LINKS );
+		llRequestPermissions( llGetOwner(), PERMISSION_CHANGE_LINKS );
 	}
 
 	run_time_permissions( integer perm )
@@ -141,6 +145,7 @@ state_build
 	state_entry()
 	{
 		myPos = llGetPos();
+		llSetRot( ZERO_ROTATION );
 		addPrim();
 	}
 
@@ -154,10 +159,12 @@ state_build
 		if ( change & CHANGED_LINK )
 		{
 			tI = ~-llGetNumberOfPrims();
-			%(builder)s
-			{
+			%(builder)sif (tI > 0 ) {
 				llSetLinkPrimitiveParams( 1, [ %(rootParams)s ] );
-		                llBreakLink( llGetNumberOfPrims() );
+				llBreakLink( llGetNumberOfPrims() );
+			}
+			else
+			{
 				llOwnerSay( "Finished!" );
 				state ready;
 			}
@@ -205,7 +212,6 @@ class prim:
 		self.children = []
 		self.textures = []
 		self.primtype = 0
-		self.sculpttype = 0
 		self.sculptimage = None
 		self.meshscale = ( 1.0, 1.0, 1.0 )
 		self.scale = ( 1.0, 1.0, 1.0 )
@@ -213,67 +219,37 @@ class prim:
 		self.location = ( 0.0, 0.0, 0.0 )
 
 	def fromOb( self, ob ):
-		self.primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
 		r = ob.getMatrix().rotationPart().invert().toQuat()
 		self.rotation = ( r[1], r[2], r[3], r[0] )
-		if self.primtype == 7:
-		    self.sculpttype = ob.getProperty( 'LL_SCULPT_TYPE' ).getData()
-		    mesh = ob.getData( False, True )
-		    ms = scaleRange( [ ob ], True )
-		    self.scale = ( ms.x, ms.y, ms.z )
-		    currentUV = mesh.activeUVLayer
-		    if "sculptie" in mesh.getUVLayerNames():
-			mesh.activeUVLayer = "sculptie"
-			mesh.update()
-			image = mesh.faces[0].image
-			if image:
-			    filebase = Blender.sys.basename( image.name )
-			    if filebase[-4:] in [ ".tga", ".TGA" ]:
-				si = Blender.sys.splitext(filebase)[0]
-			    else:
-				si = filebase
-			    self.sculptimage = texture( si, image )
-			    if 'scale_x' in image.properties:
-				    print image.name
-				    print image.properties['scale_x'],image.properties['scale_y'],image.properties['scale_z']
-				    print self.scale
-				    self.scale = ( self.scale[0] * image.properties['scale_x'],
-					self.scale[1] * image.properties['scale_y'],
-					self.scale[2] * image.properties['scale_z'] )
-				    print self.scale
-			else:
-			    self.sculptimage = None
-		    if "UVTex" in mesh.getUVLayerNames():
-			mesh.activeUVLayer = "UVTex"
-			mesh.update()
-			image = mesh.faces[0].image
-			if image:
-			    filebase = Blender.sys.basename( image.filename )
-			    if filebase[-4:] in [ ".tga", ".TGA" ]:
-				newtex = texture( Blender.sys.splitext(filebase)[0], image )
-			    else:
-				newtex = texture( filebase, image )
-			    self.textures.append( newtex )
-		    mesh.activeUVLayer = currentUV
-		    mesh.update()
-		    self.location = ( ob.loc[0], ob.loc[1], ob.loc[2] )
-
-	def toLSL( self, prefix = "" ):
-		pt = ["missing","missing","missing","missing","missing","missing","missing","SCULPT"][ self.primtype ]
-		lsl = prefix + "llSetPrimitiveParams( [ " + self.toLSLParams() + " ] );\n"
-	        lsl += prefix + "if (llGetLinkNumber() > 1)\n"
-		lsl += prefix + "\tllSetPrimitiveParams( [PRIM_POSITION, < %.5f, %.5f, %.5f > ] );\n"%( self.location )
-		lsl += prefix + "llSetObjectName( \"%s\" );\n"%( self.name )
-		return lsl
+		mesh = ob.getData( False, True )
+		ms = scaleRange( [ ob ], True )
+		self.scale = ( ms.x * ob.size[0], ms.y * ob.size[1], ms.z * ob.size[2] )
+		if "sculptie" in mesh.getUVLayerNames():
+			self.primtype = 7
+			if "UVTex" in mesh.getUVLayerNames():
+				currentUV = mesh.activeUVLayer
+				mesh.activeUVLayer = "UVTex"
+				mesh.update()
+				image = mesh.faces[0].image
+				if image:
+					filebase = Blender.sys.basename( image.filename )
+					if filebase[-4:] in [ ".tga", ".TGA" ]:
+						newtex = texture( Blender.sys.splitext(filebase)[0], image )
+					else:
+						newtex = texture( filebase, image )
+						self.textures.append( newtex )
+				mesh.activeUVLayer = currentUV
+				mesh.update()
+		self.location = ob.getLocation( 'worldspace' )
 
 	def toLSLParams( self ):
 		pt = ["missing","missing","missing","missing","missing","missing","missing","SCULPT"][ self.primtype ]
 		lsl = "PRIM_TYPE, PRIM_TYPE_%s, "%( pt )
 		if self.primtype == 7:
-			st = ["NONE", "SPHERE", "TORUS", "PLANE", "CYLINDER"][self.sculpttype]
-			lsl += "\"%s\", PRIM_SCULPT_TYPE_%s, "%( self.sculptimage.name, st )
+			lsl += "\"%s\", PRIM_SCULPT_TYPE_%s, "%( self.sculptimage.name, mapType( self.sculptimage.image ) )
 		lsl += "PRIM_SIZE, < %.5f, %.5f, %.5f >, "%( self.scale )
-		lsl += "PRIM_ROTATION, < %.5f, %.5f, %.5f, %.5f >"%( self.rotation )
+		lsl += "PRIM_ROTATION, < %.5f, %.5f, %.5f, %.5f >, "%( self.rotation )
+		lsl += "PRIM_LOCATION, myPos + < %.5f, %.5f, %.5f >"%( self.location )
 		for t in self.textures:
 			lsl += ", " + t.toLSLParams()
 		return lsl
@@ -313,57 +289,141 @@ class texture:
 		self.image.filename = oldfile
 
 #***********************************************
+# functions
+#***********************************************
+
+def obChildren(ob):
+    return [ob_child for ob_child in Blender.Object.Get() if ob_child.parent == ob]
+
+def mapImages( mesh ):
+	images = []
+	if "sculptie" in mesh.getUVLayerNames():
+		currentUV = mesh.activeUVLayer
+		mesh.activeUVLayer = "sculptie"
+		mesh.update()
+		for f in mesh.faces:
+			if f.image != None:
+				if f.image not in images:
+					images.append( f.image )
+		mesh.activeUVLayer = currentUV
+		mesh.update()
+	return images
+
+def mapType( image ):
+	poles = True
+	xseam = True
+	yseam = True
+	p1 = image.getPixelI( 0, 0 )[:3]
+	p2 = image.getPixelI( 0, image.size[1] - 1 )[:3]
+	if p1 != p2:
+		yseam = False
+	for x in xrange( 1, image.size[0]  ):
+		p3 = image.getPixelI( x, 0 )[:3]
+		p4 = image.getPixelI( x, image.size[1] - 1 )[:3]
+		if p1 != p3 or p2 != p4:
+			poles = False
+		if p3 != p4:
+			yseam = False
+		p1 = p3
+		p2 = p4
+	for y in xrange( image.size[1]  ):
+		p1 = image.getPixelI( 0, y )[:3]
+		p2 = image.getPixelI( image.size[0] - 1, y )[:3]
+		if p1 != p2:
+			xseam = False
+	if xseam:
+		if poles:
+			return "SPHERE"
+		if yseam:
+			return "TORUS"
+		return "CYLINDER"
+	return "PLANE"
+
+#***********************************************
 # simple export to .lsl files + .tga images
 #***********************************************
 
+def mesh2Prim( ob, rootprim = None ):
+	mesh = ob.getData( False, True )
+	images = mapImages( mesh )
+	if images != []:
+		newprim = prim( images[0].name )
+		newprim.fromOb( ob )
+		newprim.sculptimage = texture( images[0].name , images[0] )
+		newprim.scale = ( newprim.scale[0] / images[0].properties['scale_x'],
+						newprim.scale[1] / images[0].properties['scale_y'],
+						newprim.scale[2] / images[0].properties['scale_z'] )
+		if rootprim == None:
+			rootprim = newprim
+		else:
+			rootprim.children.append( newprim )
+		for image in images[1:]:
+			newprim = prim( image.name )
+			newprim.fromOb( ob )
+			newprim.sculptimage = texture( image.name , image )
+			newprim.scale = ( newprim.scale[0] / images[0].properties['scale_x'],
+						newprim.scale[1] / images[0].properties['scale_y'],
+						newprim.scale[2] / images[0].properties['scale_z'] )
+			rootprim.children.append( newprim )
+	return rootprim
+
+def ob2Prim( ob, rootprim = None ):
+	if ob.type == 'Mesh':
+		rootprim = mesh2Prim( ob, rootprim )
+	for c in obChildren( ob ):
+		rootprim = ob2Prim( c, rootprim )
+	return rootprim
+
 def export_lsl( filename ):
-    Blender.Window.WaitCursor(1)
-    prims = []
-    basepath = Blender.sys.dirname( filename )
-    scene = Blender.Scene.GetCurrent()
-    for ob in scene.objects.selected:
-        # collect prims
-        if ob.type == 'Mesh':
-            try:
-                primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
-            except:
-                continue
-            newprim = prim( ob.name )
-            newprim.fromOb( ob )
-            if newprim.primtype == 7 and newprim.sculpttype > 0:
-                if newprim.sculptimage == None:
-                    sn = updateSculptieMap( ob )
-                    newprim.sculptimage = texture( sn , Blender.Image.Get( sn ) )
-            prims.append( newprim )
+	Blender.Window.WaitCursor(1)
+	prims = []
+	basepath = Blender.sys.dirname( filename )
+	scene = Blender.Scene.GetCurrent()
+	for ob in scene.objects.selected:
+		# collect prims
+		if ob.parent != None:
+			continue
+		rootprim = ob2Prim( ob )
+		if rootprim != None:
+			prims.append( rootprim )
+	if prims == []:
+		Blender.Draw.PupBlock( "Nothing to do", ["No root prims are selected", " for export"] )
+		return
+	textures = []
+	builder = ""
+	for r in prims:
+		tk = 1
+		if r.sculptimage:
+			if not ( r.sculptimage.name in textures ):
+				textures.append( r.sculptimage.name )
+				r.sculptimage.saveImageAs( Blender.sys.join( basepath, r.sculptimage.name + ".tga" ) )
+			for t in r.textures:
+				if not ( t.name in textures ):
+					t.saveImageAs( Blender.sys.join( basepath, t.name + ".tga" ) )
+					textures.append( t.name )
+		for c in r.children:
+			if c.sculptimage:
+				builder += LINK_LSL%{ "linkNum": tk, "linkParams":c.toLSLParams() }
+				tk += 1
+				if not ( c.sculptimage.name in textures ):
+					c.sculptimage.saveImageAs( Blender.sys.join( basepath, c.sculptimage.name + ".tga" ) )
+					textures.append( c.sculptimage.name )
+			for t in c.textures:
+				if not ( t.name in textures ):
+					t.saveImageAs( Blender.sys.join( basepath, t.name + ".tga" ) )
+					textures.append( t.name )
+		f = open( Blender.sys.join( basepath, r.name + ".lsl" ), 'w' )
+		t = str( textures )
+		f.write( MAIN_LSL%{ "textures": t.replace(", ",",\n\t\t\t"), "builder":builder, "rootParams": r.toLSLParams() } )
+		f.close()
 
-    # save prims
-    for p in prims:
-        lsl_t_h = ""
-        if p.sculptimage:
-            p.sculptimage.saveImageAs( Blender.sys.join( basepath, p.sculptimage.name + ".tga" ) )
-        i = 0
-        for t in p.textures:
-            t.saveImageAs( Blender.sys.join( basepath, t.name + ".tga" ) )
-	    f = str( t.face )
-	    if f == "-1": f = "0"
-            lsl_t_h += "\t\tkey tK" + f + " = llGetInventoryKey( \"" + t.name + "\" );\n"
-            lsl_t_h += "\t\tllRemoveInventory( \"" + t.name + "\" );\n"
-        lsl =  "string tS;\ndefault\n{\n\ton_rez(integer start_param)\n\t{\n\t\tllResetScript();\n\t}\n\tstate_entry()\n\t{\n"
-        lsl += lsl_t_h + p.toLSL( "\t\t" )
-        if p.sculptimage:
-            lsl += "\t\tllRemoveInventory( \"" + p.sculptimage.name +"\" );\n"
-        lsl += "\t\tllRemoveInventory( tS = llGetScriptName() );\n\t\tllSetScriptState( tS, FALSE );\n\t}\n\tchanged(integer change)\n\t{\n\t\tif (change & CHANGED_LINK)\n\t\t\tllResetScript();\n\t}\n}"
-        f = open( Blender.sys.join( basepath, p.name + ".lsl" ), 'w' )
-        f.write( lsl )
-        f.close()
-
-    Blender.Window.WaitCursor(0)
+	Blender.Window.WaitCursor(0)
 
 #***********************************************
 # register callback
 #***********************************************
 def my_callback(filename):
-    export_lsl(filename)
+	export_lsl(filename)
 
 if __name__ == '__main__':
-    Blender.Window.FileSelector(my_callback, "Export LSL", '.')
+	Blender.Window.FileSelector(my_callback, "Export LSL", '.')
