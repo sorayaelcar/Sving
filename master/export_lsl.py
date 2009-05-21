@@ -89,7 +89,7 @@ addPrim()
 	llRezObject(base, myPos, ZERO_VECTOR, ZERO_ROTATION, 0 );
 }
 
-state default
+default
 {
 	state_entry()
 	{
