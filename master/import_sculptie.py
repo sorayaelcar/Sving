@@ -163,17 +163,18 @@ def update_sculptie_from_map(mesh, image):
 		for vi in xrange( len( f.verts) ):
 			if f.verts[ vi ].index in verts:
 				verts.remove( f.verts[ vi ].index )
-				u, v = f.uv[ vi ]
-				u = int( u * image.size[0])
-				v = int( v * image.size[1])
-				if u == image.size[0]:
-					u = image.size[0] - 1
-				if v == image.size[1]:
-					v = image.size[1] - 1
-				p  = image.getPixelF( u, v )
-				f.verts[ vi ].co = Blender.Mathutils.Vector(( p[0] - 0.5),
-						(p[1] - 0.5),
-						(p[2] - 0.5))
+				if f.verts[ vi ].sel:
+					u, v = f.uv[ vi ]
+					u = int( u * image.size[0])
+					v = int( v * image.size[1])
+					if u == image.size[0]:
+						u = image.size[0] - 1
+					if v == image.size[1]:
+						v = image.size[1] - 1
+					p  = image.getPixelF( u, v )
+					f.verts[ vi ].co = Blender.Mathutils.Vector(( p[0] - 0.5),
+							(p[1] - 0.5),
+							(p[2] - 0.5))
 	mesh.activeUVLayer = currentUV
 	mesh.update()
 	mesh.sel = True
@@ -209,6 +210,8 @@ def new_sculptie( filename ):
 	if multires:
 		mesh.multires = True
 		mesh.addMultiresLevel( multires )
+	for v in mesh.verts:
+		v.sel = True
 	update_sculptie_from_map( mesh, image )
 	try:
 		quat = None
