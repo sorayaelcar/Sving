@@ -18,6 +18,8 @@ This script creates an object from a Second Life sculptie image map
 """
 
 #Changes:
+#0.37 Domino Marama 2009-05-22
+#- Now uses mapType to detect sculptie type. Dialog box removed.
 #0.36 Domino Marama 2008-10-25
 #- Wrapped edges are marked as seams
 #0.35 Domino Marama 2008-10-19
@@ -129,20 +131,11 @@ This script creates an object from a Second Life sculptie image map
 
 import Blender
 from math import sin, cos, pi, sqrt
+from export_lsl import mapType
 
 #***********************************************
-# constants
+# functions
 #***********************************************
-
-SPHERE = 1
-TORUS = 2
-PLANE = 3
-CYLINDER = 4
-HEMI = 5
-FACES_X = 8
-FACES_Y = 8
-
-settings = {'radius':0.25}
 
 def adjust_size( width, height, s, t ):
 	ratio = float(width) / float(height)
@@ -161,8 +154,8 @@ def adjust_size( width, height, s, t ):
 #***********************************************
 
 def update_sculptie_from_map(mesh, image, sculpt_type):
-	wrap_x = ( sculpt_type != PLANE )
-	wrap_y = ( sculpt_type == TORUS )
+	wrap_x = ( sculpt_type != "PLANE" )
+	wrap_y = ( sculpt_type == "TORUS" )
 	verts = range( len( mesh.verts ) )
 	for f in mesh.faces:
 		f.image = image
@@ -178,14 +171,14 @@ def update_sculptie_from_map(mesh, image, sculpt_type):
 					else:
 						u = image.size[0] - 1
 				if v == 0:
-					if ( sculpt_type == SPHERE ):
+					if ( sculpt_type == "SPHERE" ):
 						u = image.size[0] / 2
 				if v == image.size[1]:
 					if wrap_y:
 						v = 0
 					else:
 						v = image.size[1] - 1
-						if ( sculpt_type == SPHERE ):
+						if ( sculpt_type == "SPHERE" ):
 							u = image.size[0] / 2
 				p  = image.getPixelF( u, v )
 				f.verts[ vi ].co = Blender.Mathutils.Vector(( p[0] - 0.5),
@@ -199,11 +192,12 @@ def update_sculptie_from_map(mesh, image, sculpt_type):
 # generate sculptie mesh
 #***********************************************
 
-def new_sculptie( sculpt_type, filename ):
+def new_sculptie( filename ):
 	Blender.Window.WaitCursor(1)
 	filebase = Blender.sys.basename(filename)
 	basename = Blender.sys.splitext(filebase)[0]
 	image = Blender.Image.Load( filename )
+	sculpt_type = mapType( image )
 	faces_x, faces_y = image.size
 	faces_x, faces_y = adjust_size( faces_x, faces_y, 32, 32 )
 	multires = 0
@@ -218,11 +212,6 @@ def new_sculptie( sculpt_type, filename ):
 	ob = scene.objects.new( mesh, basename )
 	ob.setLocation( Blender.Window.GetCursorPos() )
 	ob.sel = True
-	ob.addProperty( 'LL_PRIM_TYPE', 7 )
-	if sculpt_type == HEMI:
-		ob.addProperty( 'LL_SCULPT_TYPE', PLANE )
-	else:
-		ob.addProperty( 'LL_SCULPT_TYPE', sculpt_type )
 	for f in mesh.faces:
 		f.image = image
 	mesh.flipNormals()
@@ -250,8 +239,8 @@ def generate_base_mesh( name, sculpt_type, verts_x, verts_y ):
 	verts = []
 	seams = []
 	faces = []
-	wrap_x = ( sculpt_type != PLANE ) & ( sculpt_type != HEMI )
-	wrap_y = ( sculpt_type == TORUS )
+	wrap_x = ( sculpt_type != "PLANE" ) & ( sculpt_type != "HEMI" )
+	wrap_y = ( sculpt_type == "TORUS" )
 	actual_x = verts_x - wrap_x
 	actual_y = verts_y - wrap_y
 	uvgrid_y = []
@@ -318,22 +307,8 @@ def load_sculptie(filename):
 			in_editmode = Blender.Get('add_editmode')
 		except:
 			pass
-	block = []
-	scale_x = Blender.Draw.Create( 1.0 )
-	scale_y = Blender.Draw.Create( 1.0 )
-	scale_z = Blender.Draw.Create( 1.0 )
-	sculpt_type = Blender.Draw.Create ( 1 )
-	block.append (( "Mesh Type: ", sculpt_type, 1, 4 ))
-	block.append (( "      1 Sphere  2 Torus" ))
-	block.append (( "      3 Plane   4 Cylinder" ))
-	block.append (( "" ))
-	block.append (( "Scale X: ", scale_x, 0.01, 100.0 ))
-	block.append (( "Scale Y: ", scale_y, 0.01, 100.0 ))
-	block.append (( "Scale Z: ", scale_z, 0.01, 100.0 ))
-	retval = Blender.Draw.PupBlock( "Sculptie Options", block )
 	time1 = Blender.sys.time()  #for timing purposes
-	ob = new_sculptie( sculpt_type.val, filename )
-	ob.setSize( scale_x.val, scale_y.val, scale_z.val )
+	ob = new_sculptie( filename )
 	if in_editmode:
 		Blender.Window.EditMode(1)
 	Blender.Redraw()
