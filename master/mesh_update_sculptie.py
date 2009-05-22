@@ -9,7 +9,7 @@ Tooltip: 'Updates a mesh with a sculptie UV layer from a .tga map file'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.01"
+__version__ = "0.02"
 __bpydoc__ = """\
 
 Sculptie Updater
@@ -18,7 +18,8 @@ This script updates a sculptie mesh from a Second Life sculptie image map
 """
 #TODO:
 # Needs to work with shape keys
-
+#0.02 Domino Marama 2009-05-22
+#- Removed image to face assignments and scaling
 #0.01 Domino Marama 2007-08-10
 #- Initial Version
 
@@ -61,31 +62,11 @@ def main( filename ):
 	Blender.Window.WaitCursor(1)
 	ob = Blender.Scene.GetCurrent().getActiveObject()
 	if ob.type == 'Mesh':
-		try:
-			primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
-			if primtype != 7:
-				print "Skipping:", ob.name,"prim type is not a sculptie"
-				return
-			else:
-				sculpt_type = ob.getProperty( 'LL_SCULPT_TYPE' ).getData()
-		except:
-				print "Skipping:", ob.name," is not a sculptie"
-				return
-
 		mesh = ob.getData( False, True)
 		if "sculptie" in mesh.getUVLayerNames():
-			mesh.activeUVLayer = "sculptie"
-			mesh.update()
-		if mesh.multires:
-			mr = mesh.multiresDrawLevel
-			mesh.multiresDrawLevel = 1
-		for f in mesh.faces:
-			f.image = image
-		if mesh.multires:
-			mesh.multiresDrawLevel = mr
-		mesh.update()
-		update_sculptie_from_map( mesh, image, sculpt_type )
-		mesh.update()
+			update_sculptie_from_map( mesh, image )
+		else:
+			Blender.Draw.PupBlock( "Sculptie Error", ["Mesh has no 'sculptie' UV Layer"] )
 	Blender.Window.WaitCursor(0)
 	Blender.Window.EditMode( editmode )
 

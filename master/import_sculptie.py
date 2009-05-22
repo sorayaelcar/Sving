@@ -153,12 +153,13 @@ def adjust_size( width, height, s, t ):
 # update vertex positions in sculptie mesh
 #***********************************************
 
-def update_sculptie_from_map(mesh, image, sculpt_type):
-	wrap_x = ( sculpt_type != "PLANE" )
-	wrap_y = ( sculpt_type == "TORUS" )
+def update_sculptie_from_map(mesh, image):
+	currentUV = mesh.activeUVLayer
+	if "sculptie" in mesh.getUVLayerNames():
+		mesh.activeUVLayer = "sculptie"
+		mesh.update()
 	verts = range( len( mesh.verts ) )
 	for f in mesh.faces:
-		f.image = image
 		for vi in xrange( len( f.verts) ):
 			if f.verts[ vi ].index in verts:
 				verts.remove( f.verts[ vi ].index )
@@ -166,24 +167,14 @@ def update_sculptie_from_map(mesh, image, sculpt_type):
 				u = int( u * image.size[0])
 				v = int( v * image.size[1])
 				if u == image.size[0]:
-					if wrap_x:
-						u = 0
-					else:
-						u = image.size[0] - 1
-				if v == 0:
-					if ( sculpt_type == "SPHERE" ):
-						u = image.size[0] / 2
+					u = image.size[0] - 1
 				if v == image.size[1]:
-					if wrap_y:
-						v = 0
-					else:
-						v = image.size[1] - 1
-						if ( sculpt_type == "SPHERE" ):
-							u = image.size[0] / 2
+					v = image.size[1] - 1
 				p  = image.getPixelF( u, v )
 				f.verts[ vi ].co = Blender.Mathutils.Vector(( p[0] - 0.5),
 						(p[1] - 0.5),
 						(p[2] - 0.5))
+	mesh.activeUVLayer = currentUV
 	mesh.update()
 	mesh.sel = True
 	mesh.recalcNormals( 0 )
@@ -218,7 +209,7 @@ def new_sculptie( filename ):
 	if multires:
 		mesh.multires = True
 		mesh.addMultiresLevel( multires )
-	update_sculptie_from_map( mesh, image, sculpt_type )
+	update_sculptie_from_map( mesh, image )
 	try:
 		quat = None
 		if Blender.Get('add_view_align'):
