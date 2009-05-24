@@ -24,94 +24,75 @@
 #***********************************************
 
 import Blender
-from math import sin, cos, pi, sqrt
+from math import sin, cos, pi, sqrt, log, ceil
 
 #***********************************************
-# functions
+# sculpty info functions
 #***********************************************
 
-def face_count( width, height, s, t, model = True ):
+def face_count( width, height, x_faces, y_faces, model = True ):
 	ratio = float(width) / float(height)
-	verts = int(min( 0.25 * width * height, s * t ))
+	verts = int(min( 0.25 * width * height, x_faces * y_faces ))
 	if (width != height) and model:
 		verts = verts & 0xfff8
-	t = int(sqrt( verts / ratio))
-	t = max( t, 4 )
-	s = verts // t
-	s = max( s, 4 )
-	t = verts // s
-	return int(s), int(t)
+	y_faces = int(sqrt( verts / ratio))
+	y_faces = max( y_faces, 4 )
+	x_faces = verts // y_faces
+	x_faces = max( x_faces, 4 )
+	y_faces = verts // x_faces
+	return int(x_faces), int(y_faces)
 
-def map_images( mesh ):
-	images = []
-	if "sculptie" in mesh.getUVLayerNames():
-		currentUV = mesh.activeUVLayer
-		mesh.activeUVLayer = "sculptie"
-		mesh.update()
-		for f in mesh.faces:
-			if f.image != None:
-				if f.image not in images:
-					images.append( f.image )
-		mesh.activeUVLayer = currentUV
-		mesh.update()
-	return images
+def map_size( x_faces, y_faces, levels ):
+	w = int(pow(2, levels + 1 + ceil( log(x_faces) / log(2))))
+	h = int(pow(2, levels + 1 + ceil( log(y_faces) / log(2))))
+	w, h = face_count( w, h, 32, 32 )
+	s = min( w, x_faces )
+	t = min( h, y_faces )
+	w = int(pow(2, levels + 1 + ceil( log(w>>levels) / log(2))))
+	h = int(pow(2, levels + 1 + ceil( log(h>>levels) / log(2))))
+	if w == h == 8:
+		# 8 x 8 won't upload
+		w = 16
+		h = 16
+	cs = True
+	ct = True
+	if ( s<<(levels + 1) > w ):
+		s = w>>(levels + 1)
+	if ( t<<(levels +1) > h ):
+		t = h>>(levels + 1)
+	if ( s < x_faces ):
+		cs = False
+	if ( t < y_faces ):
+		ct = False
+	return s, t, w, h, cs, ct
 
-def map_type( image ):
-	poles = True
-	xseam = True
-	yseam = True
-	p1 = image.getPixelI( 0, 0 )[:3]
-	p2 = image.getPixelI( 0, image.size[1] - 1 )[:3]
-	if p1 != p2:
-		yseam = False
-	for x in xrange( 1, image.size[0]  ):
-		p3 = image.getPixelI( x, 0 )[:3]
-		p4 = image.getPixelI( x, image.size[1] - 1 )[:3]
-		if p1 != p3 or p2 != p4:
-			poles = False
-		if p3 != p4:
-			yseam = False
-		p1 = p3
-		p2 = p4
-	for y in xrange( image.size[1]  ):
-		p1 = image.getPixelI( 0, y )[:3]
-		p2 = image.getPixelI( image.size[0] - 1, y )[:3]
-		if p1 != p2:
-			xseam = False
-	if xseam:
-		if poles:
-			return "SPHERE"
-		if yseam:
-			return "TORUS"
-		return "CYLINDER"
-	return "PLANE"
+#***********************************************
+# sculpty object functions
+#***********************************************
 
-def update_from_map( mesh, image ):
-	currentUV = mesh.activeUVLayer
-	if "sculptie" in mesh.getUVLayerNames():
-		mesh.activeUVLayer = "sculptie"
-		mesh.update()
-	verts = range( len( mesh.verts ) )
-	for f in mesh.faces:
-		for vi in xrange( len( f.verts) ):
-			if f.verts[ vi ].index in verts:
-				verts.remove( f.verts[ vi ].index )
-				if f.verts[ vi ].sel:
-					u, v = f.uv[ vi ]
-					u = int( u * image.size[0])
-					v = int( v * image.size[1])
-					if u == image.size[0]:
-						u = image.size[0] - 1
-					if v == image.size[1]:
-						v = image.size[1] - 1
-					p  = image.getPixelF( u, v )
-					f.verts[ vi ].co = Blender.Mathutils.Vector(( p[0] - 0.5),
-							(p[1] - 0.5),
-							(p[2] - 0.5))
-	mesh.activeUVLayer = currentUV
-	mesh.update()
-	mesh.sel = True
-	mesh.recalcNormals( 0 )
+def getBB( obj ):
+	mesh = Blender.Mesh.New()
+	mesh.getFromObject( obj, 0, 1 )
+	min_x = mesh.verts[0].co.x
+	max_x = min_x
+	min_y = mesh.verts[0].co.y
+	max_y = min_y
+	min_z = mesh.verts[0].co.z
+	max_z = min_z
+	for v in mesh.verts[1:-1]:
+		if v.co.x < min_x :
+			min_x = v.co.x
+		elif v.co.x > max_x :
+			max_x = v.co.x
+		if v.co.y < min_y :
+			min_y = v.co.y
+		elif v.co.y > max_y :
+			max_y = v.co.y
+		if v.co.z < min_z :
+			min_z = v.co.z
+		elif v.co.z > max_z :
+			max_z = v.co.z
+	return ( min_x, min_y, min_z ), ( max_x, max_y, max_z )
 
 def new_from_map( image ):
 	Blender.Window.WaitCursor(1)
@@ -152,6 +133,51 @@ def new_from_map( image ):
 		pass
 	Blender.Window.WaitCursor(0)
 	return ob
+
+#***********************************************
+# sculpty mesh functions
+#***********************************************
+
+def map_images( mesh ):
+	images = []
+	if "sculptie" in mesh.getUVLayerNames():
+		currentUV = mesh.activeUVLayer
+		mesh.activeUVLayer = "sculptie"
+		mesh.update()
+		for f in mesh.faces:
+			if f.image != None:
+				if f.image not in images:
+					images.append( f.image )
+		mesh.activeUVLayer = currentUV
+		mesh.update()
+	return images
+
+def update_from_map( mesh, image ):
+	currentUV = mesh.activeUVLayer
+	if "sculptie" in mesh.getUVLayerNames():
+		mesh.activeUVLayer = "sculptie"
+		mesh.update()
+	verts = range( len( mesh.verts ) )
+	for f in mesh.faces:
+		for vi in xrange( len( f.verts) ):
+			if f.verts[ vi ].index in verts:
+				verts.remove( f.verts[ vi ].index )
+				if f.verts[ vi ].sel:
+					u, v = f.uv[ vi ]
+					u = int( u * image.size[0])
+					v = int( v * image.size[1])
+					if u == image.size[0]:
+						u = image.size[0] - 1
+					if v == image.size[1]:
+						v = image.size[1] - 1
+					p  = image.getPixelF( u, v )
+					f.verts[ vi ].co = Blender.Mathutils.Vector(( p[0] - 0.5),
+							(p[1] - 0.5),
+							(p[2] - 0.5))
+	mesh.activeUVLayer = currentUV
+	mesh.update()
+	mesh.sel = True
+	mesh.recalcNormals( 0 )
 
 def new_mesh( name, sculpt_type, verts_x, verts_y ):
 	mesh = Blender.Mesh.New("%s.mesh"%name)
@@ -213,6 +239,53 @@ def new_mesh( name, sculpt_type, verts_x, verts_y ):
 			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
 	return mesh
 
+#***********************************************
+# sculpty image functions
+#***********************************************
+
+def bake_default( image, sculpt_type, radius = 0.25 ):
+	x = image.size[0]
+	y = image.size[1]
+	for u in range( x ):
+		path = float(u) / x
+		if u == x - 1:
+			path = 1.0
+		for v in range( y):
+			profile = float(v) / y
+			if v == y - 1:
+				profile = 1.0
+			a = pi + 2 * pi * path
+			if sculpt_type == "SPHERE":
+				ps = sin( pi * profile ) / 2.0
+				r = 0.5 + sin( a ) * ps
+				g = 0.5 - cos( a ) * ps
+				b = 0.5 -cos( pi * profile ) / 2.0
+			elif sculpt_type == "CYLINDER":
+				r = 0.5 + sin( a ) / 2.0
+				g = 0.5 - cos( a  ) / 2.0
+				b = profile
+			elif sculpt_type == "TORUS":
+				ps = (( 1.0 - radius ) - sin( 2.0 * pi * profile) * radius) / 2.0
+				r = 0.5 + sin( a ) * ps
+				g = 0.5 - cos( a ) * ps
+				b = 0.5 + cos( 2 * pi * profile ) / 2.0
+			elif sculpt_type == "HEMI":
+				b = sqrt( 2.0 )
+				z = -cos( 2 * pi * min( path, profile, 1.0 - path, 1.0 - profile) ) / 2.0
+				pa = path - 0.5
+				pr = profile - 0.5
+				ph = sqrt(pa * pa + pr * pr)
+				ps = sqrt( sin( (0.5 - z ) * pi * 0.5 ) / 2.0 )
+				if ph == 0.0: ph = 1.0
+				r = 0.5 + ( pa / ph * ps ) / b
+				g = 0.5 + ( pr / ph * ps ) / b
+				b = 0.5 + z
+			else:
+				r = path
+				g = profile
+				b= 0.0
+			image.setPixelF( u, v, ( r, g, b, 1.0 ) )
+
 def bake_lod( image ):
 	x = image.size[0]
 	y = image.size[1]
@@ -236,13 +309,6 @@ def bake_lod( image ):
 				c[2] += 0.25
 				image.setPixelF( s, t, c )
 
-def clear_alpha( image ):
-	for x in xrange( image.size[0] ):
-		for y in xrange( image.size[1] ):
-			c1 = image.getPixelF( x, y )
-			c1[3] = 0.0
-			image.setPixelF( x, y, c1 )
-
 def bake_preview( image ):
 	clear_alpha( image )
 	for x in xrange( image.size[0] ):
@@ -255,6 +321,43 @@ def bake_preview( image ):
 			if c2[3] < c1[1]:
 				c2[3] = c1[1]
 				image.setPixelF( s, t, c2 )
+
+def clear_alpha( image ):
+	for x in xrange( image.size[0] ):
+		for y in xrange( image.size[1] ):
+			c1 = image.getPixelF( x, y )
+			c1[3] = 0.0
+			image.setPixelF( x, y, c1 )
+
+def map_type( image ):
+	poles = True
+	xseam = True
+	yseam = True
+	p1 = image.getPixelI( 0, 0 )[:3]
+	p2 = image.getPixelI( 0, image.size[1] - 1 )[:3]
+	if p1 != p2:
+		yseam = False
+	for x in xrange( 1, image.size[0]  ):
+		p3 = image.getPixelI( x, 0 )[:3]
+		p4 = image.getPixelI( x, image.size[1] - 1 )[:3]
+		if p1 != p3 or p2 != p4:
+			poles = False
+		if p3 != p4:
+			yseam = False
+		p1 = p3
+		p2 = p4
+	for y in xrange( image.size[1]  ):
+		p1 = image.getPixelI( 0, y )[:3]
+		p2 = image.getPixelI( image.size[0] - 1, y )[:3]
+		if p1 != p2:
+			xseam = False
+	if xseam:
+		if poles:
+			return "SPHERE"
+		if yseam:
+			return "TORUS"
+		return "CYLINDER"
+	return "PLANE"
 
 def mirror_pixels( image ):
 	d = 2
@@ -276,27 +379,3 @@ def mirror_pixels( image ):
 				image.setPixelF( x, y, c )
 			else:
 				c = image.getPixelF( x, y )
-
-def getBB( obj ):
-	mesh = Blender.Mesh.New()
-	mesh.getFromObject( obj, 0, 1 )
-	min_x = mesh.verts[0].co.x
-	max_x = min_x
-	min_y = mesh.verts[0].co.y
-	max_y = min_y
-	min_z = mesh.verts[0].co.z
-	max_z = min_z
-	for v in mesh.verts[1:-1]:
-		if v.co.x < min_x :
-			min_x = v.co.x
-		elif v.co.x > max_x :
-			max_x = v.co.x
-		if v.co.y < min_y :
-			min_y = v.co.y
-		elif v.co.y > max_y :
-			max_y = v.co.y
-		if v.co.z < min_z :
-			min_z = v.co.z
-		elif v.co.z > max_z :
-			max_z = v.co.z
-	return ( min_x, min_y, min_z ), ( max_x, max_y, max_z )

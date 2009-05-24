@@ -63,7 +63,7 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 
 import Blender
 from math import log, ceil, sqrt, pi, sin, cos
-from sculpty import update_from_map, getBB
+import sculpty
 
 #***********************************************
 # constants
@@ -76,85 +76,6 @@ CYLINDER = 4
 HEMI = 5
 
 settings = {'x_faces':8,'y_faces':8,'type':1,'multires':2, 'clean_lod':True, 'radius':0.25, 'subsurf':True}
-
-def adjust_size( width, height, s, t ):
-	ratio = float(width) / float(height)
-	verts = int(min( 0.25 * width * height, s * t ))
-	if width != height:
-		verts = verts & 0xfff8
-	t = int(sqrt( verts / ratio))
-	t = max( t, 4 )
-	s = verts // t
-	s = max( s, 4 )
-	t = verts // s
-	return int(s), int(t)
-
-def calc_map_size( requested_SizeS, requested_SizeT, levels ):
-	w = int(pow(2, levels + 1 + ceil( log(requested_SizeS) / log(2))))
-	h = int(pow(2, levels + 1 + ceil( log(requested_SizeT) / log(2))))
-	w, h = adjust_size( w, h, 32, 32 )
-	s = min( w, requested_SizeS )
-	t = min( h, requested_SizeT )
-	w = int(pow(2, levels + 1 + ceil( log(w>>levels) / log(2))))
-	h = int(pow(2, levels + 1 + ceil( log(h>>levels) / log(2))))
-	if w == h == 8:
-		# 8 x 8 won't upload
-		w = 16
-		h = 16
-	cs = True
-	ct = True
-	if ( s<<(levels + 1) > w ):
-		s = w>>(levels + 1)
-	if ( t<<(levels +1) > h ):
-		t = h>>(levels + 1)
-	if ( s < requested_SizeS ):
-		cs = False
-	if ( t < requested_SizeT ):
-		ct = False
-	return s, t, w, h, cs, ct
-
-def bake_default( image, sculpt_type, radius = 0.25 ):
-	x = image.size[0]
-	y = image.size[1]
-	for u in range( x ):
-		path = float(u) / x
-		if u == x - 1:
-			path = 1.0
-		for v in range( y):
-			profile = float(v) / y
-			if v == y - 1:
-				profile = 1.0
-			a = pi + 2 * pi * path
-			if sculpt_type == SPHERE:
-				ps = sin( pi * profile ) / 2.0
-				r = 0.5 + sin( a ) * ps
-				g = 0.5 - cos( a ) * ps
-				b = 0.5 -cos( pi * profile ) / 2.0
-			elif sculpt_type == CYLINDER:
-				r = 0.5 + sin( a ) / 2.0
-				g = 0.5 - cos( a  ) / 2.0
-				b = profile
-			elif sculpt_type == TORUS:
-				ps = (( 1.0 - radius ) - sin( 2.0 * pi * profile) * radius) / 2.0
-				r = 0.5 + sin( a ) * ps
-				g = 0.5 - cos( a ) * ps
-				b = 0.5 + cos( 2 * pi * profile ) / 2.0
-			elif sculpt_type == HEMI:
-				b = sqrt( 2.0 )
-				z = -cos( 2 * pi * min( path, profile, 1.0 - path, 1.0 - profile) ) / 2.0
-				pa = path - 0.5
-				pr = profile - 0.5
-				ph = sqrt(pa * pa + pr * pr)
-				ps = sqrt( sin( (0.5 - z ) * pi * 0.5 ) / 2.0 )
-				if ph == 0.0: ph = 1.0
-				r = 0.5 + ( pa / ph * ps ) / b
-				g = 0.5 + ( pr / ph * ps ) / b
-				b = 0.5 + z
-			else:
-				r = path
-				g = profile
-				b= 0.0
-			image.setPixelF( u, v, ( r, g, b, 1.0 ) )
 
 def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = True, subsurf = False ):
 	Blender.Window.WaitCursor(1)
@@ -177,7 +98,7 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 		Blender.Registry.SetKey('ImportSculptie', settings, True) # save latest settings
 	mesh, image = generate_base_mesh( basename, sculpt_type, faces_x, faces_y, multires, clean_lods, settings['radius'] )
 	ob = scene.objects.new( mesh, basename )
-	update_from_map( mesh, image )
+	sculpty.update_from_map( mesh, image )
 	if sculpt_type != PLANE:
 		mesh.flipNormals()
 	ob.sel = True
@@ -196,7 +117,7 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 			for v in mesh.verts:
 				v.sel = True
 	# adjust scale for subdivision
-	bb = getBB( ob )
+	bb = sculpty.getBB( ob )
 	x = 1.0 / (bb[1][0] - bb[0][0])
 	y = 1.0 / (bb[1][1] - bb[0][1])
 	try:
@@ -236,9 +157,9 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods,
 	seams = []
 	uvgrid_s = []
 	uvgrid_t = []
-	s, t, w, h, clean_s, clean_t = calc_map_size( faces_x, faces_y, levels )
+	s, t, w, h, clean_s, clean_t = sculpty.map_size( faces_x, faces_y, levels )
 	image = Blender.Image.New( name, w, h, 32 )
-	bake_default( image, sculpt_type, radius )
+	sculpty.bake_default( image, ["none","SPHERE","TORUS","PLANE","CYLINDER","HEMI"][sculpt_type], radius )
 	clean_s = clean_s & clean_lods
 	clean_t = clean_t & clean_lods
 	level_mask = 0xFFFE
