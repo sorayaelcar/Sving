@@ -379,3 +379,76 @@ def mirror_pixels( image ):
 				image.setPixelF( x, y, c )
 			else:
 				c = image.getPixelF( x, y )
+
+def fill_holes( image ):
+	def getFirstX( y ):
+		for x in xrange( image.size[0] ):
+			c = image.getPixelF( x, y )
+			if c[3] != 0:
+				if x > 0: fill = True
+				return c
+		return None
+	def getFirstY( x ):
+		for y in xrange( image.size[1] ):
+			c = image.getPixelF( x, y )
+			if c[3] != 0:
+				if y > 0: fill = True
+				return c
+		return None
+	def fillX():
+		skipx = fill = False
+		for v in xrange( image.size[1] ):
+			c = getFirstX( v )
+			if not c :
+				skipx= True
+				continue
+			sr = c[0]
+			sg = c[1]
+			sb = c[2]
+			s = 0
+			for u in xrange( 1, image.size[0] ):
+				nc = image.getPixelF( u, v )
+				if nc[3] == 0:
+					if not fill:
+						fill = True
+				else:
+					if fill:
+						fill = False
+						drawHLine( image, v, s, u, sr, sg, sb, nc[0], nc[1], nc[2] )
+					s = u
+					sr = nc[0]
+					sg = nc[1]
+					sb = nc[2]
+			if fill:
+				fill = False
+				drawHLine( image, v, s, u, sr, sg, sb, sr, sg, sb )
+		return skipx
+	def fillY():
+		fill = False
+		for u in xrange( image.size[0] ):
+			c = getFirstY( u )
+			if not c :
+				continue
+			sr = c[0]
+			sg = c[1]
+			sb = c[2]
+			s = 0
+			for v in xrange( 1, image.size[1] ):
+				nc = image.getPixelF( u, v )
+				if nc[3] == 0:
+					if not fill:
+						fill = True
+				else:
+					if fill:
+						fill = False
+						drawVLine( image, u, s, v, sr, sg, sb, nc[0], nc[1], nc[2] )
+					s = v
+					sr = nc[0]
+					sg = nc[1]
+					sb = nc[2]
+			if fill:
+				fill = False
+				drawVLine( image, u, s, v, sr, sg, sb, sr, sg, sb )
+	skipx = fillX()
+	fillY()
+	if skipx: fillX()

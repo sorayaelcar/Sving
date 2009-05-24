@@ -221,6 +221,9 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods,
 	for f in xrange( len(mesh.faces) ):
 		mesh.faces[ f ].uv = uv[ f ]
 		mesh.faces[ f ].image = image
+	image.properties['scale_x'] = 1.0
+	image.properties['scale_y'] = 1.0
+	image.properties['scale_z'] = 1.0
 	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" )
 	if seams != []:
 		for e in mesh.findEdges( seams ):

@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.32"
+__version__ = "0.33"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -19,6 +19,8 @@ positions to the prim's sculptie map image.
 """
 
 #Changes
+#0.33 Domino Marama 2009-05-24
+#- some functionality moved to sculpty.py
 #0.32 Domino Marama 2009-05-20
 #- Removed sculpt_type as now autodetected in export_lsl from mesh
 #- Corrected 1.0 UV handling
@@ -427,8 +429,7 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 								pixel(
 									u,
 									v,
-									r,g,b
-									#round( r * 255.0 ) / 255.0, round( g * 255.0 ) / 255.0, round( b * 255.0 ) / 255.0
+									round( r * 255.0 ) / 255.0, round( g * 255.0 ) / 255.0, round( b * 255.0 ) / 255.0
 								)
 							)
 						drawTri( f.image, sorted( nf ) )
@@ -454,77 +455,7 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 			except:
 				sculptimage.properties['scale_z'] = scale.z * sf[2]
 			if fill:
-				def getFirstX( y ):
-					for x in xrange( sculptimage.size[0] ):
-						c = sculptimage.getPixelF( x, y )
-						if c[3] != 0:
-							if x > 0: fill = True
-							return c
-					return None
-				def getFirstY( x ):
-					for y in xrange( sculptimage.size[1] ):
-						c = sculptimage.getPixelF( x, y )
-						if c[3] != 0:
-							if y > 0: fill = True
-							return c
-					return None
-				def fillX():
-					skipx = fill = False
-					for v in xrange( sculptimage.size[1] ):
-						c = getFirstX( v )
-						if not c :
-							skipx= True
-							continue
-						sr = c[0]
-						sg = c[1]
-						sb = c[2]
-						s = 0
-						for u in xrange( 1, sculptimage.size[0] ):
-							nc = sculptimage.getPixelF( u, v )
-							if nc[3] == 0:
-								if not fill:
-									fill = True
-							else:
-								if fill:
-									fill = False
-									drawHLine( sculptimage, v, s, u, sr, sg, sb, nc[0], nc[1], nc[2] )
-								s = u
-								sr = nc[0]
-								sg = nc[1]
-								sb = nc[2]
-						if fill:
-							fill = False
-							drawHLine( sculptimage, v, s, u, sr, sg, sb, sr, sg, sb )
-					return skipx
-				def fillY():
-					fill = False
-					for u in xrange( sculptimage.size[0] ):
-						c = getFirstY( u )
-						if not c :
-							continue
-						sr = c[0]
-						sg = c[1]
-						sb = c[2]
-						s = 0
-						for v in xrange( 1, sculptimage.size[1] ):
-							nc = sculptimage.getPixelF( u, v )
-							if nc[3] == 0:
-								if not fill:
-									fill = True
-							else:
-								if fill:
-									fill = False
-									drawVLine( sculptimage, u, s, v, sr, sg, sb, nc[0], nc[1], nc[2] )
-								s = v
-								sr = nc[0]
-								sg = nc[1]
-								sb = nc[2]
-						if fill:
-							fill = False
-							drawVLine( sculptimage, u, s, v, sr, sg, sb, sr, sg, sb )
-				skipx = fillX()
-				fillY()
-				if skipx: fillX()
+				sculpty.fill_holes( sculptimage )
 			if expand:
 				sculpty.mirror_pixels ( sculptimage )
 			n = Blender.sys.splitext( sculptimage.name )
