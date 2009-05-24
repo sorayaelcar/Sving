@@ -453,14 +453,8 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 	if scale == None:
 		scale = scaleRange( [ob], normalised, centered )
 	if ob.type == 'Mesh':
-		try:
-			primtype = ob.getProperty( 'LL_PRIM_TYPE' ).getData()
-			if primtype != 7:
-				print "Skipping:", ob.name,"prim type is not a sculptie"
-				return
-		except:
-			ob.addProperty( 'LL_PRIM_TYPE', 7 )
 		mesh = ob.getData( False, True)
+		currentUV = mesh.activeUVLayer
 		if "sculptie" in mesh.getUVLayerNames():
 			mesh.activeUVLayer = "sculptie"
 			mesh.update()
@@ -495,7 +489,8 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 								pixel(
 									u,
 									v,
-									round( r * 255.0 ) / 255.0, round( g * 255.0 ) / 255.0, round( b * 255.0 ) / 255.0
+									r,g,b
+									#round( r * 255.0 ) / 255.0, round( g * 255.0 ) / 255.0, round( b * 255.0 ) / 255.0
 								)
 							)
 						drawTri( f.image, sorted( nf ) )
@@ -606,9 +601,9 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 def main():
 	block = []
 	doFill = Blender.Draw.Create( False )
-	doScale = Blender.Draw.Create( False )
+	keepScale = Blender.Draw.Create( False )
 	doExpand = Blender.Draw.Create( False )
-	doCentre = Blender.Draw.Create( False )
+	keepCentre = Blender.Draw.Create( False )
 	doClear = Blender.Draw.Create( True )
 	doProtect = Blender.Draw.Create( True )
 	doPreview = Blender.Draw.Create( True )
@@ -621,8 +616,8 @@ def main():
 	doScaleRGB = Blender.Draw.Create( True )
 	block.append (( "Clear", doClear ))
 	block.append (( "Fill Holes", doFill ))
-	block.append (( "Keep Scale", doScale ))
-	block.append (( "Keep Center", doCentre ))
+	block.append (( "Keep Scale", keepScale ))
+	block.append (( "Keep Center", keepCentre ))
 	block.append (( "True Mirror", doExpand ))
 	block.append (( "Protect Map", doProtect ))
 	block.append (( "With Preview", doPreview ))
@@ -643,22 +638,23 @@ def main():
 		editmode = Blender.Window.EditMode()
 		if editmode: Blender.Window.EditMode(0)
 		Blender.Window.WaitCursor(1)
-		meshscale = scaleRange( scene.objects.selected , not doScale.val, doCentre.val, (minR.val,maxR.val,minG.val,maxG.val,minB.val,maxB.val) )
+		meshscale = scaleRange( scene.objects.selected , not keepScale.val, keepCentre.val, (minR.val,maxR.val,minG.val,maxG.val,minB.val,maxB.val) )
 		if meshscale.minx == None:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
 		else:
-			if not doCentre.val:
+			if not keepCentre.val:
 				offset = ( 0.0, 0.0, 0.0 )
 				for ob in scene.objects.selected:
 					if ob.type == 'Mesh':
 						mesh = ob.getData( False, True)
 						if 'sculptie' in mesh.getUVLayerNames():
-							loc = ob.getLocation()
+							loc = ob.getLocation( 'worldspace' )
 							x = meshscale.minx + ( meshscale.x * 0.5 )
 							y = meshscale.miny + ( meshscale.y * 0.5 )
 							z = meshscale.minz + ( meshscale.z * 0.5 )
 							if (x, y, z) != offset:
-								offset = Blender.Mathutils.Vector( x, y, z )
+								offset = Blender.Mathutils.Vector( x,y,z )
+								print offset, (loc[0],loc[1],loc[2])
 								x += loc[0]
 								y += loc[1]
 								z += loc[2]
@@ -673,11 +669,11 @@ def main():
 								mesh.update()
 								mat[3] = [x, y, z , 1.0]
 								ob.setMatrix( mat )
-				meshscale = scaleRange( scene.objects.selected , not doScale.val, True, (minR.val,maxR.val,minG.val,maxG.val,minB.val,maxB.val) )
+				meshscale = scaleRange( scene.objects.selected , not keepScale.val, True, (minR.val,maxR.val,minG.val,maxG.val,minB.val,maxB.val) )
 
 			for ob in scene.objects.selected:
 				if ob.type == 'Mesh':
-					images = updateSculptieMap( ob , meshscale, doFill.val, not doScale.val, doExpand.val, doCentre.val, doClear.val )
+					images = updateSculptieMap( ob , meshscale, doFill.val, not keepScale.val, doExpand.val, keepCentre.val, doClear.val )
 					for image in images:
 						if doProtect.val:
 							protectMap( image, doPreview.val )

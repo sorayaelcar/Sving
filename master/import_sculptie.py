@@ -9,7 +9,7 @@ Tooltip: 'Import from a Second Life sculptie image map (.tga)'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.36"
+__version__ = "0.38"
 __bpydoc__ = """\
 
 Sculptie Importer
@@ -18,6 +18,8 @@ This script creates an object from a Second Life sculptie image map
 """
 
 #Changes:
+#0.38 Domino Marama 2009-05-24
+#- split fuctionality into sculpty.py
 #0.37 Domino Marama 2009-05-22
 #- Now uses mapType to detect sculptie type. Dialog box removed.
 #0.36 Domino Marama 2008-10-25
@@ -130,157 +132,7 @@ This script creates an object from a Second Life sculptie image map
 #***********************************************
 
 import Blender
-from math import sin, cos, pi, sqrt
-from export_lsl import mapType
-
-#***********************************************
-# functions
-#***********************************************
-
-def adjust_size( width, height, s, t ):
-	ratio = float(width) / float(height)
-	verts = int(min( 0.25 * width * height, s * t ))
-	if width != height:
-		verts = verts & 0xfff8
-	t = int(sqrt( verts / ratio))
-	t = max( t, 4 )
-	s = verts // t
-	s = max( s, 4 )
-	t = verts // s
-	return int(s), int(t)
-
-#***********************************************
-# update vertex positions in sculptie mesh
-#***********************************************
-
-def update_sculptie_from_map(mesh, image):
-	currentUV = mesh.activeUVLayer
-	if "sculptie" in mesh.getUVLayerNames():
-		mesh.activeUVLayer = "sculptie"
-		mesh.update()
-	verts = range( len( mesh.verts ) )
-	for f in mesh.faces:
-		for vi in xrange( len( f.verts) ):
-			if f.verts[ vi ].index in verts:
-				verts.remove( f.verts[ vi ].index )
-				if f.verts[ vi ].sel:
-					u, v = f.uv[ vi ]
-					u = int( u * image.size[0])
-					v = int( v * image.size[1])
-					if u == image.size[0]:
-						u = image.size[0] - 1
-					if v == image.size[1]:
-						v = image.size[1] - 1
-					p  = image.getPixelF( u, v )
-					f.verts[ vi ].co = Blender.Mathutils.Vector(( p[0] - 0.5),
-							(p[1] - 0.5),
-							(p[2] - 0.5))
-	mesh.activeUVLayer = currentUV
-	mesh.update()
-	mesh.sel = True
-	mesh.recalcNormals( 0 )
-
-#***********************************************
-# generate sculptie mesh
-#***********************************************
-
-def new_sculptie( image ):
-	Blender.Window.WaitCursor(1)
-	sculpt_type = mapType( image )
-	faces_x, faces_y = image.size
-	faces_x, faces_y = adjust_size( faces_x, faces_y, 32, 32 )
-	multires = 0
-	while multires < 2 and faces_x >= 8 and faces_y >= 8 and not ( (faces_x & 1) or (faces_y & 1) ):
-		faces_x = faces_x >> 1
-		faces_y = faces_y >> 1
-		multires += 1
-	scene = Blender.Scene.GetCurrent()
-	for ob in scene.objects:
-		ob.sel = False
-	mesh = generate_base_mesh( image.name, sculpt_type, faces_x + 1, faces_y + 1 )
-	ob = scene.objects.new( mesh, image.name )
-	ob.setLocation( Blender.Window.GetCursorPos() )
-	ob.sel = True
-	for f in mesh.faces:
-		f.image = image
-	mesh.flipNormals()
-	if multires:
-		mesh.multires = True
-		mesh.addMultiresLevel( multires )
-	for v in mesh.verts:
-		v.sel = True
-	update_sculptie_from_map( mesh, image )
-	try:
-		quat = None
-		if Blender.Get('add_view_align'):
-			quat = Blender.Mathutils.Quaternion(Blender.Window.GetViewQuat())
-			if quat:
-				mat = quat.toMatrix()
-				mat.invert()
-				mat.resize4x4()
-				ob.setMatrix(mat)
-	except:
-		pass
-	Blender.Window.WaitCursor(0)
-	return ob
-
-def generate_base_mesh( name, sculpt_type, verts_x, verts_y ):
-	mesh = Blender.Mesh.New("%s.mesh"%name)
-	uv = []
-	verts = []
-	seams = []
-	faces = []
-	wrap_x = ( sculpt_type != "PLANE" ) & ( sculpt_type != "HEMI" )
-	wrap_y = ( sculpt_type == "TORUS" )
-	actual_x = verts_x - wrap_x
-	actual_y = verts_y - wrap_y
-	uvgrid_y = []
-	uvgrid_x = []
-	for x in xrange( verts_x ):
-		uvgrid_x.append( float( x ) / ( verts_x - 1 ) )
-	for y in xrange( verts_y ):
-		uvgrid_y.append( float( y ) / ( verts_y - 1 ) )
-	for y in xrange( actual_y ):
-		for x in xrange( actual_x ):
-			mesh.verts.extend([ ( 0.0, 0.0, 0.0 )])
-			verts.append( mesh.verts[-1] )
-		if wrap_x:
-			verts.append( mesh.verts[ -actual_x ] )
-			if y:
-				seams.append( ( (y - 1) * actual_x, y * actual_x ) )
-				if wrap_y:
-					if y == actual_y - 1:
-						seams.append( ( 0, y * actual_x ) )
-	if wrap_y:
-		verts.extend( verts[:verts_x] )
-		for x in xrange( actual_x - 1 ):
-			seams.append( ( x, x + 1 ) )
-		seams.append( ( 0, actual_x - 1 ) )
-	for y in xrange( verts_y - 1 ):
-		offset_y = y * verts_x
-		for x in xrange( verts_x - 1 ):
-			faces.append( ( verts[offset_y + x], verts[offset_y + verts_x + x],
-					verts[offset_y + verts_x + x + 1], verts[offset_y + x + 1] ) )
-			if wrap_x and x == actual_x - 1 and (y == 0 or y == actual_y -1):
-				# blender auto alters vert order - correct uv to match
-				uv.append( ( Blender.Mathutils.Vector( uvgrid_x[ x + 1 ], uvgrid_y[ y + 1 ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x + 1 ], uvgrid_y[ y ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x ], uvgrid_y[ y ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x ], uvgrid_y[ y + 1 ] ) ) )
-			else:
-				uv.append( ( Blender.Mathutils.Vector( uvgrid_x[ x ], uvgrid_y[ y ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x ], uvgrid_y[ y + 1 ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x + 1 ], uvgrid_y[ y + 1 ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x + 1 ], uvgrid_y[ y ] ) ) )
-	mesh.faces.extend( faces )
-	mesh.faceUV = True
-	for f in xrange( len(mesh.faces) ):
-		mesh.faces[ f ].uv = uv[ f ]
-	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" );
-	if seams != []:
-		for e in mesh.findEdges( seams ):
-			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
-	return mesh	
+import sculpty
 
 #***********************************************
 # load sculptie file
@@ -304,7 +156,7 @@ def load_sculptie(filename):
 	image.properties["scale_x"] = 1.0
 	image.properties["scale_y"] = 1.0
 	image.properties["scale_z"] = 1.0
-	ob = new_sculptie( image )
+	ob = sculpty.new_from_map( image )
 	if in_editmode:
 		Blender.Window.EditMode(1)
 	Blender.Redraw()
