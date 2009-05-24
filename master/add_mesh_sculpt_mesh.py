@@ -8,13 +8,15 @@ Tooltip: 'Add a Second Life sculptie compatible mesh'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.11"
+__version__ = "0.12"
 __bpydoc__ = """\
 
 Sculpt Mesh
 
 This script creates an object with a gridded UV map suitable for Second Life sculpties.
 """
+#0.12 Domino Marama 2009-05-24
+#- Image based sculptie generation added
 #0.11 Domino Marama 2008-10-27
 #- Use getBB from render_sculptie.py
 #0.10 Domino Marama 2008-10-25
@@ -62,6 +64,7 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 import Blender
 from math import log, ceil, sqrt, pi, sin, cos
 from render_sculptie import getBB
+from import_sculptie import update_sculptie_from_map
 
 #***********************************************
 # constants
@@ -111,27 +114,71 @@ def calc_map_size( requested_SizeS, requested_SizeT, levels ):
 		ct = False
 	return s, t, w, h, cs, ct
 
-def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = True, subsurf = False ):
+def bake_default( image, sculpt_type, radius = 0.25 ):
+	x = image.size[0]
+	y = image.size[1]
+	for u in range( x ):
+		path = float(u) / x
+		if u == x - 1:
+			path = 1.0
+		for v in range( y):
+			profile = float(v) / y
+			if v == y - 1:
+				profile = 1.0
+			a = pi + 2 * pi * path
+			if sculpt_type == SPHERE:
+				ps = sin( pi * profile ) / 2.0
+				r = 0.5 + sin( a ) * ps
+				g = 0.5 - cos( a ) * ps
+				b = 0.5 -cos( pi * profile ) / 2.0
+			elif sculpt_type == CYLINDER:
+				r = 0.5 + sin( a ) / 2.0
+				g = 0.5 - cos( a  ) / 2.0
+				b = profile
+			elif sculpt_type == TORUS:
+				ps = (( 1.0 - radius ) - sin( 2.0 * pi * profile) * radius) / 2.0
+				r = 0.5 + sin( a ) * ps
+				g = 0.5 - cos( a ) * ps
+				b = 0.5 + cos( 2 * pi * profile ) / 2.0
+			elif sculpt_type == HEMI:
+				b = sqrt( 2.0 )
+				z = -cos( 2 * pi * min( path, profile, 1.0 - path, 1.0 - profile) ) / 2.0
+				pa = path - 0.5
+				pr = profile - 0.5
+				ph = sqrt(pa * pa + pr * pr)
+				ps = sqrt( sin( (0.5 - z ) * pi * 0.5 ) / 2.0 )
+				if ph == 0.0: ph = 1.0
+				r = 0.5 + ( pa / ph * ps ) / b
+				g = 0.5 + ( pr / ph * ps ) / b
+				b = 0.5 + z
+			else:
+				r = path - 0.5
+				g = profile - 0.5
+				b= 0.0
+			image.setPixelF( u, v, ( r, g, b, 1.0 ) )
+
+def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = True, subsurf = False ):
 	Blender.Window.WaitCursor(1)
 	basename = ("Sphere", "Torus", "Plane", "Cylinder", "Hemi")[sculpt_type -1]
 	scene = Blender.Scene.GetCurrent()
 	for ob in scene.objects:
 		ob.sel = False
+	rdict = Blender.Registry.GetKey('ImportSculptie', True) # True to check on disk also
+	if rdict: # if found, get the values saved there
+		try:
+			settings['radius'] = rdict['radius']
+		except:
+			settings['radius'] = 0.25
 	if sculpt_type == TORUS:
-		rdict = Blender.Registry.GetKey('ImportSculptie', True) # True to check on disk also
-		if rdict: # if found, get the values saved there
-			try:
-				settings['radius'] = rdict['radius']
-			except:
-				pass
 		radius = Blender.Draw.Create( settings['radius'] )
 		Blender.Window.WaitCursor(0)
 		retval = Blender.Draw.PupBlock( "Torus Options", [( "Radius: ", radius, 0.05, 0.5 )] )
 		Blender.Window.WaitCursor(1)
 		settings['radius'] = radius.val
 		Blender.Registry.SetKey('ImportSculptie', settings, True) # save latest settings
-	mesh = generate_base_mesh( basename, sculpt_type, faces_x, faces_y, multires, clean_lods )
+	mesh, image = generate_base_mesh( basename, sculpt_type, faces_x, faces_y, multires, clean_lods, settings['radius'] )
 	ob = scene.objects.new( mesh, basename )
+	update_sculptie_from_map( mesh, image )
 	if sculpt_type != PLANE:
 		mesh.flipNormals()
 	ob.sel = True
@@ -149,24 +196,20 @@ def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 			mesh.addMultiresLevel( multires )
 			for v in mesh.verts:
 				v.sel = True
-		scale = getBB( ob )[1]
-		x = 0.5 / scale[0]
-		y = 0.5 / scale[1]
-		if sculpt_type == TORUS:
-			z = settings['radius'] * 0.5 / scale[2]
-		elif sculpt_type == PLANE:
-			z = 0.0
-		else:
-			z = 0.5 / scale[2]
-		tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
-		mesh.transform( tran )
-	ob.addProperty( 'LL_PRIM_TYPE', 7 )
-	if sculpt_type == HEMI:
-		ob.addProperty( 'LL_SCULPT_TYPE', PLANE )
-	else:
-		ob.addProperty( 'LL_SCULPT_TYPE', sculpt_type )
+	# adjust scale for subdivision
+	bb = getBB( ob )
+	x = 1.0 / (bb[1][0] - bb[0][0])
+	y = 1.0 / (bb[1][1] - bb[0][1])
+	z = 1.0 / (bb[1][2] - bb[0][2])
 	if sculpt_type == TORUS:
-		ob.addProperty( 'LL_HOLE_SIZE_Y', settings['radius'] )
+		z = settings['radius'] * z
+	elif sculpt_type == PLANE:
+		z = 0.0
+	elif sculpt_type == HEMI:
+		z = 0.5 * z
+	tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
+	mesh.transform( tran )
+	# align to view
 	try:
 		quat = None
 		if Blender.Get('add_view_align'):
@@ -181,7 +224,7 @@ def new_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 	Blender.Window.WaitCursor(0)
 	return ob
 
-def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods ):
+def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods, radius = 0.25 ):
 	halfpi = pi * 0.5
 	twopi = pi * 2.0
 	mesh = Blender.Mesh.New("%s.mesh"%name)
@@ -194,7 +237,8 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 	uvgrid_s = []
 	uvgrid_t = []
 	s, t, w, h, clean_s, clean_t = calc_map_size( faces_x, faces_y, levels )
-	image = Blender.Image.New( "%s_map"%name, w, h, 32 )
+	image = Blender.Image.New( name, w, h, 32 )
+	bake_default( image, sculpt_type, radius )
 	clean_s = clean_s & clean_lods
 	clean_t = clean_t & clean_lods
 	level_mask = 0xFFFE
@@ -219,41 +263,8 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 	verts_s = s + 1 - wrap_x
 	verts_t = t + 1 - wrap_y
 	for i in xrange( verts_t ):
-		profile = float(i)/t
 		for k in xrange( verts_s ):
-			path = float(k)/s
-			if sculpt_type == CYLINDER:
-				a = pi + twopi * path
-				vert = Blender.Mathutils.Vector( sin( a )/2.0,
-									-cos( a  )/2.0,
-									profile - 0.5 )
-			elif sculpt_type == SPHERE:
-				a = pi + twopi * path
-				ps = sin( pi * profile ) / 2.0
-				vert = Blender.Mathutils.Vector( sin( a ) * ps,
-									-cos( a ) * ps,
-									-cos( pi * profile ) / 2.0 )
-
-			elif sculpt_type == TORUS:
-				a = pi + twopi * path
-				ps = (( 1.0 - settings['radius'] ) - sin( 2.0 * pi * profile) * settings['radius']) / 2.0
-				vert = Blender.Mathutils.Vector( sin( a ) * ps,
-									-cos( a ) * ps,
-									cos( twopi * profile ) / 2.0 * settings['radius'] )
-
-			elif sculpt_type == HEMI:
-				b = sqrt( 2.0 )
-				z = -cos( twopi * min( path, profile, 1.0 - path, 1.0 - profile) ) / 2.0
-				pa = path - 0.5
-				pr = profile - 0.5
-				ph = sqrt(pa * pa + pr * pr)
-				ps = sqrt( sin( (0.5 - z ) * halfpi ) / 2.0 )
-				if ph == 0.0: ph = 1.0
-				y = pa / ph * ps
-				x = pr / ph * ps
-				vert = Blender.Mathutils.Vector( y / b, x / b , ( 0.5 + z ) / 2.0 )
-			else:
-				vert = Blender.Mathutils.Vector( path - 0.5, profile - 0.5, 0.0 )
+			vert = Blender.Mathutils.Vector( 0.0, 0.0, 0.0 )
 			mesh.verts.extend( [ vert ] )
 			verts.append ( mesh.verts[-1] )
 		if wrap_x:
@@ -293,10 +304,10 @@ def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods 
 	if seams != []:
 		for e in mesh.findEdges( seams ):
 			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
-	return mesh
+	return mesh, image
 
 def main():
-	rdict = Blender.Registry.GetKey('AddMesh-SculptMesh', True) # True to check on disk also
+	rdict = Blender.Registry.GetKey('AddMeshSculptMesh', True) # True to check on disk also
 	if rdict: # if found, get the values saved there
 		try:
 			settings['x_faces'] = rdict['x_faces']
@@ -329,7 +340,7 @@ def main():
 		settings['type'] = sculpt_type.val
 		settings['clean_lod'] = clean_lod.val
 		settings['subsurf'] = subsurf.val
-		Blender.Registry.SetKey('AddMesh-SculptMesh', settings, True)
+		Blender.Registry.SetKey('AddMeshSculptMesh', settings, True)
 		in_editmode = Blender.Window.EditMode()
 		# MUST leave edit mode before changing an active mesh:
 		if in_editmode:
@@ -339,7 +350,7 @@ def main():
 				in_editmode = Blender.Get('add_editmode')
 			except:
 				pass
-		ob = new_sculptie( sculpt_type.val, faces_x.val, faces_y.val, multires_levels.val, clean_lod.val, subsurf.val )
+		ob = add_sculptie( sculpt_type.val, faces_x.val, faces_y.val, multires_levels.val, clean_lod.val, subsurf.val )
 		if in_editmode:
 			Blender.Window.EditMode(1)
 

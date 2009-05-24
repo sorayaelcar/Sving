@@ -184,11 +184,8 @@ def update_sculptie_from_map(mesh, image):
 # generate sculptie mesh
 #***********************************************
 
-def new_sculptie( filename ):
+def new_sculptie( image ):
 	Blender.Window.WaitCursor(1)
-	filebase = Blender.sys.basename(filename)
-	basename = Blender.sys.splitext(filebase)[0]
-	image = Blender.Image.Load( filename )
 	sculpt_type = mapType( image )
 	faces_x, faces_y = image.size
 	faces_x, faces_y = adjust_size( faces_x, faces_y, 32, 32 )
@@ -200,8 +197,8 @@ def new_sculptie( filename ):
 	scene = Blender.Scene.GetCurrent()
 	for ob in scene.objects:
 		ob.sel = False
-	mesh = generate_base_mesh( basename, sculpt_type, faces_x + 1, faces_y + 1 )
-	ob = scene.objects.new( mesh, basename )
+	mesh = generate_base_mesh( image.name, sculpt_type, faces_x + 1, faces_y + 1 )
+	ob = scene.objects.new( mesh, image.name )
 	ob.setLocation( Blender.Window.GetCursorPos() )
 	ob.sel = True
 	for f in mesh.faces:
@@ -302,7 +299,12 @@ def load_sculptie(filename):
 		except:
 			pass
 	time1 = Blender.sys.time()  #for timing purposes
-	ob = new_sculptie( filename )
+	image = Blender.Image.Load( filename )
+	image.name = Blender.sys.splitext( image.name )[0]
+	image.properties["scale_x"] = 1.0
+	image.properties["scale_y"] = 1.0
+	image.properties["scale_z"] = 1.0
+	ob = new_sculptie( image )
 	if in_editmode:
 		Blender.Window.EditMode(1)
 	Blender.Redraw()
