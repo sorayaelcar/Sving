@@ -49,7 +49,7 @@ This script updates a sculptie mesh from a Second Life sculptie image map
 #***********************************************
 
 import Blender
-from import_sculptie import update_sculptie_from_map
+from sculpty import update_from_map
 
 #***********************************************
 # Import modules
@@ -64,7 +64,7 @@ def main( filename ):
 	if ob.type == 'Mesh':
 		mesh = ob.getData( False, True)
 		if "sculptie" in mesh.getUVLayerNames():
-			update_sculptie_from_map( mesh, image )
+			update_from_map( mesh, image )
 		else:
 			Blender.Draw.PupBlock( "Sculptie Error", ["Mesh has no 'sculptie' UV Layer"] )
 	Blender.Window.WaitCursor(0)
