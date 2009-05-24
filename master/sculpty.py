@@ -31,6 +31,15 @@ from math import sin, cos, pi, sqrt, log, ceil
 #***********************************************
 
 def face_count( width, height, x_faces, y_faces, model = True ):
+	'''
+	Returns usable face count from input
+
+	width - sculpt map width
+	height - sculpt map width
+	x_faces - desired x face count
+	y_faces - desired y face count
+	model - when true, returns 8 x 4 instead of 9 x 4 to give extra subdivision
+	'''
 	ratio = float(width) / float(height)
 	verts = int(min( 0.25 * width * height, x_faces * y_faces ))
 	if (width != height) and model:
@@ -43,6 +52,24 @@ def face_count( width, height, x_faces, y_faces, model = True ):
 	return int(x_faces), int(y_faces)
 
 def map_size( x_faces, y_faces, levels ):
+	'''
+	Suggests optimal sculpt map size for x_faces x y_faces x levels
+
+	x_faces - x face count
+	y_faces - y face count
+	levels - subdivision levels
+
+	returns
+
+	s, t, w, h, cs, ct
+
+	s - x face count
+	t - y face count
+	w - map width
+	h - map height
+	cs - True if got requested x face count
+	ct - True if got requested y face count
+	'''
 	w = int(pow(2, levels + 1 + ceil( log(x_faces) / log(2))))
 	h = int(pow(2, levels + 1 + ceil( log(y_faces) / log(2))))
 	w, h = face_count( w, h, 32, 32 )
@@ -71,6 +98,9 @@ def map_size( x_faces, y_faces, levels ):
 #***********************************************
 
 def getBB( obj ):
+	'''
+	Returns the post modifier stack bounding box for the object
+	'''
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject( obj, 0, 1 )
 	min_x = mesh.verts[0].co.x
@@ -95,6 +125,9 @@ def getBB( obj ):
 	return ( min_x, min_y, min_z ), ( max_x, max_y, max_z )
 
 def new_from_map( image ):
+	'''
+	Returns a new sculptie object created from the sculpt map image.
+	'''
 	Blender.Window.WaitCursor(1)
 	sculpt_type = map_type( image )
 	faces_x, faces_y = image.size
@@ -117,8 +150,9 @@ def new_from_map( image ):
 	if multires:
 		mesh.multires = True
 		mesh.addMultiresLevel( multires )
-	for v in mesh.verts:
-		v.sel = True
+	mesh.sel = True
+	#for v in mesh.verts:
+	#	v.sel = True
 	update_from_map( mesh, image )
 	try:
 		quat = None
@@ -131,6 +165,7 @@ def new_from_map( image ):
 				ob.setMatrix(mat)
 	except:
 		pass
+	mesh.activeUVLayer = "UVTex"
 	Blender.Window.WaitCursor(0)
 	return ob
 
@@ -139,6 +174,9 @@ def new_from_map( image ):
 #***********************************************
 
 def map_images( mesh ):
+	'''
+	Returns the list of images assigned to the 'sculptie' UV layer.
+	'''
 	images = []
 	if "sculptie" in mesh.getUVLayerNames():
 		currentUV = mesh.activeUVLayer
@@ -153,6 +191,9 @@ def map_images( mesh ):
 	return images
 
 def update_from_map( mesh, image ):
+	'''
+	Updates the mesh to locations from the sculpt map image
+	'''
 	currentUV = mesh.activeUVLayer
 	if "sculptie" in mesh.getUVLayerNames():
 		mesh.activeUVLayer = "sculptie"
@@ -164,8 +205,8 @@ def update_from_map( mesh, image ):
 				verts.remove( f.verts[ vi ].index )
 				if f.verts[ vi ].sel:
 					u, v = f.uv[ vi ]
-					u = int( u * image.size[0])
-					v = int( v * image.size[1])
+					u = int( 2.0 / image.size[0] + u * image.size[0])
+					v = int( 2.0 / image.size[1] + v * image.size[1])
 					if u == image.size[0]:
 						u = image.size[0] - 1
 					if v == image.size[1]:
@@ -180,6 +221,14 @@ def update_from_map( mesh, image ):
 	mesh.recalcNormals( 0 )
 
 def new_mesh( name, sculpt_type, verts_x, verts_y ):
+	'''
+	Returns a sculptie mesh created from the input
+
+	name - the mesh name
+	sculpt_type - one of "SPHERE", "TORUS", "CYLINDER", "PLANE" or "HEMI"
+	verts_x - number of x vertice
+	verts_y - number of y vertice
+	'''
 	mesh = Blender.Mesh.New("%s.mesh"%name)
 	uv = []
 	verts = []
@@ -233,7 +282,7 @@ def new_mesh( name, sculpt_type, verts_x, verts_y ):
 		mesh.faces[ f ].uv = uv[ f ]
 	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" );
 	mesh.addUVLayer( "UVTex" )
-	mesh.activeUVLayer = "UVTex"
+	mesh.renderUVLayer = "UVTex"
 	if seams != []:
 		for e in mesh.findEdges( seams ):
 			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
@@ -244,6 +293,12 @@ def new_mesh( name, sculpt_type, verts_x, verts_y ):
 #***********************************************
 
 def bake_default( image, sculpt_type, radius = 0.25 ):
+	'''
+	Bakes a mathematical sculpt map to image
+
+	sculpt_type - one of "SPHERE", "TORUS", "CYLINDER", "PLANE" or "HEMI"
+	radius - inner radius value for torus
+	'''
 	x = image.size[0]
 	y = image.size[1]
 	for u in range( x ):
@@ -287,6 +342,10 @@ def bake_default( image, sculpt_type, radius = 0.25 ):
 			image.setPixelF( u, v, ( r, g, b, 1.0 ) )
 
 def bake_lod( image ):
+	'''
+	Bakes the sculptie LOD points for the image size.
+	The brighter the blue dots, the more LODs use that pixel.
+	'''
 	x = image.size[0]
 	y = image.size[1]
 	for u in range(x):
@@ -310,6 +369,9 @@ def bake_lod( image ):
 				image.setPixelF( s, t, c )
 
 def bake_preview( image ):
+	'''
+	Bakes a pseudo 3D representation of the sculpt map image to it's alpha channel
+	'''
 	clear_alpha( image )
 	for x in xrange( image.size[0] ):
 		for y in xrange( image.size[1] ):
@@ -323,6 +385,9 @@ def bake_preview( image ):
 				image.setPixelF( s, t, c2 )
 
 def clear_alpha( image ):
+	'''
+	Clears the alpha channel of the sculpt map image to hide the map
+	'''
 	for x in xrange( image.size[0] ):
 		for y in xrange( image.size[1] ):
 			c1 = image.getPixelF( x, y )
@@ -330,6 +395,9 @@ def clear_alpha( image ):
 			image.setPixelF( x, y, c1 )
 
 def map_type( image ):
+	'''
+	Returns the sculpt type of the sculpt map image
+	'''
 	poles = True
 	xseam = True
 	yseam = True
@@ -360,6 +428,9 @@ def map_type( image ):
 	return "PLANE"
 
 def mirror_pixels( image ):
+	'''
+	Expands each pixel of the sculpt map image into a 2 x 2 block
+	'''
 	d = 2
 	for y in xrange( 0, image.size[1], d ):
 		for x in xrange( 0, image.size[0] - 1):
@@ -381,6 +452,9 @@ def mirror_pixels( image ):
 				c = image.getPixelF( x, y )
 
 def fill_holes( image ):
+	'''
+	Any pixels with alpha 0 on the image have colour interpolated from neighbours
+	'''
 	def getFirstX( y ):
 		for x in xrange( image.size[0] ):
 			c = image.getPixelF( x, y )

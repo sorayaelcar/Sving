@@ -151,6 +151,7 @@ def load_sculptie(filename):
 		except:
 			pass
 	time1 = Blender.sys.time()  #for timing purposes
+	Blender.SaveUndoState( "Import Sculptie" )
 	image = Blender.Image.Load( filename )
 	image.name = Blender.sys.splitext( image.name )[0]
 	image.properties["scale_x"] = 1.0
