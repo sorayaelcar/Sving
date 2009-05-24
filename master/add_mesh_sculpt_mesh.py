@@ -152,8 +152,8 @@ def bake_default( image, sculpt_type, radius = 0.25 ):
 				g = 0.5 + ( pr / ph * ps ) / b
 				b = 0.5 + z
 			else:
-				r = path - 0.5
-				g = profile - 0.5
+				r = path
+				g = profile
 				b= 0.0
 			image.setPixelF( u, v, ( r, g, b, 1.0 ) )
 
@@ -200,11 +200,12 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 	bb = getBB( ob )
 	x = 1.0 / (bb[1][0] - bb[0][0])
 	y = 1.0 / (bb[1][1] - bb[0][1])
-	z = 1.0 / (bb[1][2] - bb[0][2])
+	try:
+		z = 1.0 / (bb[1][2] - bb[0][2])
+	except:
+		z = 0.0
 	if sculpt_type == TORUS:
 		z = settings['radius'] * z
-	elif sculpt_type == PLANE:
-		z = 0.0
 	elif sculpt_type == HEMI:
 		z = 0.5 * z
 	tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
