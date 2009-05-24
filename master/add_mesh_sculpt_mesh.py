@@ -63,8 +63,7 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 
 import Blender
 from math import log, ceil, sqrt, pi, sin, cos
-from render_sculptie import getBB
-from import_sculptie import update_sculptie_from_map
+from sculpty import update_from_map, getBB
 
 #***********************************************
 # constants
@@ -178,7 +177,7 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 		Blender.Registry.SetKey('ImportSculptie', settings, True) # save latest settings
 	mesh, image = generate_base_mesh( basename, sculpt_type, faces_x, faces_y, multires, clean_lods, settings['radius'] )
 	ob = scene.objects.new( mesh, basename )
-	update_sculptie_from_map( mesh, image )
+	update_from_map( mesh, image )
 	if sculpt_type != PLANE:
 		mesh.flipNormals()
 	ob.sel = True

@@ -9,7 +9,7 @@ Tooltip: 'Updates a mesh with a sculptie UV layer from a .tga map file'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.02"
+__version__ = "0.03"
 __bpydoc__ = """\
 
 Sculptie Updater
@@ -18,6 +18,8 @@ This script updates a sculptie mesh from a Second Life sculptie image map
 """
 #TODO:
 # Needs to work with shape keys
+#0.03 Domino Marama 2009-05-24
+#- Now uses sculpty.py
 #0.02 Domino Marama 2009-05-22
 #- Removed image to face assignments and scaling
 #0.01 Domino Marama 2007-08-10

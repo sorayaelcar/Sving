@@ -122,6 +122,7 @@ positions to the prim's sculptie map image.
 
 import Blender
 from sys import version_info
+import sculpty
 
 #***********************************************
 # Classes
@@ -186,7 +187,7 @@ class scaleRange:
 		self.b = colourRange[5] - self.minb
 		for ob in objects:
 			if ob.type == 'Mesh':
-				bb = getBB( ob )
+				bb = sculpty.getBB( ob )
 				if self.minx == None:
 					self.minx, self.miny, self.minz = bb[0]
 					self.maxx, self.maxy, self.maxz = bb[1]
@@ -262,30 +263,6 @@ if version_info[0] == 2 and version_info[1] < 4:
 		newseq = seq[:]
 		newseq.sort()
 		return newseq
-
-def getBB( obj ):
-	mesh = Blender.Mesh.New()
-	mesh.getFromObject( obj, 0, 1 )
-	min_x = mesh.verts[0].co.x
-	max_x = min_x
-	min_y = mesh.verts[0].co.y
-	max_y = min_y
-	min_z = mesh.verts[0].co.z
-	max_z = min_z
-	for v in mesh.verts[1:-1]:
-		if v.co.x < min_x :
-			min_x = v.co.x
-		elif v.co.x > max_x :
-			max_x = v.co.x
-		if v.co.y < min_y :
-			min_y = v.co.y
-		elif v.co.y > max_y :
-			max_y = v.co.y
-		if v.co.z < min_z :
-			min_z = v.co.z
-		elif v.co.z > max_z :
-			max_z = v.co.z
-	return ( min_x, min_y, min_z ), ( max_x, max_y, max_z )
 
 def drawTri( image, verts ):
 	scanlines = [ verts[0] ]
@@ -405,45 +382,6 @@ def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 		if sb > 1.0:
 			sb = 1.0
 
-def expandPixels( image ):
-	d = 2
-	for y in xrange( 0, image.size[1], d ):
-		for x in xrange( 0, image.size[0] - 1):
-			if x % d:
-				image.setPixelF( x, y, c )
-			else:
-				c = image.getPixelF( x, y )
-	y = image.size[1] - 1
-	for x in xrange( 0, image.size[0] - 1):
-			if x % d:
-				image.setPixelF( x, y, c )
-			else:
-				c = image.getPixelF( x, y )
-	for x in xrange( 0, image.size[0] ):
-		for y in xrange( 0, image.size[1] -1 ):
-			if y % d:
-				image.setPixelF( x, y, c )
-			else:
-				c = image.getPixelF( x, y )
-
-def protectMap( image, preview ):
-	for x in xrange( image.size[0] ):
-		for y in xrange( image.size[1] ):
-			c1 = image.getPixelF( x, y )
-			c1[3] = 0.0
-			image.setPixelF( x, y, c1 )
-	if preview:
-		for x in xrange( image.size[0] ):
-			for y in xrange( image.size[1] ):
-				c1 = image.getPixelF( x, y )
-				f = (c1[1] * 0.35) + 0.65
-				s = int( (image.size[0] - 1) * (0.5 - (0.5 - c1[0]) * f))
-				t = int( (image.size[1] - 1) * (0.5 - (0.5 - c1[2]) * f))
-				c2 = image.getPixelF( s, t )
-				if c2[3] < c1[1]:
-					c2[3] = c1[1]
-					image.setPixelF( s, t, c2 )
-
 #***********************************************
 # bake UV map from XYZ
 #***********************************************
@@ -497,7 +435,7 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 		except ValueError:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["The UV map is outside","the image area"] )
 			return
-		bb = getBB( ob )
+		bb = sculpty.getBB( ob )
 		if scaleRGB:
 			sf = ( scale.r / 255.0, scale.g / 255.0, scale.b / 255.0 )
 		else:
@@ -588,7 +526,7 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 				fillY()
 				if skipx: fillX()
 			if expand:
-				expandPixels ( sculptimage )
+				sculpty.mirror_pixels ( sculptimage )
 			n = Blender.sys.splitext( sculptimage.name )
 			if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
 				sculptimage.name = ob.name
@@ -676,7 +614,10 @@ def main():
 					images = updateSculptieMap( ob , meshscale, doFill.val, not keepScale.val, doExpand.val, keepCentre.val, doClear.val )
 					for image in images:
 						if doProtect.val:
-							protectMap( image, doPreview.val )
+								if doPreview.val:
+									sculpty.bake_preview( image )
+								else:
+									sculpty.clear_alpha( image )
 
 		print "--------------------------------"
 		print 'finished baking: in %.4f sec.' % ((Blender.sys.time()-time1))

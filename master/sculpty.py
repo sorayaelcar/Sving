@@ -30,10 +30,10 @@ from math import sin, cos, pi, sqrt
 # functions
 #***********************************************
 
-def adjust_size( width, height, s, t ):
+def face_count( width, height, s, t, model = True ):
 	ratio = float(width) / float(height)
 	verts = int(min( 0.25 * width * height, s * t ))
-	if width != height:
+	if (width != height) and model:
 		verts = verts & 0xfff8
 	t = int(sqrt( verts / ratio))
 	t = max( t, 4 )
@@ -117,7 +117,7 @@ def new_from_map( image ):
 	Blender.Window.WaitCursor(1)
 	sculpt_type = map_type( image )
 	faces_x, faces_y = image.size
-	faces_x, faces_y = adjust_size( faces_x, faces_y, 32, 32 )
+	faces_x, faces_y = face_count( faces_x, faces_y, 32, 32 )
 	multires = 0
 	while multires < 2 and faces_x >= 8 and faces_y >= 8 and not ( (faces_x & 1) or (faces_y & 1) ):
 		faces_x = faces_x >> 1
@@ -212,3 +212,91 @@ def new_mesh( name, sculpt_type, verts_x, verts_y ):
 		for e in mesh.findEdges( seams ):
 			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
 	return mesh
+
+def bake_lod( image ):
+	x = image.size[0]
+	y = image.size[1]
+	for u in range(x):
+		for v in range(y):
+			image.setPixelF( u, v, ( float(u) / x, float(v) / y, 0.0, 1.0 ) )
+	for l in range(4):
+		sides = [ 6, 8, 16, 32 ][l]
+		s, t = face_count( x , y, sides, sides, False )
+		ts = []
+		ss = []
+		for k in range( s ):
+			ss.append( int(x * k / float(s)) )
+		for k in range( t ):
+			ts.append( int(y * k / float(t)) )
+		ts.append( y - 1)
+		ss.append( x - 1 )
+		for s in ss:
+			for t in ts:
+				c = image.getPixelF( s, t )
+				c[2] += 0.25
+				image.setPixelF( s, t, c )
+
+def clear_alpha( image ):
+	for x in xrange( image.size[0] ):
+		for y in xrange( image.size[1] ):
+			c1 = image.getPixelF( x, y )
+			c1[3] = 0.0
+			image.setPixelF( x, y, c1 )
+
+def bake_preview( image ):
+	clear_alpha( image )
+	for x in xrange( image.size[0] ):
+		for y in xrange( image.size[1] ):
+			c1 = image.getPixelF( x, y )
+			f = (c1[1] * 0.35) + 0.65
+			s = int( (image.size[0] - 1) * (0.5 - (0.5 - c1[0]) * f))
+			t = int( (image.size[1] - 1) * (0.5 - (0.5 - c1[2]) * f))
+			c2 = image.getPixelF( s, t )
+			if c2[3] < c1[1]:
+				c2[3] = c1[1]
+				image.setPixelF( s, t, c2 )
+
+def mirror_pixels( image ):
+	d = 2
+	for y in xrange( 0, image.size[1], d ):
+		for x in xrange( 0, image.size[0] - 1):
+			if x % d:
+				image.setPixelF( x, y, c )
+			else:
+				c = image.getPixelF( x, y )
+	y = image.size[1] - 1
+	for x in xrange( 0, image.size[0] - 1):
+			if x % d:
+				image.setPixelF( x, y, c )
+			else:
+				c = image.getPixelF( x, y )
+	for x in xrange( 0, image.size[0] ):
+		for y in xrange( 0, image.size[1] -1 ):
+			if y % d:
+				image.setPixelF( x, y, c )
+			else:
+				c = image.getPixelF( x, y )
+
+def getBB( obj ):
+	mesh = Blender.Mesh.New()
+	mesh.getFromObject( obj, 0, 1 )
+	min_x = mesh.verts[0].co.x
+	max_x = min_x
+	min_y = mesh.verts[0].co.y
+	max_y = min_y
+	min_z = mesh.verts[0].co.z
+	max_z = min_z
+	for v in mesh.verts[1:-1]:
+		if v.co.x < min_x :
+			min_x = v.co.x
+		elif v.co.x > max_x :
+			max_x = v.co.x
+		if v.co.y < min_y :
+			min_y = v.co.y
+		elif v.co.y > max_y :
+			max_y = v.co.y
+		if v.co.z < min_z :
+			min_z = v.co.z
+		elif v.co.z > max_z :
+			max_z = v.co.z
+	return ( min_x, min_y, min_z ), ( max_x, max_y, max_z )

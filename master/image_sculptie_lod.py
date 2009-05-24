@@ -43,44 +43,12 @@ This script bakes a sculptie LOD helper to the active image
 # --------------------------------------------------------------------------
 
 import Blender
-from math import sqrt
-
-def adjust_size( width, height, s, t ):
-	ratio = float(width) / float(height)
-	verts = int(min( 0.25 * width * height, s * t ))
-	#if width != height:
-	#	verts = verts & 0xfff8
-	t = int(sqrt( verts / ratio))
-	t = max( t, 4 )
-	s = verts // t
-	s = max( s, 4 )
-	t = verts // s
-	return int(s), int(t)
+from sculpty import bake_lod
 
 def main():
 	image = Blender.Image.GetCurrent()
 	if image:
-		x = image.size[0]
-		y = image.size[1]
-		for u in range(x):
-			for v in range(y):
-				image.setPixelF( u, v, ( float(u) / x, float(v) / y, 0.0, 1.0 ) )
-		for l in range(4):
-			sides = [ 6, 8, 16, 32 ][l]
-			s, t = adjust_size( x , y, sides, sides )
-			ts = []
-			ss = []
-			for k in range( s ):
-				ss.append( int(x * k / float(s)) )
-			for k in range( t ):
-				ts.append( int(y * k / float(t)) )
-			ts.append( y - 1)
-			ss.append( x - 1 )
-			for s in ss:
-				for t in ts:
-					c = image.getPixelF( s, t )
-					c[2] += 0.25
-					image.setPixelF( s, t, c )
+		bake_lod( image )
 	else:
 		Blender.Draw.PupBlock( "Sculptie Bake Error", ["No current image"] )
 
