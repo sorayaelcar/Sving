@@ -53,7 +53,7 @@ def face_count( width, height, x_faces, y_faces, model = True ):
 
 def map_size( x_faces, y_faces, levels ):
 	'''
-	Suggests optimal sculpt map size for x_faces x y_faces x levels
+	Suggests optimal sculpt map size for x_faces * y_faces * levels
 
 	x_faces - x face count
 	y_faces - y face count
@@ -140,7 +140,7 @@ def new_from_map( image ):
 	scene = Blender.Scene.GetCurrent()
 	for ob in scene.objects:
 		ob.sel = False
-	mesh = new_mesh( image.name, sculpt_type, faces_x + 1, faces_y + 1 )
+	mesh = new_mesh( image.name, sculpt_type, faces_x, faces_y )
 	ob = scene.objects.new( mesh, image.name )
 	ob.setLocation( Blender.Window.GetCursorPos() )
 	ob.sel = True
@@ -220,14 +220,14 @@ def update_from_map( mesh, image ):
 	mesh.sel = True
 	mesh.recalcNormals( 0 )
 
-def new_mesh( name, sculpt_type, verts_x, verts_y ):
+def new_mesh( name, sculpt_type, x_faces, y_faces ):
 	'''
 	Returns a sculptie mesh created from the input
 
 	name - the mesh name
 	sculpt_type - one of "SPHERE", "TORUS", "CYLINDER", "PLANE" or "HEMI"
-	verts_x - number of x vertice
-	verts_y - number of y vertice
+	x_faces - x face count
+	y_faces - y face count
 	'''
 	mesh = Blender.Mesh.New("%s.mesh"%name)
 	uv = []
@@ -236,6 +236,8 @@ def new_mesh( name, sculpt_type, verts_x, verts_y ):
 	faces = []
 	wrap_x = ( sculpt_type != "PLANE" ) & ( sculpt_type != "HEMI" )
 	wrap_y = ( sculpt_type == "TORUS" )
+	verts_x = x_faces + 1
+	verts_y = y_faces + 1
 	actual_x = verts_x - wrap_x
 	actual_y = verts_y - wrap_y
 	uvgrid_y = []
