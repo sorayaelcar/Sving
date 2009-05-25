@@ -27,6 +27,13 @@ import Blender
 from math import sin, cos, pi, sqrt, log, ceil
 
 #***********************************************
+# helper functions
+#***********************************************
+
+def clip( v ):
+			return min( 1.0, max( 0.0, v ) )
+
+#***********************************************
 # helper classes
 #***********************************************
 
@@ -59,6 +66,7 @@ class xyz:
 
 class bounding_box:
 	def __init__( self, ob = None ):
+		self.rgb = rgb_range()
 		self.scale = xyz( 0.0, 0.0, 0.0 )
 		self.center = xyz( 0.0, 0.0, 0.0 )
 		if ob != None:
@@ -122,11 +130,27 @@ class bounding_box:
 		s.update()
 		return s
 
-	def xyz_to_rgb( self, x, y, z ):
-		r = max(0, int( 255.0 * (( x - self.min.x ) / self.scale.x ) ))
-		g = max(0, int( 255.0 * (( y - self.min.y ) / self.scale.y ) ))
-		b = max(0, int( 255.0 * (( z - self.min.z ) / self.scale.z ) ))
-		return min(r, 255), min(g,255), min(b, 255)
+	def xyz_to_rgb( self, loc ):
+		'''
+		converts a location in the bounding box to rgb sculpt map values
+		'''
+		x = ( loc.x - self.min.x ) / self.scale.x
+		y = ( loc.y - self.min.y ) / self.scale.y
+		z = ( loc.z - self.min.z ) / self.scale.z
+		return self.rgb.convert( xyz( x, y, z) )
+
+class rgb_range:
+	def __init__( self, min_r = 0, max_r = 255, min_g = 0, max_g = 255, min_b = 0, max_b = 255 ):
+		self.min = xyz( min_r, min_g, min_b )
+		self.max = xyz( max_r, max_g, max_b )
+
+	def convert( self, rgb ):
+		'''
+		converts float rgb to integers from the range
+		'''
+		return xyz( self.min.x + int( self.max.x * clip(rgb.x) ),
+				self.min.y + int( self.max.y * clip(rgb.y) ),
+				self.min.z + int( self.max.z * clip(rgb.z) ) )
 
 #***********************************************
 # sculpty info functions
@@ -284,8 +308,8 @@ def bake_object( ob, bb, clear = True, fill = True ):
 					v = f.image.size[1] - 1
 				else:
 					v = int(f.uv[ i ][1] * f.image.size[1])
-				r,g,b = bb.xyz_to_rgb( f.verts[i].co.x, f.verts[i].co.y, f.verts[i].co.z )
-				f.image.setPixelI( u, v, ( r, g, b, 255 ) )
+				rgb = bb.xyz_to_rgb( f.verts[i].co )
+				f.image.setPixelI( u, v, ( rgb.x, rgb.y, rgb.z, 255 ) )
 	mesh.activeUVLayer = currentUV
 	if fill:
 		for i in images:
