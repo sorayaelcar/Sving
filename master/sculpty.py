@@ -69,6 +69,7 @@ class bounding_box:
 		self.rgb = rgb_range()
 		self.scale = xyz( 0.0, 0.0, 0.0 )
 		self.center = xyz( 0.0, 0.0, 0.0 )
+		self._dirty = xyz( False, False, False )
 		if ob != None:
 			bb = getBB( ob )
 			self.min = xyz( bb[0][0], bb[0][1], bb[0][2] )
@@ -82,11 +83,20 @@ class bounding_box:
 		bb = getBB( ob )
 		mi = xyz( bb[0] )
 		ma = xyz( bb[1] )
-		if self.min.x > mi.x:
+		if self._dirty.x:
 			self.min.x = mi.x
-		if self.min.y > mi.y:
+			self.max.x = ma.x
+		elif self.min.x > mi.x:
+			self.min.x = mi.x
+		if self._dirty.y:
 			self.min.y = mi.y
-		if self.min.z > mi.z:
+			self.max.y = ma.y
+		elif self.min.y > mi.y:
+			self.min.y = mi.y
+		if self._dirty.z:
+			self.min.z = mi.z
+			self.max.z = ma.z
+		elif self.min.z > mi.z:
 			self.min.z = mi.z
 		if self.max.x < ma.x:
 			self.max.x = ma.x
@@ -98,6 +108,27 @@ class bounding_box:
 
 	def update( self ):
 		self.scale = self.max - self.min
+		if self.scale.x == 0.0:
+			self.min.x = -0.5
+			self.max.x = 0.5
+			self.scale.x = 1.0
+			self._dirty.x = True
+		else:
+			self._dirty.x = False
+		if self.scale.y == 0.0:
+			self.min.y = -0.5
+			self.max.y = 0.5
+			self.scale.y = 1.0
+			self._dirty.y = True
+		else:
+			self._dirty.y = False
+		if self.scale.z == 0.0:
+			self.min.z = -0.5
+			self.max.z = 0.5
+			self.scale.z = 1.0
+			self._dirty.z = True
+		else:
+			self._dirty.z = False
 		self.center = self.min + self.scale * 0.5
 
 	def normalised( self ):
@@ -391,10 +422,6 @@ def new_from_map( image ):
 				ob.setMatrix(mat)
 	except:
 		pass
-	mesh.addUVLayer( "UVTex")
-	mesh.update()
-	mesh.renderUVLayer = "UVTex"
-	mesh.activeUVLayer = "UVTex"
 	if in_editmode:
 		Blender.Window.EditMode(1)
 	Blender.Window.WaitCursor(0)
@@ -708,6 +735,18 @@ def clear_alpha( image ):
 			c1 = image.getPixelF( x, y )
 			c1[3] = 0.0
 			image.setPixelF( x, y, c1 )
+
+def set_alpha( image, alpha ):
+	'''
+	Sets the alpha channel of the sculpt map image to the alpha image
+	'''
+	for x in xrange( image.size[0] ):
+		for y in xrange( image.size[1] ):
+			c1 = image.getPixelF ( x, y )
+			c2 = pimage.getPixelF( x, y )
+			c1[3]= c2[1]
+			image.setPixelF( x, y, c1 )
+
 def drawHLine( image, y, s, e, sr, sg, sb, er, eg, eb ):
 	if s - e == 0:
 		image.setPixelF( s, y, ( sr, sg, sb, 1.0 ) )
