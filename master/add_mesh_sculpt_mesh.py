@@ -145,7 +145,6 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 				ob.setMatrix(mat)
 	except:
 		pass
-	mesh.activeUVLayer = "UVTex"
 	Blender.Window.WaitCursor(0)
 	return ob
 

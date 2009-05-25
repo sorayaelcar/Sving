@@ -1,6 +1,6 @@
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
-# Script copyright (C) Domino Designs Limited
+# Script copyright (C) 2007-2009 Domino Designs Limited
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -27,6 +27,108 @@ import Blender
 from math import sin, cos, pi, sqrt, log, ceil
 
 #***********************************************
+# helper classes
+#***********************************************
+
+class xyz:
+	def __init__( x, y, z ):
+		self.x = x
+		self.y = y
+		self.z = z
+
+	def __sub__( self, other ):
+		return xyz(
+			self.x - other.x,
+			self.y - other.y,
+			self.z - other.z
+		)
+
+	def __add__( self, other ):
+		return xyz(
+			self.x + other.x,
+			self.y + other.y,
+			self.z + other.z
+		)
+
+	def __mul__( self, scalar ):
+		return xyz(
+			self.x * scalar,
+			self.y * scalar,
+			self.z * scalar
+		)
+
+class bounding_box:
+	def __init__( self, ob = None ):
+		self.scale = xyz( 0.0, 0.0, 0.0 )
+		self.center = xyz( 0.0, 0.0, 0.0 )
+		if ob != None:
+			bb = getBB( ob )
+			self.min = xyz( bb[0] )
+			self.max = xyz( bb[1] )
+		else:
+			self.min = xyz( 0.0, 0.0, 0.0 )
+			self.max = xyz( 0.0, 0.0, 0.0 )
+		self.update()
+
+	def add( self, ob ):
+		bb = getBB( ob )
+		mi = xyz( bb[0] )
+		ma = xyz( bb[1] )
+		if self.min.x > mi.x:
+			self.min.x = mi.x
+		if self.min.y > mi.y:
+			self.min.y = mi.y
+		if self.min.z > mi.z:
+			self.min.z = mi.z
+		if self.max.x < ma.x:
+			self.max.x = ma.x
+		if self.max.y < ma.y:
+			self.max.y = ma.y
+		if self.max.z < ma.z:
+			self.max.z = ma.z
+		self.update()
+
+	def update( self ):
+		self.scale = self.max - self.min
+		self.center = self.min + self.scale * 0.5
+
+	def normalised( self ):
+		s = bounding_box()
+		s.min.x = s.min.y = s.min.z = min( self.min.x, self.min.y, self.min.z )
+		s.max.x = s.max.y = s.max.z = max( self.max.x, self.max.y, self.max.z )
+		s.update()
+		return s
+
+	def centered( self ):
+		s = bounding_box()
+		if -self.min.x > self.max.x:
+			s.max.x = -self.min.x
+			s.min.x = self.min.x
+		else:
+			s.max.x = self.max.x
+			s.min.x = -self.max.x
+		if -self.min.y > self.max.y:
+			s.max.y = -self.min.y
+			s.min.y = self.min.y
+		else:
+			s.max.y = self.max.y
+			s.min.y = -self.max.y
+		if -self.min.z > self.max.z:
+			s.max.z = -self.min.z
+			s.min.z = self.min.z
+		else:
+			s.max.z = self.max.z
+			s.min.z = -self.max.z
+		s.update()
+		return s
+
+		def xyz_to_rgb( x, y, z ):
+			r = round( 255.0 * (( x - self.min.x ) / self.scale.x ) )
+			g = round( 255.0 * (( y - self.min.y ) / self.scale.y ) )
+			b = round( 255.0 * (( z - self.min.z ) / self.scale.z ) )
+			return r, g, b
+
+#***********************************************
 # sculpty info functions
 #***********************************************
 
@@ -51,6 +153,31 @@ def face_count( width, height, x_faces, y_faces, model = True ):
 	y_faces = verts // x_faces
 	return int(x_faces), int(y_faces)
 
+def lod_info( width, height, format = "LOD%(lod)d:%(x_faces)dx%(y_faces)d\n" ):
+	'''
+	Returns a string with the lod info for a map size of width * height
+	'''
+	info = ""
+	for i in [3,2,1,0]:
+		faces = float([ 6, 8, 16, 32 ][i])
+		x_faces, y_faces = lod_size( width, height, i )
+		info += format%{ 'lod':i, 'x_faces':x_faces, 'y_faces':y_faces }
+	return info
+
+def lod_size( width, height, lod ):
+	'''
+	Returns x and y face counts for the given map size and lod
+	'''
+	sides = float([ 6, 8, 16, 32 ][lod])
+	ratio = float(width) / float(height)
+	verts = int(min( 0.25 * width * height, sides * sides))
+	y_faces = int(sqrt( verts / ratio))
+	y_faces = max( y_faces, 4 )
+	x_faces = verts // y_faces
+	x_faces = max( x_faces, 4 )
+	y_faces = verts // x_faces
+	return int(x_faces), int(y_faces)
+
 def map_size( x_faces, y_faces, levels ):
 	'''
 	Suggests optimal sculpt map size for x_faces * y_faces * levels
@@ -67,8 +194,8 @@ def map_size( x_faces, y_faces, levels ):
 	t - y face count
 	w - map width
 	h - map height
-	cs - True if got requested x face count
-	ct - True if got requested y face count
+	cs - True if x face count was corrected
+	ct - True if y face count was corrected
 	'''
 	w = int(pow(2, levels + 1 + ceil( log(x_faces) / log(2))))
 	h = int(pow(2, levels + 1 + ceil( log(y_faces) / log(2))))
@@ -129,6 +256,15 @@ def new_from_map( image ):
 	Returns a new sculptie object created from the sculpt map image.
 	'''
 	Blender.Window.WaitCursor(1)
+	in_editmode = Blender.Window.EditMode()
+	if in_editmode:
+		Blender.Window.EditMode(0)
+	else:
+		try:
+			in_editmode = Blender.Get('add_editmode')
+		except:
+			pass
+
 	sculpt_type = map_type( image )
 	x_faces, y_faces = image.size
 	x_faces, y_faces = face_count( x_faces, y_faces, 32, 32 )
@@ -163,7 +299,12 @@ def new_from_map( image ):
 				ob.setMatrix(mat)
 	except:
 		pass
+	mesh.addUVLayer( "UVTex")
+	mesh.update()
+	mesh.renderUVLayer = "UVTex"
 	mesh.activeUVLayer = "UVTex"
+	if in_editmode:
+		Blender.Window.EditMode(1)
 	Blender.Window.WaitCursor(0)
 	return ob
 
@@ -178,14 +319,17 @@ def open( filename ):
 	image.properties["scale_z"] = 1.0
 	return new_from_map( image )
 
-def center_new ( ob ):
+def set_center ( ob, offset=( 0.0, 0.0, 0.0 ) ):
 	'''
-	Updates object center to middle of mesh
+	Updates object center to middle of mesh plus offset
+
+	ob - object to update
+	offset - ( x, y, z ) offset for mesh center
 	'''
 	mesh=ob.getData()
 	mat= ob.getmatrix()
 	mesh.transform(mat)
-	mesh.update()
+	#mesh.update()
 	mat=Blender.mathutils.matrix(
 			 [1.0,0.0,0.0,0.0],
 			 [0.0,1.0,0.0,0.0],
@@ -194,13 +338,16 @@ def center_new ( ob ):
 	ob.setmatrix(mat)
 	bb= ob.getBoundBox()
 	c=[bb[0][n]+(bb[-2][n]-bb[0][n])/2.0 for n in [0,1,2]]
+	c[0] += offset[0]
+	c[1] += offset[1]
+	c[2] += offset[2]
 	mat= ob.getmatrix()
 	mat=Blender.mathutils.matrix(mat[0][:],
 							mat[1][:],
 							mat[2][:],
 							[-c[0],-c[1],-c[2],1.0])
 	mesh.transform(mat)
-	mesh.update()
+	#mesh.update()
 	mat=Blender.mathutils.matrix(mat[0][:],
 							mat[1][:],
 							mat[2][:],
@@ -211,6 +358,30 @@ def center_new ( ob ):
 # sculpty mesh functions
 #***********************************************
 
+def bake_mesh( mesh, scale ):
+	'''
+	Bakes the mesh to the specified scale.
+	'''
+	currentUV = mesh.activeUVLayer
+	if "sculptie" in mesh.getUVLayerNames():
+		mesh.activeUVLayer = "sculptie"
+	else:
+		return
+	for f in mesh.faces:
+		if f.image != None:
+			for i in range( len(f.verts) ):
+				if f.uv[i][0] == 1.0:
+					u = f.image.size[0] - 1
+				else:
+					u = round(f.uv[ i ][0] * f.image.size[0])
+				if f.uv[i][1] == 1.0:
+					v = f.image.size[1] - 1
+				else:
+					v = round(f.uv[ i ][1] * f.image.size[1])
+				r,g,b = scale.xyz_to_rgb( f.verts[i].x, f.verts[i].y, f.verts[i].z )
+				f.image.setPixelI( u, v, ( r, g, b, 255 ) )
+	mesh.activeUVLayer = currentUV
+
 def map_images( mesh ):
 	'''
 	Returns the list of images assigned to the 'sculptie' UV layer.
@@ -219,43 +390,12 @@ def map_images( mesh ):
 	if "sculptie" in mesh.getUVLayerNames():
 		currentUV = mesh.activeUVLayer
 		mesh.activeUVLayer = "sculptie"
-		#mesh.update()
 		for f in mesh.faces:
 			if f.image != None:
 				if f.image not in images:
 					images.append( f.image )
 		mesh.activeUVLayer = currentUV
-		#mesh.update()
 	return images
-
-def update_from_map( mesh, image ):
-	'''
-	Updates the mesh to locations from the sculpt map image
-	'''
-	currentUV = mesh.activeUVLayer
-	if "sculptie" in mesh.getUVLayerNames():
-		mesh.activeUVLayer = "sculptie"
-		#mesh.update()
-	verts = range( len( mesh.verts ) )
-	for f in mesh.faces:
-		for vi in xrange( len( f.verts) ):
-			if f.verts[ vi ].index in verts:
-				verts.remove( f.verts[ vi ].index )
-				if f.verts[ vi ].sel:
-					u, v = f.uv[ vi ]
-					u = int( 2.0 / image.size[0] + u * image.size[0])
-					v = int( 2.0 / image.size[1] + v * image.size[1])
-					if u == image.size[0]:
-						u = image.size[0] - 1
-					if v == image.size[1]:
-						v = image.size[1] - 1
-					p  = image.getPixelF( u, v )
-					f.verts[ vi ].co = Blender.Mathutils.Vector(( p[0] - 0.5),
-							(p[1] - 0.5),
-							(p[2] - 0.5))
-	mesh.activeUVLayer = currentUV
-	#mesh.update()
-	mesh.sel = True
 
 def set_map( mesh, image ):
 	'''
@@ -362,12 +502,37 @@ def new_mesh( name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True
 	for f in xrange( len(mesh.faces) ):
 		mesh.faces[ f ].uv = uv[ f ]
 	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" )
-	mesh.addUVLayer( "UVTex" )
-	mesh.renderUVLayer = "UVTex"
 	if seams != []:
 		for e in mesh.findEdges( seams ):
 			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
 	return mesh
+
+def update_from_map( mesh, image ):
+	'''
+	Updates the mesh to locations from the sculpt map image
+	'''
+	currentUV = mesh.activeUVLayer
+	if "sculptie" in mesh.getUVLayerNames():
+		mesh.activeUVLayer = "sculptie"
+	verts = range( len( mesh.verts ) )
+	for f in mesh.faces:
+		for vi in xrange( len( f.verts) ):
+			if f.verts[ vi ].index in verts:
+				verts.remove( f.verts[ vi ].index )
+				if f.verts[ vi ].sel:
+					u, v = f.uv[ vi ]
+					u = int( 2.0 / image.size[0] + u * image.size[0])
+					v = int( 2.0 / image.size[1] + v * image.size[1])
+					if u == image.size[0]:
+						u = image.size[0] - 1
+					if v == image.size[1]:
+						v = image.size[1] - 1
+					p  = image.getPixelF( u, v )
+					f.verts[ vi ].co = Blender.Mathutils.Vector(( p[0] - 0.5),
+							(p[1] - 0.5),
+							(p[2] - 0.5))
+	mesh.activeUVLayer = currentUV
+	mesh.sel = True
 
 #***********************************************
 # sculpty image functions
@@ -475,63 +640,6 @@ def clear_alpha( image ):
 			c1[3] = 0.0
 			image.setPixelF( x, y, c1 )
 
-def map_type( image ):
-	'''
-	Returns the sculpt type of the sculpt map image
-	'''
-	poles = True
-	xseam = True
-	yseam = True
-	p1 = image.getPixelI( 0, 0 )[:3]
-	p2 = image.getPixelI( 0, image.size[1] - 1 )[:3]
-	if p1 != p2:
-		yseam = False
-	for x in xrange( 1, image.size[0]  ):
-		p3 = image.getPixelI( x, 0 )[:3]
-		p4 = image.getPixelI( x, image.size[1] - 1 )[:3]
-		if p1 != p3 or p2 != p4:
-			poles = False
-		if p3 != p4:
-			yseam = False
-		p1 = p3
-		p2 = p4
-	for y in xrange( image.size[1]  ):
-		p1 = image.getPixelI( 0, y )[:3]
-		p2 = image.getPixelI( image.size[0] - 1, y )[:3]
-		if p1 != p2:
-			xseam = False
-	if xseam:
-		if poles:
-			return "SPHERE"
-		if yseam:
-			return "TORUS"
-		return "CYLINDER"
-	return "PLANE"
-
-def mirror_pixels( image ):
-	'''
-	Expands each pixel of the sculpt map image into a 2 x 2 block
-	'''
-	d = 2
-	for y in xrange( 0, image.size[1], d ):
-		for x in xrange( 0, image.size[0] - 1):
-			if x % d:
-				image.setPixelF( x, y, c )
-			else:
-				c = image.getPixelF( x, y )
-	y = image.size[1] - 1
-	for x in xrange( 0, image.size[0] - 1):
-			if x % d:
-				image.setPixelF( x, y, c )
-			else:
-				c = image.getPixelF( x, y )
-	for x in xrange( 0, image.size[0] ):
-		for y in xrange( 0, image.size[1] -1 ):
-			if y % d:
-				image.setPixelF( x, y, c )
-			else:
-				c = image.getPixelF( x, y )
-
 def fill_holes( image ):
 	'''
 	Any pixels with alpha 0 on the image have colour interpolated from neighbours
@@ -607,3 +715,60 @@ def fill_holes( image ):
 	skipx = fillX()
 	fillY()
 	if skipx: fillX()
+
+def map_type( image ):
+	'''
+	Returns the sculpt type of the sculpt map image
+	'''
+	poles = True
+	xseam = True
+	yseam = True
+	p1 = image.getPixelI( 0, 0 )[:3]
+	p2 = image.getPixelI( 0, image.size[1] - 1 )[:3]
+	if p1 != p2:
+		yseam = False
+	for x in xrange( 1, image.size[0]  ):
+		p3 = image.getPixelI( x, 0 )[:3]
+		p4 = image.getPixelI( x, image.size[1] - 1 )[:3]
+		if p1 != p3 or p2 != p4:
+			poles = False
+		if p3 != p4:
+			yseam = False
+		p1 = p3
+		p2 = p4
+	for y in xrange( image.size[1]  ):
+		p1 = image.getPixelI( 0, y )[:3]
+		p2 = image.getPixelI( image.size[0] - 1, y )[:3]
+		if p1 != p2:
+			xseam = False
+	if xseam:
+		if poles:
+			return "SPHERE"
+		if yseam:
+			return "TORUS"
+		return "CYLINDER"
+	return "PLANE"
+
+def mirror_pixels( image ):
+	'''
+	Expands each pixel of the sculpt map image into a 2 x 2 block
+	'''
+	d = 2
+	for y in xrange( 0, image.size[1], d ):
+		for x in xrange( 0, image.size[0] - 1):
+			if x % d:
+				image.setPixelF( x, y, c )
+			else:
+				c = image.getPixelF( x, y )
+	y = image.size[1] - 1
+	for x in xrange( 0, image.size[0] - 1):
+			if x % d:
+				image.setPixelF( x, y, c )
+			else:
+				c = image.getPixelF( x, y )
+	for x in xrange( 0, image.size[0] ):
+		for y in xrange( 0, image.size[1] -1 ):
+			if y % d:
+				image.setPixelF( x, y, c )
+			else:
+				c = image.getPixelF( x, y )
