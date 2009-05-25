@@ -220,6 +220,36 @@ def map_size( x_faces, y_faces, levels ):
 		ct = False
 	return s, t, w, h, cs, ct
 
+def vertex_pixels( size, faces ):
+	'''
+	Returns a list of pixels used for vertex points on map size
+	'''
+	pixels = []
+	for i in range( faces ):
+		pixels.append( int( size * i / float(faces)) )
+	pixels.append( faces - 1 )
+	return pixels
+
+def map_pixels( width, height ):
+	ss = [ width - 1 ]
+	ts = [ height - 1 ]
+	for i in [3,2,1,0]:
+		u,v = lod_size( width, height, i )
+		for p in vertex_pixels( width, u ):
+			if p not in ss:
+				ss.append( p )
+		for p in vertex_pixels( height, v ):
+			if p not in ts:
+				ts.append( p )
+	return ss, ts
+
+def flip_pixels( pixels ):
+	m = max( pixels )
+	ps = []
+	for p in pixels:
+		ps.append( m - p )
+	return ps
+
 #***********************************************
 # sculpty object functions
 #***********************************************
