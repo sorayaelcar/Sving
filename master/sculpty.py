@@ -31,7 +31,7 @@ from math import sin, cos, pi, sqrt, log, ceil
 #***********************************************
 
 class xyz:
-	def __init__( x, y, z ):
+	def __init__( self, x, y, z ):
 		self.x = x
 		self.y = y
 		self.z = z
@@ -63,8 +63,8 @@ class bounding_box:
 		self.center = xyz( 0.0, 0.0, 0.0 )
 		if ob != None:
 			bb = getBB( ob )
-			self.min = xyz( bb[0] )
-			self.max = xyz( bb[1] )
+			self.min = xyz( bb[0][0], bb[0][1], bb[0][2] )
+			self.max = xyz( bb[1][0], bb[1][1], bb[1][2] )
 		else:
 			self.min = xyz( 0.0, 0.0, 0.0 )
 			self.max = xyz( 0.0, 0.0, 0.0 )
@@ -122,11 +122,11 @@ class bounding_box:
 		s.update()
 		return s
 
-		def xyz_to_rgb( x, y, z ):
-			r = round( 255.0 * (( x - self.min.x ) / self.scale.x ) )
-			g = round( 255.0 * (( y - self.min.y ) / self.scale.y ) )
-			b = round( 255.0 * (( z - self.min.z ) / self.scale.z ) )
-			return r, g, b
+	def xyz_to_rgb( self, x, y, z ):
+		r = max(0, int( 255.0 * (( x - self.min.x ) / self.scale.x ) ))
+		g = max(0, int( 255.0 * (( y - self.min.y ) / self.scale.y ) ))
+		b = max(0, int( 255.0 * (( z - self.min.z ) / self.scale.z ) ))
+		return min(r, 255), min(g,255), min(b, 255)
 
 #***********************************************
 # sculpty info functions
@@ -241,6 +241,8 @@ def map_pixels( width, height ):
 		for p in vertex_pixels( height, v ):
 			if p not in ts:
 				ts.append( p )
+	ss.sort()
+	ts.sort()
 	return ss, ts
 
 def flip_pixels( pixels ):
@@ -253,6 +255,42 @@ def flip_pixels( pixels ):
 #***********************************************
 # sculpty object functions
 #***********************************************
+
+def bake_object( ob, bb, clear = True, fill = True ):
+	'''
+	Bakes the object's mesh to the specified bounding box.
+	'''
+	mesh = Blender.Mesh.New()
+	mesh.getFromObject( ob, 0, 1 )
+	images = map_images( mesh )
+	if images == []:
+		return
+	for i in images:
+		i.properties['scale_x'] = bb.scale.x
+		i.properties['scale_y'] = bb.scale.y
+		i.properties['scale_z'] = bb.scale.z
+		if clear:
+			clear_alpha( i )
+	currentUV = mesh.activeUVLayer
+	mesh.activeUVLayer = "sculptie"
+	for f in mesh.faces:
+		if f.image != None:
+			for i in range( len(f.verts) ):
+				if f.uv[i][0] == 1.0:
+					u = f.image.size[0] - 1
+				else:
+					u = int(f.uv[ i ][0] * f.image.size[0])
+				if f.uv[i][1] == 1.0:
+					v = f.image.size[1] - 1
+				else:
+					v = int(f.uv[ i ][1] * f.image.size[1])
+				r,g,b = bb.xyz_to_rgb( f.verts[i].co.x, f.verts[i].co.y, f.verts[i].co.z )
+				f.image.setPixelI( u, v, ( r, g, b, 255 ) )
+	mesh.activeUVLayer = currentUV
+	if fill:
+		for i in images:
+			fill_holes( i )
+			expand_pixels( i )
 
 def getBB( obj ):
 	'''
@@ -349,7 +387,7 @@ def open( filename ):
 	image.properties["scale_z"] = 1.0
 	return new_from_map( image )
 
-def set_center ( ob, offset=( 0.0, 0.0, 0.0 ) ):
+def set_center( ob, offset=( 0.0, 0.0, 0.0 ) ):
 	'''
 	Updates object center to middle of mesh plus offset
 
@@ -387,30 +425,6 @@ def set_center ( ob, offset=( 0.0, 0.0, 0.0 ) ):
 #***********************************************
 # sculpty mesh functions
 #***********************************************
-
-def bake_mesh( mesh, scale ):
-	'''
-	Bakes the mesh to the specified scale.
-	'''
-	currentUV = mesh.activeUVLayer
-	if "sculptie" in mesh.getUVLayerNames():
-		mesh.activeUVLayer = "sculptie"
-	else:
-		return
-	for f in mesh.faces:
-		if f.image != None:
-			for i in range( len(f.verts) ):
-				if f.uv[i][0] == 1.0:
-					u = f.image.size[0] - 1
-				else:
-					u = round(f.uv[ i ][0] * f.image.size[0])
-				if f.uv[i][1] == 1.0:
-					v = f.image.size[1] - 1
-				else:
-					v = round(f.uv[ i ][1] * f.image.size[1])
-				r,g,b = scale.xyz_to_rgb( f.verts[i].x, f.verts[i].y, f.verts[i].z )
-				f.image.setPixelI( u, v, ( r, g, b, 255 ) )
-	mesh.activeUVLayer = currentUV
 
 def map_images( mesh ):
 	'''
@@ -460,7 +474,7 @@ def new_mesh( name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True
 	verts = []
 	seams = []
 	faces = []
-	wrap_x = ( sculpt_type != "PLANE" ) & ( sculpt_type != "HEMI" )
+	wrap_x = ( sculpt_type != "PLANE" ) and ( sculpt_type != "HEMI" )
 	wrap_y = ( sculpt_type == "TORUS" )
 	verts_x = x_faces + 1
 	verts_y = y_faces + 1
@@ -616,6 +630,7 @@ def bake_default( image, sculpt_type, radius = 0.25 ):
 				g = profile
 				b= 0.0
 			image.setPixelI( u, v, ( int(r * 255.0), int(g * 255.0), int(b * 255.0), 255 ) )
+	expand_pixels( image )
 
 def bake_lod( image ):
 	'''
@@ -669,6 +684,104 @@ def clear_alpha( image ):
 			c1 = image.getPixelF( x, y )
 			c1[3] = 0.0
 			image.setPixelF( x, y, c1 )
+def drawHLine( image, y, s, e, sr, sg, sb, er, eg, eb ):
+	if s - e == 0:
+		image.setPixelF( s, y, ( sr, sg, sb, 1.0 ) )
+		return
+	dr = ( er - sr ) / ( e - s )
+	dg = ( eg - sg ) / ( e - s )
+	db = ( eb - sb ) / ( e - s )
+	for u in xrange( s, e ):
+		if u == image.size[0]:
+			image.setPixelF( u - 1, y, ( sr, sg, sb, 1.0 ) )
+		else:
+			image.setPixelF( u, y, ( sr, sg, sb, 1.0 ) )
+		sr += dr
+		sg += dg
+		sb += db
+		if sr < 0:
+			sr = 0
+		if sg < 0:
+			sg = 0
+		if sb < 0:
+			sb = 0
+		if sr > 1.0:
+			sr = 1.0
+		if sg > 1.0:
+			sg = 1.0
+		if sb > 1.0:
+			sb = 1.0
+
+def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
+	if x < 0 or s < 0 or x > image.size[0] or e > image.size[1]:
+		raise ValueError
+	if x == image.size[0]:
+		x -= 1
+	if s - e == 0:
+		if s == image.size[1]:
+			s -= 1
+		if sr < 0:
+			sr = 0
+		if sg < 0:
+			sg = 0
+		if sb < 0:
+			sb = 0
+		if sr > 1.0:
+			sr = 1.0
+		if sg > 1.0:
+			sg = 1.0
+		if sb > 1.0:
+			sb = 1.0
+		image.setPixelF( x, s, ( sr, sg, sb, 1.0 ) )
+		return
+	dr = ( er - sr ) / ( e - s )
+	dg = ( eg - sg ) / ( e - s )
+	db = ( eb - sb ) / ( e - s )
+	for v in xrange( s, e + 1 ):
+		if v == image.size[1]:
+			image.setPixelF( x, v - 1, ( sr, sg, sb, 1.0 ) )
+		else:
+			image.setPixelF( x, v, ( sr, sg, sb, 1.0 ) )
+		sr += dr
+		sg += dg
+		sb += db
+		if sr < 0:
+			sr = 0
+		if sg < 0:
+			sg = 0
+		if sb < 0:
+			sb = 0
+		if sr > 1.0:
+			sr = 1.0
+		if sg > 1.0:
+			sg = 1.0
+		if sb > 1.0:
+			sb = 1.0
+
+def expand_pixels( image ):
+	'''
+	Expands each active pixel of the sculpt map image
+	'''
+	ss, ts = map_pixels( image.size[0], image.size[1] )
+	d = 2
+	for y in xrange( 0, image.size[1], d ):
+		for x in xrange( 0, image.size[0] - 1):
+			if x in ss:
+				c = image.getPixelI( x, y )
+			else:
+				image.setPixelI( x, y, c )
+	y = image.size[1] - 1
+	for x in xrange( 0, image.size[0] - 1):
+			if x in ss:
+				c = image.getPixelI( x, y )
+			else:
+				image.setPixelI( x, y, c )
+	for x in xrange( 0, image.size[0] ):
+		for y in xrange( 0, image.size[1] -1 ):
+			if y in ts:
+				c = image.getPixelI( x, y )
+			else:
+				image.setPixelI( x, y, c )
 
 def fill_holes( image ):
 	'''
@@ -778,27 +891,3 @@ def map_type( image ):
 			return "TORUS"
 		return "CYLINDER"
 	return "PLANE"
-
-def mirror_pixels( image ):
-	'''
-	Expands each pixel of the sculpt map image into a 2 x 2 block
-	'''
-	d = 2
-	for y in xrange( 0, image.size[1], d ):
-		for x in xrange( 0, image.size[0] - 1):
-			if x % d:
-				image.setPixelF( x, y, c )
-			else:
-				c = image.getPixelF( x, y )
-	y = image.size[1] - 1
-	for x in xrange( 0, image.size[0] - 1):
-			if x % d:
-				image.setPixelF( x, y, c )
-			else:
-				c = image.getPixelF( x, y )
-	for x in xrange( 0, image.size[0] ):
-		for y in xrange( 0, image.size[1] -1 ):
-			if y % d:
-				image.setPixelF( x, y, c )
-			else:
-				c = image.getPixelF( x, y )
