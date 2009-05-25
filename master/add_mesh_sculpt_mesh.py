@@ -96,15 +96,18 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 		Blender.Window.WaitCursor(1)
 		settings['radius'] = radius.val
 		Blender.Registry.SetKey('ImportSculptie', settings, True) # save latest settings
-	mesh, image = generate_base_mesh( basename, sculpt_type, faces_x, faces_y, multires, clean_lods, settings['radius'] )
+	mesh = sculpty.new_mesh( basename, sculpt_type, faces_x, faces_y, multires, clean_lods )
+	s, t, w, h, clean_s, clean_t = sculpty.map_size( faces_x, faces_y, multires )
+	image = Blender.Image.New( basename, w, h, 32 )
+	sculpty.bake_default( image, ["none","SPHERE","TORUS","PLANE","CYLINDER","HEMI"][sculpt_type], settings['radius'] )
 	ob = scene.objects.new( mesh, basename )
-	sculpty.update_from_map( mesh, image )
 	if sculpt_type != PLANE:
 		mesh.flipNormals()
 	ob.sel = True
 	ob.setLocation( Blender.Window.GetCursorPos() )
 	if sculpt_type == PLANE:
 		mesh.flipNormals()
+	sculpty.set_map( mesh, image )
 	if multires:
 		if subsurf:
 			mods = ob.modifiers
@@ -114,8 +117,8 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 		else:
 			mesh.multires = True
 			mesh.addMultiresLevel( multires )
-			for v in mesh.verts:
-				v.sel = True
+			mesh.sel = True
+			sculpty.update_from_map( mesh, image )
 	# adjust scale for subdivision
 	bb = sculpty.getBB( ob )
 	x = 1.0 / (bb[1][0] - bb[0][0])
@@ -142,93 +145,9 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 				ob.setMatrix(mat)
 	except:
 		pass
+	mesh.activeUVLayer = "UVTex"
 	Blender.Window.WaitCursor(0)
 	return ob
-
-def generate_base_mesh( name, sculpt_type, faces_x, faces_y, levels, clean_lods, radius = 0.25 ):
-	halfpi = pi * 0.5
-	twopi = pi * 2.0
-	mesh = Blender.Mesh.New("%s.mesh"%name)
-	wrap_x = ( sculpt_type != PLANE ) & ( sculpt_type != HEMI )
-	wrap_y = ( sculpt_type == TORUS )
-	uv = []
-	verts = []
-	faces = []
-	seams = []
-	uvgrid_s = []
-	uvgrid_t = []
-	s, t, w, h, clean_s, clean_t = sculpty.map_size( faces_x, faces_y, levels )
-	image = Blender.Image.New( name, w, h, 32 )
-	sculpty.bake_default( image, ["none","SPHERE","TORUS","PLANE","CYLINDER","HEMI"][sculpt_type], radius )
-	clean_s = clean_s & clean_lods
-	clean_t = clean_t & clean_lods
-	level_mask = 0xFFFE
-	for i in range(levels):
-		level_mask = level_mask<<1
-	for i in range( s ):
-		p = int(w * i / float(s))
-		if clean_s:
-			p = p & level_mask
-		if p:
-			p = float(p) / w
-		uvgrid_s.append( p )
-	uvgrid_s.append( 1.0 )
-	for i in range( t ):
-		p = int(h * i / float(t))
-		if clean_t:
-			p = p & level_mask
-		if p:
-			p = float(p) / h
-		uvgrid_t.append( p )
-	uvgrid_t.append( 1.0 )
-	verts_s = s + 1 - wrap_x
-	verts_t = t + 1 - wrap_y
-	for i in xrange( verts_t ):
-		for k in xrange( verts_s ):
-			vert = Blender.Mathutils.Vector( 0.0, 0.0, 0.0 )
-			mesh.verts.extend( [ vert ] )
-			verts.append ( mesh.verts[-1] )
-		if wrap_x:
-			verts.append( mesh.verts[ -verts_s ] )
-			if i:
-				seams.append( ( (i - 1) * verts_s, i * verts_s ) )
-				if wrap_y:
-					if i == verts_t - 1:
-						seams.append( ( 0, i * verts_s ) )
-	if wrap_y:
-		verts.extend( verts[:(s+1)] )
-		for x in xrange( verts_s - 1 ):
-			seams.append( ( x, x + 1 ) )
-		seams.append( ( 0, verts_s - 1 ) )
-	for y in xrange( t ):
-		offset_y = y * (s +1)
-		for x in xrange( s ):
-			faces.append( ( verts[offset_y + x], verts[offset_y + s + 1 + x],
-					verts[offset_y + s + x + 2], verts[offset_y + x + 1] ) )
-			if wrap_x and x == verts_s - 1 and (y == 0 or y == verts_t -1):
-				# blender auto alters vert order - correct uv to match
-				uv.append( ( Blender.Mathutils.Vector( uvgrid_s[ x + 1 ], uvgrid_t[ y + 1 ] ),
-					Blender.Mathutils.Vector( uvgrid_s[ x + 1 ], uvgrid_t[ y ] ),
-					Blender.Mathutils.Vector( uvgrid_s[ x ], uvgrid_t[ y ] ),
-					Blender.Mathutils.Vector( uvgrid_s[ x ], uvgrid_t[ y + 1 ] ) ) )
-			else:
-				uv.append( ( Blender.Mathutils.Vector( uvgrid_s[ x ], uvgrid_t[ y ] ),
-					Blender.Mathutils.Vector( uvgrid_s[ x ], uvgrid_t[ y + 1 ] ),
-					Blender.Mathutils.Vector( uvgrid_s[ x + 1 ], uvgrid_t[ y + 1 ] ),
-					Blender.Mathutils.Vector( uvgrid_s[ x + 1 ], uvgrid_t[ y ] ) ) )
-	mesh.faces.extend( faces )
-	mesh.faceUV = True
-	for f in xrange( len(mesh.faces) ):
-		mesh.faces[ f ].uv = uv[ f ]
-		mesh.faces[ f ].image = image
-	image.properties['scale_x'] = 1.0
-	image.properties['scale_y'] = 1.0
-	image.properties['scale_z'] = 1.0
-	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" )
-	if seams != []:
-		for e in mesh.findEdges( seams ):
-			mesh.edges[e].flag = mesh.edges[e].flag | Blender.Mesh.EdgeFlags.SEAM
-	return mesh, image
 
 def main():
 	rdict = Blender.Registry.GetKey('AddMeshSculptMesh', True) # True to check on disk also

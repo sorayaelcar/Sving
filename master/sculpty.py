@@ -130,17 +130,17 @@ def new_from_map( image ):
 	'''
 	Blender.Window.WaitCursor(1)
 	sculpt_type = map_type( image )
-	faces_x, faces_y = image.size
-	faces_x, faces_y = face_count( faces_x, faces_y, 32, 32 )
+	x_faces, y_faces = image.size
+	x_faces, y_faces = face_count( x_faces, y_faces, 32, 32 )
 	multires = 0
-	while multires < 2 and faces_x >= 8 and faces_y >= 8 and not ( (faces_x & 1) or (faces_y & 1) ):
-		faces_x = faces_x >> 1
-		faces_y = faces_y >> 1
+	while multires < 2 and x_faces >= 8 and y_faces >= 8 and not ( (x_faces & 1) or (y_faces & 1) ):
+		x_faces = x_faces >> 1
+		y_faces = y_faces >> 1
 		multires += 1
 	scene = Blender.Scene.GetCurrent()
 	for ob in scene.objects:
 		ob.sel = False
-	mesh = new_mesh( image.name, sculpt_type, faces_x, faces_y )
+	mesh = new_mesh( image.name, sculpt_type, x_faces, y_faces )
 	ob = scene.objects.new( mesh, image.name )
 	ob.setLocation( Blender.Window.GetCursorPos() )
 	ob.sel = True
@@ -151,8 +151,6 @@ def new_from_map( image ):
 		mesh.multires = True
 		mesh.addMultiresLevel( multires )
 	mesh.sel = True
-	#for v in mesh.verts:
-	#	v.sel = True
 	update_from_map( mesh, image )
 	try:
 		quat = None
@@ -169,6 +167,46 @@ def new_from_map( image ):
 	Blender.Window.WaitCursor(0)
 	return ob
 
+def open( filename ):
+	'''
+	Creates a sculptie object from the image map file
+	'''
+	image = Blender.Image.Load( filename )
+	image.name = Blender.sys.splitext( image.name )[0]
+	image.properties["scale_x"] = 1.0
+	image.properties["scale_y"] = 1.0
+	image.properties["scale_z"] = 1.0
+	return new_from_map( image )
+
+def center_new ( ob ):
+	'''
+	Updates object center to middle of mesh
+	'''
+	mesh=ob.getData()
+	mat= ob.getmatrix()
+	mesh.transform(mat)
+	mesh.update()
+	mat=Blender.mathutils.matrix(
+			 [1.0,0.0,0.0,0.0],
+			 [0.0,1.0,0.0,0.0],
+			 [0.0,0.0,1.0,0.0],
+			 [0.0,0.0,0.0,1.0])
+	ob.setmatrix(mat)
+	bb= ob.getBoundBox()
+	c=[bb[0][n]+(bb[-2][n]-bb[0][n])/2.0 for n in [0,1,2]]
+	mat= ob.getmatrix()
+	mat=Blender.mathutils.matrix(mat[0][:],
+							mat[1][:],
+							mat[2][:],
+							[-c[0],-c[1],-c[2],1.0])
+	mesh.transform(mat)
+	mesh.update()
+	mat=Blender.mathutils.matrix(mat[0][:],
+							mat[1][:],
+							mat[2][:],
+							[c[0],c[1],c[2],1.0])
+	ob.setmatrix(mat)
+
 #***********************************************
 # sculpty mesh functions
 #***********************************************
@@ -181,13 +219,13 @@ def map_images( mesh ):
 	if "sculptie" in mesh.getUVLayerNames():
 		currentUV = mesh.activeUVLayer
 		mesh.activeUVLayer = "sculptie"
-		mesh.update()
+		#mesh.update()
 		for f in mesh.faces:
 			if f.image != None:
 				if f.image not in images:
 					images.append( f.image )
 		mesh.activeUVLayer = currentUV
-		mesh.update()
+		#mesh.update()
 	return images
 
 def update_from_map( mesh, image ):
@@ -197,7 +235,7 @@ def update_from_map( mesh, image ):
 	currentUV = mesh.activeUVLayer
 	if "sculptie" in mesh.getUVLayerNames():
 		mesh.activeUVLayer = "sculptie"
-		mesh.update()
+		#mesh.update()
 	verts = range( len( mesh.verts ) )
 	for f in mesh.faces:
 		for vi in xrange( len( f.verts) ):
@@ -216,11 +254,27 @@ def update_from_map( mesh, image ):
 							(p[1] - 0.5),
 							(p[2] - 0.5))
 	mesh.activeUVLayer = currentUV
-	mesh.update()
+	#mesh.update()
 	mesh.sel = True
-	mesh.recalcNormals( 0 )
 
-def new_mesh( name, sculpt_type, x_faces, y_faces ):
+def set_map( mesh, image ):
+	'''
+	Assigns the image to the selected 'sculptie' uv layer faces. The mesh is updated.
+	'''
+	currentUV = mesh.activeUVLayer
+	mesh.activeUVLayer = "sculptie"
+	if mesh.multires:
+		levels = mesh.multiresDrawLevel
+		mesh.multiresDrawLevel = 1
+	for f in mesh.faces:
+		if f.sel:
+			f.image = image
+	if mesh.multires:
+		mesh.multiresDrawLevel = levels
+	mesh.activeUVLayer = currentUV
+	update_from_map( mesh, image )
+
+def new_mesh( name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True ):
 	'''
 	Returns a sculptie mesh created from the input
 
@@ -228,8 +282,10 @@ def new_mesh( name, sculpt_type, x_faces, y_faces ):
 	sculpt_type - one of "SPHERE", "TORUS", "CYLINDER", "PLANE" or "HEMI"
 	x_faces - x face count
 	y_faces - y face count
+	levels - LOD levels
+	clean_lods - aligns UV layout with power of two grid if True
 	'''
-	mesh = Blender.Mesh.New("%s.mesh"%name)
+	mesh = Blender.Mesh.New( name )
 	uv = []
 	verts = []
 	seams = []
@@ -242,47 +298,70 @@ def new_mesh( name, sculpt_type, x_faces, y_faces ):
 	actual_y = verts_y - wrap_y
 	uvgrid_y = []
 	uvgrid_x = []
-	for x in xrange( verts_x ):
-		uvgrid_x.append( float( x ) / ( verts_x - 1 ) )
-	for y in xrange( verts_y ):
-		uvgrid_y.append( float( y ) / ( verts_y - 1 ) )
-	for y in xrange( actual_y ):
-		for x in xrange( actual_x ):
-			mesh.verts.extend([ ( 0.0, 0.0, 0.0 )])
-			verts.append( mesh.verts[-1] )
+	uvgrid_s = []
+	uvgrid_t = []
+	s, t, w, h, clean_s, clean_t = map_size( x_faces, y_faces, levels )
+	clean_s = clean_s & clean_lods
+	clean_t = clean_t & clean_lods
+	level_mask = 0xFFFE
+	for i in range(levels):
+		level_mask = level_mask<<1
+	for i in range( s ):
+		p = int(w * i / float(s))
+		if clean_s:
+			p = p & level_mask
+		if p:
+			p = float(p) / w
+		uvgrid_s.append( p )
+	uvgrid_s.append( 1.0 )
+	for i in range( t ):
+		p = int(h * i / float(t))
+		if clean_t:
+			p = p & level_mask
+		if p:
+			p = float(p) / h
+		uvgrid_t.append( p )
+	uvgrid_t.append( 1.0 )
+	verts_s = s + 1 - wrap_x
+	verts_t = t + 1 - wrap_y
+	for i in xrange( verts_t ):
+		for k in xrange( verts_s ):
+			vert = Blender.Mathutils.Vector( 0.0, 0.0, 0.0 )
+			mesh.verts.extend( [ vert ] )
+			verts.append ( mesh.verts[-1] )
 		if wrap_x:
-			verts.append( mesh.verts[ -actual_x ] )
-			if y:
-				seams.append( ( (y - 1) * actual_x, y * actual_x ) )
+			verts.append( mesh.verts[ -verts_s ] )
+			if i:
+				seams.append( ( (i - 1) * verts_s, i * verts_s ) )
 				if wrap_y:
-					if y == actual_y - 1:
-						seams.append( ( 0, y * actual_x ) )
+					if i == verts_t - 1:
+						seams.append( ( 0, i * verts_s ) )
 	if wrap_y:
-		verts.extend( verts[:verts_x] )
-		for x in xrange( actual_x - 1 ):
+		verts.extend( verts[:(s+1)] )
+		for x in xrange( verts_s - 1 ):
 			seams.append( ( x, x + 1 ) )
-		seams.append( ( 0, actual_x - 1 ) )
-	for y in xrange( verts_y - 1 ):
-		offset_y = y * verts_x
-		for x in xrange( verts_x - 1 ):
-			faces.append( ( verts[offset_y + x], verts[offset_y + verts_x + x],
-					verts[offset_y + verts_x + x + 1], verts[offset_y + x + 1] ) )
-			if wrap_x and x == actual_x - 1 and (y == 0 or y == actual_y -1):
+		seams.append( ( 0, verts_s - 1 ) )
+	for y in xrange( t ):
+		offset_y = y * (s +1)
+		for x in xrange( s ):
+			faces.append( ( verts[offset_y + x], verts[offset_y + s + 1 + x],
+					verts[offset_y + s + x + 2], verts[offset_y + x + 1] ) )
+			if wrap_x and x == verts_s - 1 and (y == 0 or y == verts_t -1):
 				# blender auto alters vert order - correct uv to match
-				uv.append( ( Blender.Mathutils.Vector( uvgrid_x[ x + 1 ], uvgrid_y[ y + 1 ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x + 1 ], uvgrid_y[ y ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x ], uvgrid_y[ y ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x ], uvgrid_y[ y + 1 ] ) ) )
+				uv.append( ( Blender.Mathutils.Vector( uvgrid_s[ x + 1 ], uvgrid_t[ y + 1 ] ),
+					Blender.Mathutils.Vector( uvgrid_s[ x + 1 ], uvgrid_t[ y ] ),
+					Blender.Mathutils.Vector( uvgrid_s[ x ], uvgrid_t[ y ] ),
+					Blender.Mathutils.Vector( uvgrid_s[ x ], uvgrid_t[ y + 1 ] ) ) )
 			else:
-				uv.append( ( Blender.Mathutils.Vector( uvgrid_x[ x ], uvgrid_y[ y ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x ], uvgrid_y[ y + 1 ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x + 1 ], uvgrid_y[ y + 1 ] ),
-					Blender.Mathutils.Vector( uvgrid_x[ x + 1 ], uvgrid_y[ y ] ) ) )
+				uv.append( ( Blender.Mathutils.Vector( uvgrid_s[ x ], uvgrid_t[ y ] ),
+					Blender.Mathutils.Vector( uvgrid_s[ x ], uvgrid_t[ y + 1 ] ),
+					Blender.Mathutils.Vector( uvgrid_s[ x + 1 ], uvgrid_t[ y + 1 ] ),
+					Blender.Mathutils.Vector( uvgrid_s[ x + 1 ], uvgrid_t[ y ] ) ) )
 	mesh.faces.extend( faces )
 	mesh.faceUV = True
 	for f in xrange( len(mesh.faces) ):
 		mesh.faces[ f ].uv = uv[ f ]
-	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" );
+	mesh.renameUVLayer( mesh.activeUVLayer, "sculptie" )
 	mesh.addUVLayer( "UVTex" )
 	mesh.renderUVLayer = "UVTex"
 	if seams != []:
@@ -341,7 +420,7 @@ def bake_default( image, sculpt_type, radius = 0.25 ):
 				r = path
 				g = profile
 				b= 0.0
-			image.setPixelF( u, v, ( r, g, b, 1.0 ) )
+			image.setPixelI( u, v, ( int(r * 255.0), int(g * 255.0), int(b * 255.0), 255 ) )
 
 def bake_lod( image ):
 	'''
