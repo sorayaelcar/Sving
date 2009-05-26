@@ -762,9 +762,9 @@ def clear_alpha( image ):
 	'''
 	for x in xrange( image.size[0] ):
 		for y in xrange( image.size[1] ):
-			c1 = image.getPixelF( x, y )
-			c1[3] = 0.0
-			image.setPixelF( x, y, c1 )
+			c1 = image.getPixelI( x, y )
+			c1[3] = 0
+			image.setPixelI( x, y, c1 )
 
 def set_alpha( image, alpha ):
 	'''
@@ -772,38 +772,10 @@ def set_alpha( image, alpha ):
 	'''
 	for x in xrange( image.size[0] ):
 		for y in xrange( image.size[1] ):
-			c1 = image.getPixelF ( x, y )
-			c2 = pimage.getPixelF( x, y )
+			c1 = image.getPixelI ( x, y )
+			c2 = pimage.getPixelI( x, y )
 			c1[3]= c2[1]
-			image.setPixelF( x, y, c1 )
-
-def drawHLine( image, y, s, e, sr, sg, sb, er, eg, eb ):
-	if s - e == 0:
-		image.setPixelF( s, y, ( sr, sg, sb, 1.0 ) )
-		return
-	dr = ( er - sr ) / ( e - s )
-	dg = ( eg - sg ) / ( e - s )
-	db = ( eb - sb ) / ( e - s )
-	for u in xrange( s, e ):
-		if u == image.size[0]:
-			image.setPixelF( u - 1, y, ( sr, sg, sb, 1.0 ) )
-		else:
-			image.setPixelF( u, y, ( sr, sg, sb, 1.0 ) )
-		sr += dr
-		sg += dg
-		sb += db
-		if sr < 0:
-			sr = 0
-		if sg < 0:
-			sg = 0
-		if sb < 0:
-			sb = 0
-		if sr > 1.0:
-			sr = 1.0
-		if sg > 1.0:
-			sg = 1.0
-		if sb > 1.0:
-			sb = 1.0
+			image.setPixelI( x, y, c1 )
 
 def drawHLineI( image, y, s, e, sr, sg, sb, er, eg, eb ):
 	if s - e == 0:
@@ -832,52 +804,6 @@ def drawHLineI( image, y, s, e, sr, sg, sb, er, eg, eb ):
 			sg = 255
 		if sb > 255:
 			sb = 255
-
-def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
-	if x < 0 or s < 0 or x > image.size[0] or e > image.size[1]:
-		raise ValueError
-	if x == image.size[0]:
-		x -= 1
-	if s - e == 0:
-		if s == image.size[1]:
-			s -= 1
-		if sr < 0:
-			sr = 0
-		if sg < 0:
-			sg = 0
-		if sb < 0:
-			sb = 0
-		if sr > 1.0:
-			sr = 1.0
-		if sg > 1.0:
-			sg = 1.0
-		if sb > 1.0:
-			sb = 1.0
-		image.setPixelF( x, s, ( sr, sg, sb, 1.0 ) )
-		return
-	dr = ( er - sr ) / ( e - s )
-	dg = ( eg - sg ) / ( e - s )
-	db = ( eb - sb ) / ( e - s )
-	for v in xrange( s, e + 1 ):
-		if v == image.size[1]:
-			image.setPixelF( x, v - 1, ( sr, sg, sb, 1.0 ) )
-		else:
-			image.setPixelF( x, v, ( sr, sg, sb, 1.0 ) )
-		sr += dr
-		sg += dg
-		sb += db
-		if sr < 0:
-			sr = 0
-		if sg < 0:
-			sg = 0
-		if sb < 0:
-			sb = 0
-		if sr > 1.0:
-			sr = 1.0
-		if sg > 1.0:
-			sg = 1.0
-		if sb > 1.0:
-			sb = 1.0
 
 def drawVLineI( image, x, s, e, sr, sg, sb, er, eg, eb ):
 	if x < 0 or s < 0 or x > image.size[0] or e > image.size[1]:
@@ -956,14 +882,14 @@ def fill_holes( image ):
 	'''
 	def getFirstX( y ):
 		for x in xrange( image.size[0] ):
-			c = image.getPixelF( x, y )
+			c = image.getPixelI( x, y )
 			if c[3] != 0:
 				if x > 0: fill = True
 				return c
 		return None
 	def getFirstY( x ):
 		for y in xrange( image.size[1] ):
-			c = image.getPixelF( x, y )
+			c = image.getPixelI( x, y )
 			if c[3] != 0:
 				if y > 0: fill = True
 				return c
@@ -980,21 +906,21 @@ def fill_holes( image ):
 			sb = c[2]
 			s = 0
 			for u in xrange( 1, image.size[0] ):
-				nc = image.getPixelF( u, v )
+				nc = image.getPixelI( u, v )
 				if nc[3] == 0:
 					if not fill:
 						fill = True
 				else:
 					if fill:
 						fill = False
-						drawHLine( image, v, s, u, sr, sg, sb, nc[0], nc[1], nc[2] )
+						drawHLineI( image, v, s, u, sr, sg, sb, nc[0], nc[1], nc[2] )
 					s = u
 					sr = nc[0]
 					sg = nc[1]
 					sb = nc[2]
 			if fill:
 				fill = False
-				drawHLine( image, v, s, u, sr, sg, sb, sr, sg, sb )
+				drawHLineI( image, v, s, u, sr, sg, sb, sr, sg, sb )
 		return skipx
 	def fillY():
 		fill = False
@@ -1007,21 +933,21 @@ def fill_holes( image ):
 			sb = c[2]
 			s = 0
 			for v in xrange( 1, image.size[1] ):
-				nc = image.getPixelF( u, v )
+				nc = image.getPixelI( u, v )
 				if nc[3] == 0:
 					if not fill:
 						fill = True
 				else:
 					if fill:
 						fill = False
-						drawVLine( image, u, s, v, sr, sg, sb, nc[0], nc[1], nc[2] )
+						drawVLineI( image, u, s, v, sr, sg, sb, nc[0], nc[1], nc[2] )
 					s = v
 					sr = nc[0]
 					sg = nc[1]
 					sb = nc[2]
 			if fill:
 				fill = False
-				drawVLine( image, u, s, v, sr, sg, sb, sr, sg, sb )
+				drawVLineI( image, u, s, v, sr, sg, sb, sr, sg, sb )
 	skipx = fillX()
 	fillY()
 	if skipx: fillX()
