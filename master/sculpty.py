@@ -322,6 +322,7 @@ def bake_object( ob, bb, clear = True, fill = True ):
 	mesh.getFromObject( ob, 0, 1 )
 	images = map_images( mesh )
 	if images == []:
+		# skip bounding boxes - meshes with sculptie uv but no image
 		return
 	for i in images:
 		i.properties['scale_x'] = bb.scale.x
@@ -345,9 +346,10 @@ def bake_object( ob, bb, clear = True, fill = True ):
 					v = int(f.uv[ i ][1] * f.image.size[1])
 				rgb = bb.xyz_to_rgb( f.verts[i].co )
 				uvmap.append( (u, v, rgb) )
-			for v1 in uvmap[0:-1]:
+			for i in range( len(uvmap) - 1 ):
 				drawn = False
-				for v2 in uvmap[1:]:
+				v1 = uvmap[ i ]
+				for v2 in uvmap[ i + 1: ]:
 					if v1[0] == v2[0]:
 						drawVLineI( f.image, v1[0], v1[1], v2[1],
 								v1[2].x, v1[2].y, v1[2].z,
@@ -805,7 +807,7 @@ def drawHLine( image, y, s, e, sr, sg, sb, er, eg, eb ):
 
 def drawHLineI( image, y, s, e, sr, sg, sb, er, eg, eb ):
 	if s - e == 0:
-		image.setPixelI( s, y, ( sr, sg, sb, 255 ) )
+		image.setPixelI( s, y, ( (sr + er) // 2, (sg +eg) // 2, (sb +eb) // 2, 255 ) )
 		return
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
@@ -897,16 +899,16 @@ def drawVLineI( image, x, s, e, sr, sg, sb, er, eg, eb ):
 			sg = 255
 		if sb > 255:
 			sb = 255
-		image.setPixelI( x, s, ( sr, sg, sb, 1.0 ) )
+		image.setPixelI( x, s, ( (sr + er) // 2, (sg +eg) // 2, (sb +eb)//2, 255 ) )
 		return
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
 	for v in xrange( s, e + 1 ):
 		if v == image.size[1]:
-			image.setPixelI( x, v - 1, ( int(sr), int(sg), int(sb), 1.0 ) )
+			image.setPixelI( x, v - 1, ( int(sr), int(sg), int(sb), 255 ) )
 		else:
-			image.setPixelI( x, v, ( int(sr), int(sg), int(sb), 1.0 ) )
+			image.setPixelI( x, v, ( int(sr), int(sg), int(sb), 255 ) )
 		sr += dr
 		sg += dg
 		sb += db
