@@ -70,6 +70,8 @@ class bounding_box:
 		self.scale = xyz( 0.0, 0.0, 0.0 )
 		self.center = xyz( 0.0, 0.0, 0.0 )
 		self._dirty = xyz( False, False, False )
+		self._dmin = None
+		self._dmax = None
 		if ob != None:
 			bb = getBB( ob )
 			self.min = xyz( bb[0][0], bb[0][1], bb[0][2] )
@@ -84,19 +86,19 @@ class bounding_box:
 		mi = xyz( bb[0] )
 		ma = xyz( bb[1] )
 		if self._dirty.x:
-			self.min.x = mi.x
-			self.max.x = ma.x
-		elif self.min.x > mi.x:
-			self.min.x = mi.x
+			self.min.x = self._dmin.x
+			self.max.x = self._dmax.x
 		if self._dirty.y:
-			self.min.y = mi.y
-			self.max.y = ma.y
-		elif self.min.y > mi.y:
-			self.min.y = mi.y
+			self.min.y = self._dmin.y
+			self.max.y = self._dmax.y
 		if self._dirty.z:
-			self.min.z = mi.z
-			self.max.z = ma.z
-		elif self.min.z > mi.z:
+			self.min.z = self._dmin.z
+			self.max.z = self._dmax.z
+		if self.min.x > mi.x:
+			self.min.x = mi.x
+		if self.min.y > mi.y:
+			self.min.y = mi.y
+		if self.min.z > mi.z:
 			self.min.z = mi.z
 		if self.max.x < ma.x:
 			self.max.x = ma.x
@@ -109,6 +111,8 @@ class bounding_box:
 	def update( self ):
 		self.scale = self.max - self.min
 		if self.scale.x == 0.0:
+			self._dmin.x = self.min.x
+			self._dmax.x = self.max.x
 			self.min.x = -0.5
 			self.max.x = 0.5
 			self.scale.x = 1.0
@@ -116,6 +120,8 @@ class bounding_box:
 		else:
 			self._dirty.x = False
 		if self.scale.y == 0.0:
+			self._dmin.y = self.min.y
+			self._dmax.y = self.max.y
 			self.min.y = -0.5
 			self.max.y = 0.5
 			self.scale.y = 1.0
@@ -123,6 +129,8 @@ class bounding_box:
 		else:
 			self._dirty.y = False
 		if self.scale.z == 0.0:
+			self._dmin.z = self.min.z
+			self._dmax.z = self.max.z
 			self.min.z = -0.5
 			self.max.z = 0.5
 			self.scale.z = 1.0
@@ -279,9 +287,7 @@ def vertex_pixels( size, faces ):
 	'''
 	Returns a list of pixels used for vertex points on map size
 	'''
-	pixels = []
-	for i in range( faces ):
-		pixels.append( int( size * i / float(faces)) )
+	pixels = [ int( size * i / float(faces)) for i in range( faces ) ]
 	pixels.append( faces - 1 )
 	return pixels
 
@@ -302,10 +308,7 @@ def map_pixels( width, height ):
 
 def flip_pixels( pixels ):
 	m = max( pixels )
-	ps = []
-	for p in pixels:
-		ps.append( m - p )
-	return ps
+	return [ m - p for p in pixels ]
 
 #***********************************************
 # sculpty object functions
@@ -330,6 +333,7 @@ def bake_object( ob, bb, clear = True, fill = True ):
 	mesh.activeUVLayer = "sculptie"
 	for f in mesh.faces:
 		if f.image != None:
+			uvmap = []
 			for i in range( len(f.verts) ):
 				if f.uv[i][0] == 1.0:
 					u = f.image.size[0] - 1
@@ -340,7 +344,27 @@ def bake_object( ob, bb, clear = True, fill = True ):
 				else:
 					v = int(f.uv[ i ][1] * f.image.size[1])
 				rgb = bb.xyz_to_rgb( f.verts[i].co )
-				f.image.setPixelI( u, v, ( rgb.x, rgb.y, rgb.z, 255 ) )
+				uvmap.append( (u, v, rgb) )
+			for v1 in uvmap[0:-1]:
+				drawn = False
+				for v2 in uvmap[1:]:
+					if v1[0] == v2[0]:
+						drawVLineI( f.image, v1[0], v1[1], v2[1],
+								v1[2].x, v1[2].y, v1[2].z,
+								v2[2].x, v2[2].y, v2[2].z )
+						drawn = True
+					elif v1[1] == v2[1]:
+						drawHLineI( f.image, v1[1], v1[0], v2[0],
+								v1[2].x, v1[2].y, v1[2].z,
+								v2[2].x, v2[2].y, v2[2].z )
+						drawn = True
+					else:
+						u ,v, rgb = v2
+						f.image.setPixelI( u, v, ( rgb.x, rgb.y, rgb.z, 255 ) )
+				if not drawn:
+					u ,v, rgb = v1
+					f.image.setPixelI( u, v, ( rgb.x, rgb.y, rgb.z, 255 ) )
+
 	mesh.activeUVLayer = currentUV
 	if fill:
 		for i in images:
@@ -696,14 +720,10 @@ def bake_lod( image ):
 	for l in range(4):
 		sides = [ 6, 8, 16, 32 ][l]
 		s, t = face_count( x , y, sides, sides, False )
-		ts = []
-		ss = []
-		for k in range( s ):
-			ss.append( int(x * k / float(s)) )
-		for k in range( t ):
-			ts.append( int(y * k / float(t)) )
-		ts.append( y - 1)
+		ss = [ int(x * k / float(s)) for k in range( s ) ]
 		ss.append( x - 1 )
+		ts = [ int(y * k / float(t)) for k in range( t ) ]
+		ts.append( y - 1)
 		for s in ss:
 			for t in ts:
 				c = image.getPixelF( s, t )
@@ -783,6 +803,34 @@ def drawHLine( image, y, s, e, sr, sg, sb, er, eg, eb ):
 		if sb > 1.0:
 			sb = 1.0
 
+def drawHLineI( image, y, s, e, sr, sg, sb, er, eg, eb ):
+	if s - e == 0:
+		image.setPixelI( s, y, ( sr, sg, sb, 255 ) )
+		return
+	dr = ( er - sr ) / ( e - s )
+	dg = ( eg - sg ) / ( e - s )
+	db = ( eb - sb ) / ( e - s )
+	for u in xrange( s, e ):
+		if u == image.size[0]:
+			image.setPixelI( u - 1, y, ( int(sr), int(sg), int(sb), 255 ) )
+		else:
+			image.setPixelI( u, y, ( int(sr), int(sg), int(sb), 255 ) )
+		sr += dr
+		sg += dg
+		sb += db
+		if sr < 0:
+			sr = 0
+		if sg < 0:
+			sg = 0
+		if sb < 0:
+			sb = 0
+		if sr > 255:
+			sr = 255
+		if sg > 255:
+			sg = 255
+		if sb > 255:
+			sb = 255
+
 def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 	if x < 0 or s < 0 or x > image.size[0] or e > image.size[1]:
 		raise ValueError
@@ -828,6 +876,52 @@ def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 			sg = 1.0
 		if sb > 1.0:
 			sb = 1.0
+
+def drawVLineI( image, x, s, e, sr, sg, sb, er, eg, eb ):
+	if x < 0 or s < 0 or x > image.size[0] or e > image.size[1]:
+		raise ValueError
+	if x == image.size[0]:
+		x -= 1
+	if s - e == 0:
+		if s == image.size[1]:
+			s -= 1
+		if sr < 0:
+			sr = 0
+		if sg < 0:
+			sg = 0
+		if sb < 0:
+			sb = 0
+		if sr > 255:
+			sr = 255
+		if sg > 255:
+			sg = 255
+		if sb > 255:
+			sb = 255
+		image.setPixelI( x, s, ( sr, sg, sb, 1.0 ) )
+		return
+	dr = ( er - sr ) / ( e - s )
+	dg = ( eg - sg ) / ( e - s )
+	db = ( eb - sb ) / ( e - s )
+	for v in xrange( s, e + 1 ):
+		if v == image.size[1]:
+			image.setPixelI( x, v - 1, ( int(sr), int(sg), int(sb), 1.0 ) )
+		else:
+			image.setPixelI( x, v, ( int(sr), int(sg), int(sb), 1.0 ) )
+		sr += dr
+		sg += dg
+		sb += db
+		if sr < 0:
+			sr = 0
+		if sg < 0:
+			sg = 0
+		if sb < 0:
+			sb = 0
+		if sr > 255:
+			sr = 255
+		if sg > 255:
+			sg = 255
+		if sb > 255:
+			sb = 255
 
 def expand_pixels( image ):
 	'''
