@@ -8,22 +8,16 @@ Tooltip: 'Bake a sculptie LOD to image'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.02"
+__version__ = "1.00"
 __bpydoc__ = """\
 
 Bake Sculptie LOD
 
 This script bakes a sculptie LOD helper to the active image
 """
-
-#0.02 Domino Marama 2008-11-29
-#- Adjust size used to match other scripts
-#0.01 Domino Marama 2008-11-29
-#- Initial Version
-
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
-# Script copyright (C) Domino Designs Limited
+# Script copyright (C) 2008-2009 Domino Designs Limited
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
