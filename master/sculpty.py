@@ -325,7 +325,7 @@ def bake_object( ob, bb, clear = True, fill = True ):
 		i.properties['scale_y'] = bb.scale.y
 		i.properties['scale_z'] = bb.scale.z
 		if clear:
-			clear_alpha( i )
+			clear_image( i )
 	currentUV = mesh.activeUVLayer
 	mesh.activeUVLayer = "sculptie"
 	for f in mesh.faces:
@@ -725,6 +725,14 @@ def bake_preview( image ):
 			if c2[3] < c1[1]:
 				c2[3] = c1[1]
 				image.setPixelF( s, t, c2 )
+
+def clear_image( image ):
+	'''
+	Clears the image to black with alpha 0
+	'''
+	for x in xrange( image.size[0] ):
+		for y in xrange( image.size[1] ):
+			image.setPixelI( x, y, (0, 0, 0, 0 ))
 
 def clear_alpha( image ):
 	'''
