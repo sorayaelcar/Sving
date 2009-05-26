@@ -65,11 +65,14 @@ class xyz:
 		)
 
 class bounding_box:
+	'''
+	class for calculating the bounding box for post modifier stack meshes
+	'''
 	def __init__( self, ob = None ):
 		self.rgb = rgb_range()
 		self.scale = xyz( 0.0, 0.0, 0.0 )
 		self.center = xyz( 0.0, 0.0, 0.0 )
-		self._dirty = xyz( False, False, False )
+		self._dirty = xyz( True, True, True )
 		self._dmin = None
 		self._dmax = None
 		if ob != None:
@@ -82,6 +85,9 @@ class bounding_box:
 		self.update()
 
 	def add( self, ob ):
+		'''
+		Expands box to contain object (if neccessary).
+		'''
 		bb = getBB( ob )
 		mi = xyz( bb[0] )
 		ma = xyz( bb[1] )
@@ -109,6 +115,9 @@ class bounding_box:
 		self.update()
 
 	def update( self ):
+		'''
+		Call after adding objects to refresh the scale and center.
+		'''
 		self.scale = self.max - self.min
 		if self.scale.x == 0.0:
 			self._dmin.x = self.min.x
@@ -140,6 +149,9 @@ class bounding_box:
 		self.center = self.min + self.scale * 0.5
 
 	def normalised( self ):
+		'''
+		Returns a normalised version of the bounding box
+		'''
 		s = bounding_box()
 		s.min.x = s.min.y = s.min.z = min( self.min.x, self.min.y, self.min.z )
 		s.max.x = s.max.y = s.max.z = max( self.max.x, self.max.y, self.max.z )
@@ -147,6 +159,9 @@ class bounding_box:
 		return s
 
 	def centered( self ):
+		'''
+		Returns a centered version of the bounding box
+		'''
 		s = bounding_box()
 		if -self.min.x > self.max.x:
 			s.max.x = -self.min.x
@@ -292,6 +307,9 @@ def vertex_pixels( size, faces ):
 	return pixels
 
 def map_pixels( width, height ):
+	'''
+	Returns ss and ts as lists of used pixels for the given map size.
+	'''
 	ss = [ width - 1 ]
 	ts = [ height - 1 ]
 	for i in [3,2,1,0]:
@@ -307,6 +325,9 @@ def map_pixels( width, height ):
 	return ss, ts
 
 def flip_pixels( pixels ):
+	'''
+	Converts a list of pixels on a sculptie map to their mirror positions.
+	'''
 	m = max( pixels )
 	return [ m - p for p in pixels ]
 
@@ -778,6 +799,20 @@ def set_alpha( image, alpha ):
 			image.setPixelI( x, y, c1 )
 
 def drawHLineI( image, y, s, e, sr, sg, sb, er, eg, eb ):
+	'''
+	Draws a horizontal line on the image on row y, from column s to e.
+
+	image - where to draw
+	y - v co-ordinate
+	s - start u co-ordinate
+	e - end u co-ordinate
+	sr - start red
+	sg - start green
+	sb - start blue
+	er - end red
+	eg - end green
+	eb - end blue
+	'''
 	if s - e == 0:
 		image.setPixelI( s, y, ( (sr + er) // 2, (sg +eg) // 2, (sb +eb) // 2, 255 ) )
 		return
@@ -806,6 +841,20 @@ def drawHLineI( image, y, s, e, sr, sg, sb, er, eg, eb ):
 			sb = 255
 
 def drawVLineI( image, x, s, e, sr, sg, sb, er, eg, eb ):
+	'''
+	Draws a vertical line on the image on column x, from row s to e.
+
+	image - where to draw
+	x - u co-ordinate
+	s - start v co-ordinate
+	e - end v co-ordinate
+	sr - start red
+	sg - start green
+	sb - start blue
+	er - end red
+	eg - end green
+	eb - end blue
+	'''
 	if x < 0 or s < 0 or x > image.size[0] or e > image.size[1]:
 		raise ValueError
 	if x == image.size[0]:
