@@ -335,6 +335,23 @@ def flip_pixels( pixels ):
 # sculpty object functions
 #***********************************************
 
+def active( ob ):
+	'''
+	Returns True if object is an active sculptie.
+	An active sculptie is a mesh with a 'sculptie' uv layer with an image assigned
+	'''
+	if ob.type == 'Mesh':
+		mesh = ob.getData( False, True)
+		if 'sculptie' in mesh.getUVLayerNames():
+			currentUV = mesh.activeUVLayer
+			mesh.activeUVLayer = "sculptie"
+			for f in mesh.faces:
+				if f.image != None:
+					mesh.activeUVLayer = currentUV
+					return True
+			mesh.activeUVLayer = currentUV
+	return False
+
 def bake_object( ob, bb, clear = True, fill = True ):
 	'''
 	Bakes the object's mesh to the specified bounding box.
