@@ -43,7 +43,6 @@ This script exports Second Life sculpties in lsl + tga files
 #***********************************************
 
 import Blender
-from render_sculptie import updateSculptieMap, scaleRange
 import sculpty
 
 #***********************************************
@@ -203,8 +202,8 @@ class prim:
 		r = ob.getMatrix().rotationPart().invert().toQuat()
 		self.rotation = ( r[1], r[2], r[3], r[0] )
 		mesh = ob.getData( False, True )
-		ms = scaleRange( [ ob ], True )
-		self.scale = ( ms.x * ob.size[0], ms.y * ob.size[1], ms.z * ob.size[2] )
+		ms = sculpty.bounding_box( ob )
+		self.scale = ( ms.scale.x * ob.size[0], ms.scale.y * ob.size[1], ms.scale.z * ob.size[2] )
 		if "sculptie" in mesh.getUVLayerNames():
 			self.primtype = 7
 			if "UVTex" in mesh.getUVLayerNames():

@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.33"
+__version__ = "0.34"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -18,88 +18,9 @@ This script requires a square planar mapping. It bakes the local vertex
 positions to the prim's sculptie map image.
 """
 
-#Changes
-#0.33 Domino Marama 2009-05-24
-#- some functionality moved to sculpty.py
-#0.32 Domino Marama 2009-05-20
-#- Removed sculpt_type as now autodetected in export_lsl from mesh
-#- Corrected 1.0 UV handling
-#- Support for multiple sculpties per mesh
-#0.31 Domino Marama 2008-11-28
-#- RGB range adjustment added
-#- Preview improved & made optional
-#- Map name updated on bake if appropriate
-#0.30 Domino Marama 2008-11-01
-#- bug fix to getBB
-#0.29 Domino Marama 2008-10-30
-#- Alpha channel preview protection added
-#0.28 Domino Marama 2008-10-26
-#- scaleRange uses calculation when modifiers involved
-#0.27 Domino Marama 2008-09-14
-#- Fixed overshoot on triangle fill
-#0.26 Domino Marama 2008-08-27
-#- added support for oblong sculpties
-#0.25 Domino Marama 2008-07-25
-#- fixed centering with normalise off
-#- scaleRange now uses bounding box
-#- WIP: bake updates object scale (under rt:55)
-#0.24 Domino Marama 2008-07-13
-#- fixed centering of flat planes
-#0.23 Gaia Clary 2008-07-12
-#- round uv for triangle fill
-#0.22 Domino Marama 2008-07-06
-#- added compressible option requested by Aminom Marvin
-#0.21 Domino Marama 2008-06-29
-#- save meshscale for exporters
-#0.20 Domino Marama 2008-06-27
-#- bug fix for updateSculptieMap when imported by another module
-#0.19 Domino Marama 2008-06-27
-#- added support for "sculptie" uv map
-#- removed LL_SCULPT_IMAGE property
-#0.18 Gaia Clary 2008-05-24
-#- round r, g, b to avoid rounding errors in triangle fill
-#0.17 Domino Marama 2008-05-24
-#- normalising the sculptie map made optional
-#0.16 Domino Marama 2008-05-07
-#- added rotation to print out
-#0.15 Domino Marama 2008-04-22
-#- added sorted() function for python 2.3 builds
-#0.14 Domino Marama 2008-04-17
-#- added error catch for uv map positions < 0
-#0.13 Domino Marama 2008-04-05
-#- now works on post modifier stack data
-#0.12 Domino Marama 2008-03-12
-#- reorganised to allow for prim export
-#- sculptie map no longer needs to be assigned to UV faces
-#0.11 Domino Marama 2008-02-28
-#- now adds new 64 x 64 image if no image assigned to mesh
-#- colvert renamed to pixel
-#0.10 Domino Marama 2008-02-21
-#- plane type ends now handled cleanly
-#0.09 Domino Marama 2008-02-19
-#- pixel __sub_, _add__ and __mul__ methods added and used
-#0.08 Domino Marama 2008-02-17
-#- Hole Fill changed to off by default
-#0.07 Domino Marama 2008-02-10
-#- Bake routine rewritten
-#0.06 Domino Marama 2007-12-23
-#- fixed sculptie type
-#0.05 Domino Marama 2007-08-29
-#- code cleanup
-#- added prim properties
-#- changed console print out to LSL
-#0.04 Domino Marama 2007-08-26
-#- Fixed fill routine and added options for faces & fill
-#0.03 Domino Marama 2007-08-19
-#- Various fixes to triangle fill routines
-#0.02 Domino Marama 2007-08-18
-#- Converted to triangle fill routines
-#0.01 Domino Marama 2007-08-10
-#- Initial Version
-
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
-# Script copyright (C) Domino Designs Limited
+# Script copyright (C) 2007-2009 Domino Designs Limited
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -388,7 +309,7 @@ def drawVLine( image, x, s, e, sr, sg, sb, er, eg, eb ):
 # bake UV map from XYZ
 #***********************************************
 
-def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand = True, centered = False, clear = True, scaleRGB = True, protect = True ):
+def updateSculptieMap( ob, scale = None, normalised = True, centered = False, clear = True, scaleRGB = True):
 	rt = Blender.Get( 'rt' )
 	if scale == None:
 		scale = scaleRange( [ob], normalised, centered )
@@ -454,10 +375,6 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 				sculptimage.properties['scale_z'] = scale.z / (( bb[1][2] - bb[0][2] ) * sf[2])
 			except:
 				sculptimage.properties['scale_z'] = scale.z * sf[2]
-			if fill:
-				sculpty.fill_holes( sculptimage )
-			if expand:
-				sculpty.mirror_pixels ( sculptimage )
 			n = Blender.sys.splitext( sculptimage.name )
 			if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
 				sculptimage.name = ob.name
@@ -469,7 +386,7 @@ def updateSculptieMap( ob, scale = None, fill = False, normalised = True, expand
 
 def main():
 	block = []
-	doFill = Blender.Draw.Create( False )
+	doFinal = Blender.Draw.Create( True )
 	keepScale = Blender.Draw.Create( False )
 	doExpand = Blender.Draw.Create( False )
 	keepCentre = Blender.Draw.Create( False )
@@ -484,10 +401,9 @@ def main():
 	maxB = Blender.Draw.Create( 255 )
 	doScaleRGB = Blender.Draw.Create( True )
 	block.append (( "Clear", doClear ))
-	block.append (( "Fill Holes", doFill ))
 	block.append (( "Keep Scale", keepScale ))
 	block.append (( "Keep Center", keepCentre ))
-	block.append (( "True Mirror", doExpand ))
+	block.append (( "Finalise", doFinal ))
 	block.append (( "Protect Map", doProtect ))
 	block.append (( "With Preview", doPreview ))
 	block.append (( " " ))
@@ -542,13 +458,16 @@ def main():
 
 			for ob in scene.objects.selected:
 				if ob.type == 'Mesh':
-					images = updateSculptieMap( ob , meshscale, doFill.val, not keepScale.val, doExpand.val, keepCentre.val, doClear.val )
+					images = updateSculptieMap( ob , meshscale, not keepScale.val, keepCentre.val, doClear.val )
 					for image in images:
-						if doProtect.val:
-								if doPreview.val:
-									sculpty.bake_preview( image )
-								else:
-									sculpty.clear_alpha( image )
+						if doFinal.val:
+							sculpty.fill_holes( image )
+							sculpty.expand_pixels( image )
+							if doProtect.val:
+									if doPreview.val:
+										sculpty.bake_preview( image )
+									else:
+										sculpty.clear_alpha( image )
 
 		print "--------------------------------"
 		print 'finished baking: in %.4f sec.' % ((Blender.sys.time()-time1))
