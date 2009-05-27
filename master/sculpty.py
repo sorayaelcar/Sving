@@ -64,6 +64,9 @@ class xyz:
 			self.z * scalar
 		)
 
+	def __repr__( self ):
+		return repr( ( self.x, self.y, self.z ) )
+
 class bounding_box:
 	'''
 	class for calculating the bounding box for post modifier stack meshes
@@ -405,25 +408,30 @@ def bake_object( ob, bb, clear = True, finalise = True ):
 				rgb = bb.xyz_to_rgb( f.verts[i].co )
 				uvmap.append( (u, v, rgb) )
 			for i in range( len(uvmap) - 1 ):
-				drawn = False
 				v1 = uvmap[ i ]
 				for v2 in uvmap[ i + 1: ]:
 					if v1[0] == v2[0]:
-						drawVLineI( f.image, v1[0], v1[1], v2[1],
-								v1[2].x, v1[2].y, v1[2].z,
-								v2[2].x, v2[2].y, v2[2].z )
-						drawn = True
+						if v1[1] <= v2[1]:
+							drawVLineI( f.image, v1[0], v1[1], v2[1],
+									v1[2].x, v1[2].y, v1[2].z,
+									v2[2].x, v2[2].y, v2[2].z )
+						else:
+							drawVLineI( f.image, v2[0], v2[1], v1[1],
+									v2[2].x, v2[2].y, v2[2].z,
+									v1[2].x, v1[2].y, v1[2].z )
 					elif v1[1] == v2[1]:
-						drawHLineI( f.image, v1[1], v1[0], v2[0],
-								v1[2].x, v1[2].y, v1[2].z,
-								v2[2].x, v2[2].y, v2[2].z )
-						drawn = True
-					else:
-						u ,v, rgb = v2
-						f.image.setPixelI( u, v, ( rgb.x, rgb.y, rgb.z, 255 ) )
-				if not drawn:
-					u ,v, rgb = v1
+						if v1[0] <= v2[0]:
+							drawHLineI( f.image, v1[1], v1[0], v2[0],
+									v1[2].x, v1[2].y, v1[2].z,
+									v2[2].x, v2[2].y, v2[2].z )
+						else:
+							drawHLineI( f.image, v2[1], v2[0], v1[0],
+									v2[2].x, v2[2].y, v2[2].z,
+									v1[2].x, v1[2].y, v1[2].z )
+					u ,v, rgb = v2
 					f.image.setPixelI( u, v, ( rgb.x, rgb.y, rgb.z, 255 ) )
+				u ,v, rgb = v1
+				f.image.setPixelI( u, v, ( rgb.x, rgb.y, rgb.z, 255 ) )
 
 	mesh.activeUVLayer = currentUV
 	if finalise:
