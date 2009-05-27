@@ -77,7 +77,9 @@ class bounding_box:
 			bb = getBB( ob )
 			self.min = xyz( bb[0][0], bb[0][1], bb[0][2] )
 			self.max = xyz( bb[1][0], bb[1][1], bb[1][2] )
+			self._default = xyz( False, False, False )
 		else:
+			self._default = xyz( True, True, True )
 			self.min = xyz( 0.0, 0.0, 0.0 )
 			self.max = xyz( 0.0, 0.0, 0.0 )
 		self.update()
@@ -90,14 +92,29 @@ class bounding_box:
 		mi = xyz( bb[0] )
 		ma = xyz( bb[1] )
 		if self._dirty.x:
-			self.min.x = self._dmin.x
-			self.max.x = self._dmax.x
+			if self._default.x:
+				self._default.x = False
+				self.min.x = mi.x
+				self.max.x = ma.x
+			else:
+				self.min.x = self._dmin.x
+				self.max.x = self._dmax.x
 		if self._dirty.y:
-			self.min.y = self._dmin.y
-			self.max.y = self._dmax.y
+			if self._default.y:
+				self._default.y = False
+				self.min.y = mi.y
+				self.max.y = ma.y
+			else:
+				self.min.y = self._dmin.y
+				self.max.y = self._dmax.y
 		if self._dirty.z:
-			self.min.z = self._dmin.z
-			self.max.z = self._dmax.z
+			if self._default.z:
+				self._default.z = False
+				self.min.z = mi.z
+				self.max.z = ma.z
+			else:
+				self.min.z = self._dmin.z
+				self.max.z = self._dmax.z
 		if self.min.x > mi.x:
 			self.min.x = mi.x
 		if self.min.y > mi.y:
