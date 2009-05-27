@@ -11,9 +11,9 @@ __url__ = ("http://dominodesigns.info")
 __version__ = "1.00"
 __bpydoc__ = """\
 
-Bake Sculptie LOD
+Import as Sculptie
 
-This script bakes a sculptie LOD helper to the active image
+This script imports the active image as a sculptie
 """
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
