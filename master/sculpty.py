@@ -31,7 +31,7 @@ from math import sin, cos, pi, sqrt, log, ceil
 #***********************************************
 
 def clip( v ):
-			return min( 0, max( 255, v ) )
+	return min( 255, max( 0, v ) )
 
 #***********************************************
 # helper classes
@@ -71,12 +71,10 @@ class bounding_box:
 	def __init__( self, ob = None ):
 		self.rgb = rgb_range()
 		self._dirty = xyz( True, True, True )
-		self._dmin = None
-		self._dmax = None
+		self._dmin = xyz( 0.0, 0.0, 0.0 )
+		self._dmax = xyz( 0.0, 0.0, 0.0 )
 		if ob != None:
-			bb = getBB( ob )
-			self.min = xyz( bb[0][0], bb[0][1], bb[0][2] )
-			self.max = xyz( bb[1][0], bb[1][1], bb[1][2] )
+			self.min, self.max = getBB( ob )
 			self._default = xyz( False, False, False )
 		else:
 			self._default = xyz( True, True, True )
@@ -88,9 +86,7 @@ class bounding_box:
 		'''
 		Expands box to contain object (if neccessary).
 		'''
-		bb = getBB( ob )
-		mi = xyz( bb[0] )
-		ma = xyz( bb[1] )
+		mi, ma = getBB( ob )
 		if self._dirty.x:
 			if self._default.x:
 				self._default.x = False
@@ -350,6 +346,16 @@ def flip_pixels( pixels ):
 # sculpty object functions
 #***********************************************
 
+def check( ob ):
+	'''
+	Returns true if the object is a mesh with a sculptie uv layer
+	'''
+	if ob.type == 'Mesh':
+		mesh = ob.getData( False, True)
+		if 'sculptie' in mesh.getUVLayerNames():
+			return True
+	return False
+
 def active( ob ):
 	'''
 	Returns True if object is an active sculptie.
@@ -367,16 +373,15 @@ def active( ob ):
 			mesh.activeUVLayer = currentUV
 	return False
 
-def bake_object( ob, bb, clear = True, fill = True ):
+def bake_object( ob, bb, clear = True, finalise = True ):
 	'''
 	Bakes the object's mesh to the specified bounding box.
 	'''
+	if not active( ob ):
+		return
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject( ob, 0, 1 )
 	images = map_images( mesh )
-	if images == []:
-		# skip bounding boxes - meshes with sculptie uv but no image
-		return
 	for i in images:
 		i.properties['scale_x'] = bb.scale.x
 		i.properties['scale_y'] = bb.scale.y
@@ -421,7 +426,7 @@ def bake_object( ob, bb, clear = True, fill = True ):
 					f.image.setPixelI( u, v, ( rgb.x, rgb.y, rgb.z, 255 ) )
 
 	mesh.activeUVLayer = currentUV
-	if fill:
+	if finalise:
 		for i in images:
 			fill_holes( i )
 			expand_pixels( i )
@@ -451,7 +456,7 @@ def getBB( obj ):
 			min_z = v.co.z
 		elif v.co.z > max_z :
 			max_z = v.co.z
-	return ( min_x, min_y, min_z ), ( max_x, max_y, max_z )
+	return xyz( min_x, min_y, min_z ), xyz( max_x, max_y, max_z )
 
 def new_from_map( image ):
 	'''
@@ -517,40 +522,31 @@ def open( filename ):
 	image.properties["scale_z"] = 1.0
 	return new_from_map( image )
 
-def set_center( ob, offset=( 0.0, 0.0, 0.0 ) ):
+def set_center( ob, offset=xyz( 0.0, 0.0, 0.0 ) ):
 	'''
 	Updates object center to middle of mesh plus offset
 
 	ob - object to update
 	offset - ( x, y, z ) offset for mesh center
 	'''
+	loc = ob.getLocation()
+	bb = bounding_box( ob )
+	offset += bb.center
+	offset.x += loc[0]
+	offset.y += loc[1]
+	offset.z += loc[2]
 	mesh=ob.getData()
-	mat= ob.getmatrix()
-	mesh.transform(mat)
-	#mesh.update()
-	mat=Blender.mathutils.matrix(
-			 [1.0,0.0,0.0,0.0],
-			 [0.0,1.0,0.0,0.0],
-			 [0.0,0.0,1.0,0.0],
-			 [0.0,0.0,0.0,1.0])
-	ob.setmatrix(mat)
-	bb= ob.getBoundBox()
-	c=[bb[0][n]+(bb[-2][n]-bb[0][n])/2.0 for n in [0,1,2]]
-	c[0] += offset[0]
-	c[1] += offset[1]
-	c[2] += offset[2]
-	mat= ob.getmatrix()
-	mat=Blender.mathutils.matrix(mat[0][:],
-							mat[1][:],
-							mat[2][:],
-							[-c[0],-c[1],-c[2],1.0])
-	mesh.transform(mat)
-	#mesh.update()
-	mat=Blender.mathutils.matrix(mat[0][:],
-							mat[1][:],
-							mat[2][:],
-							[c[0],c[1],c[2],1.0])
-	ob.setmatrix(mat)
+	mat = ob.getMatrix()
+	tran = Blender.Mathutils.TranslationMatrix( Blender.Mathutils.Vector( loc ) )
+	mesh.transform( tran )
+	mesh.update()
+	mat[3] = [0.0, 0.0, 0.0, 1.0]
+	ob.setMatrix( mat )
+	tran = Blender.Mathutils.TranslationMatrix( Blender.Mathutils.Vector( offset.x, offset.y, offset.z ) * -1.0 )
+	mesh.transform( tran )
+	mesh.update()
+	mat[3] = [offset.x, offset.y, offset.z , 1.0]
+	ob.setMatrix( mat )
 
 #***********************************************
 # sculpty mesh functions

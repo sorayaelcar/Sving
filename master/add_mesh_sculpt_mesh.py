@@ -120,11 +120,11 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 			mesh.sel = True
 			sculpty.update_from_map( mesh, image )
 	# adjust scale for subdivision
-	bb = sculpty.getBB( ob )
-	x = 1.0 / (bb[1][0] - bb[0][0])
-	y = 1.0 / (bb[1][1] - bb[0][1])
+	mi, ma = sculpty.getBB( ob )
+	x = 1.0 / (ma.x - mi.x)
+	y = 1.0 / (ma.y - mi.y)
 	try:
-		z = 1.0 / (bb[1][2] - bb[0][2])
+		z = 1.0 / (ma.z - mi.z)
 	except:
 		z = 0.0
 	if sculpt_type == TORUS:
