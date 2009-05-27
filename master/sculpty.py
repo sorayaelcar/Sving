@@ -31,7 +31,7 @@ from math import sin, cos, pi, sqrt, log, ceil
 #***********************************************
 
 def clip( v ):
-			return min( 1.0, max( 0.0, v ) )
+			return min( 0, max( 255, v ) )
 
 #***********************************************
 # helper classes
@@ -70,8 +70,6 @@ class bounding_box:
 	'''
 	def __init__( self, ob = None ):
 		self.rgb = rgb_range()
-		self.scale = xyz( 0.0, 0.0, 0.0 )
-		self.center = xyz( 0.0, 0.0, 0.0 )
 		self._dirty = xyz( True, True, True )
 		self._dmin = None
 		self._dmax = None
@@ -163,24 +161,12 @@ class bounding_box:
 		Returns a centered version of the bounding box
 		'''
 		s = bounding_box()
-		if -self.min.x > self.max.x:
-			s.max.x = -self.min.x
-			s.min.x = self.min.x
-		else:
-			s.max.x = self.max.x
-			s.min.x = -self.max.x
-		if -self.min.y > self.max.y:
-			s.max.y = -self.min.y
-			s.min.y = self.min.y
-		else:
-			s.max.y = self.max.y
-			s.min.y = -self.max.y
-		if -self.min.z > self.max.z:
-			s.max.z = -self.min.z
-			s.min.z = self.min.z
-		else:
-			s.max.z = self.max.z
-			s.min.z = -self.max.z
+		s.min.x = min( -self.max.x, self.min.x )
+		s.max.x = max( self.max.x, -self.min.x )
+		s.min.y = min( -self.max.y, self.min.y )
+		s.max.y = max( self.max.y, -self.min.y )
+		s.min.z = min( -self.max.z, self.min.z )
+		s.max.z = max( self.max.z, -self.min.z )
 		s.update()
 		return s
 
@@ -197,14 +183,26 @@ class rgb_range:
 	def __init__( self, min_r = 0, max_r = 255, min_g = 0, max_g = 255, min_b = 0, max_b = 255 ):
 		self.min = xyz( min_r, min_g, min_b )
 		self.max = xyz( max_r, max_g, max_b )
+		self.update()
 
 	def convert( self, rgb ):
 		'''
 		converts float rgb to integers from the range
 		'''
-		return xyz( self.min.x + int( self.max.x * clip(rgb.x) ),
-				self.min.y + int( self.max.y * clip(rgb.y) ),
-				self.min.z + int( self.max.z * clip(rgb.z) ) )
+		return xyz( clip( self.min.x + int( self.max.x * rgb.x ) ),
+				clip( self.min.y + int( self.max.y * rgb.y ) ),
+				clip( self.min.z + int( self.max.z * rgb.z ) ) )
+
+	def update( self ):
+		'''
+		Call after setting min and max to refresh the scale and center.
+		'''
+		self.scale = xyz( ( self.max.x - self.min.x ) / 255.0,
+				( self.max.y - self.min.y ) / 255.0,
+				( self.max.z - self.min.z ) / 255.0 )
+		self.center = xyz( (( self.min.x + ( self.max.x * 0.5 )) / 255.0 ) - 0.5,
+				(( self.min.y + ( self.max.y * 0.5 )) / 255.0 ) - 0.5,
+				(( self.min.z + ( self.max.z * 0.5 )) / 255.0 ) - 0.5 )
 
 #***********************************************
 # sculpty info functions
@@ -838,24 +836,12 @@ def drawHLineI( image, y, s, e, sr, sg, sb, er, eg, eb ):
 	db = ( eb - sb ) / ( e - s )
 	for u in xrange( s, e ):
 		if u == image.size[0]:
-			image.setPixelI( u - 1, y, ( int(sr), int(sg), int(sb), 255 ) )
+			image.setPixelI( u - 1, y, ( clip(int(sr)), clip(int(sg)), clip(int(sb)), 255 ) )
 		else:
-			image.setPixelI( u, y, ( int(sr), int(sg), int(sb), 255 ) )
+			image.setPixelI( u, y, ( clip(int(sr)), clip(int(sg)), clip(int(sb)), 255 ) )
 		sr += dr
 		sg += dg
 		sb += db
-		if sr < 0:
-			sr = 0
-		if sg < 0:
-			sg = 0
-		if sb < 0:
-			sb = 0
-		if sr > 255:
-			sr = 255
-		if sg > 255:
-			sg = 255
-		if sb > 255:
-			sb = 255
 
 def drawVLineI( image, x, s, e, sr, sg, sb, er, eg, eb ):
 	'''
@@ -879,43 +865,19 @@ def drawVLineI( image, x, s, e, sr, sg, sb, er, eg, eb ):
 	if s - e == 0:
 		if s == image.size[1]:
 			s -= 1
-		if sr < 0:
-			sr = 0
-		if sg < 0:
-			sg = 0
-		if sb < 0:
-			sb = 0
-		if sr > 255:
-			sr = 255
-		if sg > 255:
-			sg = 255
-		if sb > 255:
-			sb = 255
-		image.setPixelI( x, s, ( (sr + er) // 2, (sg +eg) // 2, (sb +eb)//2, 255 ) )
+		image.setPixelI( x, s, ( clip((sr + er) // 2), clip((sg +eg) // 2), clip((sb +eb)//2), 255 ) )
 		return
 	dr = ( er - sr ) / ( e - s )
 	dg = ( eg - sg ) / ( e - s )
 	db = ( eb - sb ) / ( e - s )
 	for v in xrange( s, e + 1 ):
 		if v == image.size[1]:
-			image.setPixelI( x, v - 1, ( int(sr), int(sg), int(sb), 255 ) )
+			image.setPixelI( x, v - 1, ( clip(int(sr)), clip(int(sg)), clip(int(sb)), 255 ) )
 		else:
-			image.setPixelI( x, v, ( int(sr), int(sg), int(sb), 255 ) )
+			image.setPixelI( x, v, ( clip(int(sr)), clip(int(sg)), clip(int(sb)), 255 ) )
 		sr += dr
 		sg += dg
 		sb += db
-		if sr < 0:
-			sr = 0
-		if sg < 0:
-			sg = 0
-		if sb < 0:
-			sb = 0
-		if sr > 255:
-			sr = 255
-		if sg > 255:
-			sg = 255
-		if sb > 255:
-			sb = 255
 
 def expand_pixels( image ):
 	'''
