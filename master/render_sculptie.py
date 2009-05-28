@@ -51,25 +51,51 @@ import sculpty
 #***********************************************
 
 def main():
+	scene = Blender.Scene.GetCurrent()
+	try:
+		doFinal = scene.objects.active.properties["bake_final"]
+		doFill = scene.objects.active.properties["bake_fill"]
+		keepScale = scene.objects.active.properties["bake_scale"]
+		keepCenter = scene.objects.active.properties["bake_center"]
+		doClear = scene.objects.active.properties["bake_clear"]
+		doProtect = scene.objects.active.properties["bake_protect"]
+		doPreview = scene.objects.active.properties["bake_preview"]
+		minR = scene.objects.active.properties["bake_min_r"]
+		minG = scene.objects.active.properties["bake_min_g"]
+		minB = scene.objects.active.properties["bake_min_b"]
+		maxR = scene.objects.active.properties["bake_max_r"]
+		maxG = scene.objects.active.properties["bake_max_g"]
+		maxB = scene.objects.active.properties["bake_max_b"]
+		doScaleRGB = scene.objects.active.properties["bake_scale_rgb"]
+	except:
+		doFinal = True
+		doFill = True
+		keepScale = False
+		keepCenter = False
+		doClear = True
+		doProtect = True
+		doPreview = True
+		minR = minG = minB = 0
+		maxR = maxG = maxB = 255
+		doScaleRGB = True
 	block = []
-	doFinal = Blender.Draw.Create( True )
-	doFill = Blender.Draw.Create( True )
-	keepScale = Blender.Draw.Create( False )
-	doExpand = Blender.Draw.Create( False )
-	keepCentre = Blender.Draw.Create( False )
-	doClear = Blender.Draw.Create( True )
-	doProtect = Blender.Draw.Create( True )
-	doPreview = Blender.Draw.Create( True )
-	minR = Blender.Draw.Create( 0 )
-	maxR = Blender.Draw.Create( 255 )
-	minG = Blender.Draw.Create( 0 )
-	maxG = Blender.Draw.Create( 255 )
-	minB = Blender.Draw.Create( 0 )
-	maxB = Blender.Draw.Create( 255 )
-	doScaleRGB = Blender.Draw.Create( True )
+	doFinal = Blender.Draw.Create( doFinal )
+	doFill = Blender.Draw.Create( doFill )
+	keepScale = Blender.Draw.Create( keepScale )
+	keepCenter = Blender.Draw.Create( keepCenter )
+	doClear = Blender.Draw.Create( doClear )
+	doProtect = Blender.Draw.Create( doProtect )
+	doPreview = Blender.Draw.Create( doPreview )
+	minR = Blender.Draw.Create( minR )
+	maxR = Blender.Draw.Create( maxR )
+	minG = Blender.Draw.Create( minG )
+	maxG = Blender.Draw.Create( maxG )
+	minB = Blender.Draw.Create( minB )
+	maxB = Blender.Draw.Create( maxB )
+	doScaleRGB = Blender.Draw.Create( doScaleRGB )
 	block.append (( "Clear", doClear ))
 	block.append (( "Keep Scale", keepScale ))
-	block.append (( "Keep Center", keepCentre ))
+	block.append (( "Keep Center", keepCenter ))
 	block.append (( "Fill Holes", doFill ))
 	block.append (( "Finalise", doFinal ))
 	block.append (( "Protect Map", doProtect ))
@@ -87,7 +113,6 @@ def main():
 	if Blender.Draw.PupBlock( "Sculptie Bake Options", block ):
 		print "--------------------------------"
 		time1 = Blender.sys.time()  #for timing purposes
-		scene = Blender.Scene.GetCurrent()
 		editmode = Blender.Window.EditMode()
 		if editmode: Blender.Window.EditMode(0)
 		Blender.Window.WaitCursor(1)
@@ -98,13 +123,27 @@ def main():
 		bb.rgb.update()
 		for ob in scene.objects.selected:
 			if sculpty.check( ob ):
-				if not keepCentre.val:
+				ob.properties["bake_final"] = doFinal.val
+				ob.properties["bake_fill"] = doFill.val
+				ob.properties["bake_scale"] = keepScale.val
+				ob.properties["bake_center"] = keepCenter.val
+				ob.properties["bake_clear"] = doClear.val
+				ob.properties["bake_protect"] = doProtect.val
+				ob.properties["bake_preview"] = doPreview.val
+				ob.properties["bake_min_r"] = minR.val
+				ob.properties["bake_min_g"] = minG.val
+				ob.properties["bake_min_b"] = minB.val
+				ob.properties["bake_max_r"] = maxR.val
+				ob.properties["bake_max_g"] = maxG.val
+				ob.properties["bake_max_b"] = maxB.val
+				ob.properties["bake_scale_rgb"] = doScaleRGB.val
+				if not keepCenter.val:
 					#center new
 					sculpty.set_center( ob )
 				bb.add( ob )
 		if keepScale.val:
 			bb = bb.normalised()
-		if keepCentre.val:
+		if keepCenter.val:
 			bb = bb.centered()
 		if bb.min == bb.max:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
