@@ -64,6 +64,13 @@ class xyz:
 			self.z * scalar
 		)
 
+	def __div__( self, scalar ):
+		return xyz(
+			self.x / scalar,
+			self.y / scalar,
+			self.x / scalar
+		)
+
 	def __repr__( self ):
 		return repr( ( self.x, self.y, self.z ) )
 
@@ -219,6 +226,51 @@ class rgb_range:
 		self.center = xyz( (( self.min.x + ( self.max.x * 0.5 )) / 255.0 ) - 0.5,
 				(( self.min.y + ( self.max.y * 0.5 )) / 255.0 ) - 0.5,
 				(( self.min.z + ( self.max.z * 0.5 )) / 255.0 ) - 0.5 )
+
+class pixel:
+	def __init__(self, u, v, rgb):
+		self.u = u
+		self.v = v
+		self.rgb = rgb
+
+	def __cmp__(self, other):
+		if self.u == other.u:
+			return cmp(self.v, other.v)
+		else:
+			return cmp(self.u, other.u)
+
+	def __sub__(self, other):
+		return pixel(
+			self.u - other.u,
+			self.v - other.v,
+			self.rgb - other.rgb
+		)
+
+	def __add__(self, other):
+		return pixel(
+			self.u + other.u,
+			self.v + other.v,
+			self.rgb + other.rgb
+		)
+
+	def __mul__(self, scalar):
+		return pixel(
+			self.u * scalar,
+			self.v * scalar,
+			self.rgb * scalar
+		)
+
+	def __div__( self, scalar ):
+		return pixel(
+			self.u / scalar,
+			self.v / scalar,
+			self.rgb / scalar
+		)
+
+	def __repr__(self):
+		return "pixel(" + str(self.u) + ", " +\
+			str(self.v) + ", " +\
+			str(self.rgb) + ")"
 
 #***********************************************
 # sculpty info functions
@@ -397,41 +449,26 @@ def bake_object( ob, bb, clear = True, finalise = True ):
 		if f.image != None:
 			uvmap = []
 			for i in range( len(f.verts) ):
-				if f.uv[i][0] == 1.0:
-					u = f.image.size[0] - 1
-				else:
-					u = int(f.uv[ i ][0] * f.image.size[0])
-				if f.uv[i][1] == 1.0:
-					v = f.image.size[1] - 1
-				else:
-					v = int(f.uv[ i ][1] * f.image.size[1])
+				u = min( int(f.uv[ i ][0] * f.image.size[0]), f.image.size[0] - 1 )
+				v = min( int(f.uv[ i ][1] * f.image.size[1]), f.image.size[1] - 1 )
 				rgb = bb.xyz_to_rgb( f.verts[i].co )
-				uvmap.append( (u, v, rgb) )
+				uvmap.append( pixel( u, v, rgb ) )
+			uvmap.sort()
 			for i in range( len(uvmap) - 1 ):
 				v1 = uvmap[ i ]
 				for v2 in uvmap[ i + 1: ]:
-					if v1[0] == v2[0]:
-						if v1[1] <= v2[1]:
-							drawVLineI( f.image, v1[0], v1[1], v2[1],
-									v1[2].x, v1[2].y, v1[2].z,
-									v2[2].x, v2[2].y, v2[2].z )
+					if v1.u == v2.u:
+						if v1.v <= v2.v:
+							drawVLine( f.image, v1.u, v1.v, v2.v, v1.rgb, v2.rgb)
 						else:
-							drawVLineI( f.image, v2[0], v2[1], v1[1],
-									v2[2].x, v2[2].y, v2[2].z,
-									v1[2].x, v1[2].y, v1[2].z )
-					elif v1[1] == v2[1]:
-						if v1[0] <= v2[0]:
-							drawHLineI( f.image, v1[1], v1[0], v2[0],
-									v1[2].x, v1[2].y, v1[2].z,
-									v2[2].x, v2[2].y, v2[2].z )
+							drawVLine( f.image, v2.u, v2.v, v1.v, v2.rgb, v1.rgb )
+					elif v1.v == v2.v:
+						if v1.u <= v2.u:
+							drawHLine( f.image, v1.v, v1.u, v2.u, v1.rgb, v2.rgb )
 						else:
-							drawHLineI( f.image, v2[1], v2[0], v1[0],
-									v2[2].x, v2[2].y, v2[2].z,
-									v1[2].x, v1[2].y, v1[2].z )
-					u ,v, rgb = v2
-					f.image.setPixelI( u, v, ( rgb.x, rgb.y, rgb.z, 255 ) )
-				u ,v, rgb = v1
-				f.image.setPixelI( u, v, ( rgb.x, rgb.y, rgb.z, 255 ) )
+							drawHLine( f.image, v2.v, v2.u, v1.u, v2.rgb, v1.rgb )
+					f.image.setPixelI( v2.u, v2.v, ( v2.rgb.x, v2.rgb.y, v2.rgb.z, 255 ) )
+				f.image.setPixelI( v1.u, v1.v, ( v1.rgb.x, v1.rgb.y, v1.rgb.z, 255 ) )
 
 	mesh.activeUVLayer = currentUV
 	if finalise:
@@ -834,7 +871,7 @@ def set_alpha( image, alpha ):
 			c1[3]= c2[1]
 			image.setPixelI( x, y, c1 )
 
-def drawHLineI( image, y, s, e, sr, sg, sb, er, eg, eb ):
+def drawHLine( image, y, s, e, start_rgb, end_rgb ):
 	'''
 	Draws a horizontal line on the image on row y, from column s to e.
 
@@ -842,29 +879,19 @@ def drawHLineI( image, y, s, e, sr, sg, sb, er, eg, eb ):
 	y - v co-ordinate
 	s - start u co-ordinate
 	e - end u co-ordinate
-	sr - start red
-	sg - start green
-	sb - start blue
-	er - end red
-	eg - end green
-	eb - end blue
+	start_rgb - start colour
+	end_rgb - end_colour
 	'''
 	if s - e == 0:
-		image.setPixelI( s, y, ( (sr + er) // 2, (sg +eg) // 2, (sb +eb) // 2, 255 ) )
+		image.setPixelI( e, y, ( end_rgb.x, end_rgb.y, end_rgb.z, 255 ) )
 		return
-	dr = ( er - sr ) / ( e - s )
-	dg = ( eg - sg ) / ( e - s )
-	db = ( eb - sb ) / ( e - s )
+	delta = ( end_rgb - start_rgb ) / ( e - s )
+	c = start_rgb
 	for u in xrange( s, e ):
-		if u == image.size[0]:
-			image.setPixelI( u - 1, y, ( clip(int(sr)), clip(int(sg)), clip(int(sb)), 255 ) )
-		else:
-			image.setPixelI( u, y, ( clip(int(sr)), clip(int(sg)), clip(int(sb)), 255 ) )
-		sr += dr
-		sg += dg
-		sb += db
+		image.setPixelI( u, y, ( clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255 ) )
+		c += delta
 
-def drawVLineI( image, x, s, e, sr, sg, sb, er, eg, eb ):
+def drawVLine( image, x, s, e, start_rgb, end_rgb ):
 	'''
 	Draws a vertical line on the image on column x, from row s to e.
 
@@ -872,33 +899,17 @@ def drawVLineI( image, x, s, e, sr, sg, sb, er, eg, eb ):
 	x - u co-ordinate
 	s - start v co-ordinate
 	e - end v co-ordinate
-	sr - start red
-	sg - start green
-	sb - start blue
-	er - end red
-	eg - end green
-	eb - end blue
+	start_rgb - start colour
+	end_rgb - end_colour
 	'''
-	if x < 0 or s < 0 or x > image.size[0] or e > image.size[1]:
-		raise ValueError
-	if x == image.size[0]:
-		x -= 1
 	if s - e == 0:
-		if s == image.size[1]:
-			s -= 1
-		image.setPixelI( x, s, ( clip((sr + er) // 2), clip((sg +eg) // 2), clip((sb +eb)//2), 255 ) )
+		image.setPixelI( x, e, ( end_rgb.x, end_rgb.y, end_rgb.z, 255 ) )
 		return
-	dr = ( er - sr ) / ( e - s )
-	dg = ( eg - sg ) / ( e - s )
-	db = ( eb - sb ) / ( e - s )
-	for v in xrange( s, e + 1 ):
-		if v == image.size[1]:
-			image.setPixelI( x, v - 1, ( clip(int(sr)), clip(int(sg)), clip(int(sb)), 255 ) )
-		else:
-			image.setPixelI( x, v, ( clip(int(sr)), clip(int(sg)), clip(int(sb)), 255 ) )
-		sr += dr
-		sg += dg
-		sb += db
+	delta = ( end_rgb - start_rgb ) / ( e - s )
+	c = start_rgb
+	for v in xrange( s, e ):
+		image.setPixelI( x, v, ( clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255 ) )
+		c += delta
 
 def expand_pixels( image ):
 	'''
@@ -962,14 +973,14 @@ def fill_holes( image ):
 				else:
 					if fill:
 						fill = False
-						drawHLineI( image, v, s, u, sr, sg, sb, nc[0], nc[1], nc[2] )
+						drawHLine( image, v, s, u, xyz( sr, sg, sb), xyz( nc[0], nc[1], nc[2] ))
 					s = u
 					sr = nc[0]
 					sg = nc[1]
 					sb = nc[2]
 			if fill:
 				fill = False
-				drawHLineI( image, v, s, u, sr, sg, sb, sr, sg, sb )
+				drawHLine( image, v, s, u, xyz( sr, sg, sb), xyz( sr, sg, sb ))
 		return skipx
 	def fillY():
 		fill = False
@@ -989,14 +1000,14 @@ def fill_holes( image ):
 				else:
 					if fill:
 						fill = False
-						drawVLineI( image, u, s, v, sr, sg, sb, nc[0], nc[1], nc[2] )
+						drawVLine( image, u, s, v, xyz( sr, sg, sb), xyz( nc[0], nc[1], nc[2] ))
 					s = v
 					sr = nc[0]
 					sg = nc[1]
 					sb = nc[2]
 			if fill:
 				fill = False
-				drawVLineI( image, u, s, v, sr, sg, sb, sr, sg, sb )
+				drawVLine( image, u, s, v, xyz( sr, sg, sb ), xyz( sr, sg, sb ))
 	skipx = fillX()
 	fillY()
 	if skipx: fillX()
