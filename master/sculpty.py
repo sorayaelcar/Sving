@@ -790,7 +790,6 @@ def bake_default( image, sculpt_type, radius = 0.25 ):
 				g = profile
 				b= 0.0
 			image.setPixelI( u, v, ( int(r * 255.0), int(g * 255.0), int(b * 255.0), 255 ) )
-	expand_pixels( image )
 
 def bake_lod( image ):
 	'''
