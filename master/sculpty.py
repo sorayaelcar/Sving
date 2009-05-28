@@ -66,9 +66,9 @@ class xyz:
 
 	def __div__( self, scalar ):
 		return xyz(
-			self.x / scalar,
-			self.y / scalar,
-			self.x / scalar
+			float(self.x) / scalar,
+			float(self.y) / scalar,
+			float(self.z) / scalar
 		)
 
 	def __repr__( self ):
@@ -453,22 +453,16 @@ def bake_object( ob, bb, clear = True, finalise = True ):
 				v = min( int(f.uv[ i ][1] * f.image.size[1]), f.image.size[1] - 1 )
 				rgb = bb.xyz_to_rgb( f.verts[i].co )
 				uvmap.append( pixel( u, v, rgb ) )
-			uvmap.sort()
-			for i in range( len(uvmap) - 1 ):
-				v1 = uvmap[ i ]
-				for v2 in uvmap[ i + 1: ]:
-					if v1.u == v2.u:
-						if v1.v <= v2.v:
-							drawVLine( f.image, v1.u, v1.v, v2.v, v1.rgb, v2.rgb)
-						else:
-							drawVLine( f.image, v2.u, v2.v, v1.v, v2.rgb, v1.rgb )
-					elif v1.v == v2.v:
-						if v1.u <= v2.u:
-							drawHLine( f.image, v1.v, v1.u, v2.u, v1.rgb, v2.rgb )
-						else:
-							drawHLine( f.image, v2.v, v2.u, v1.u, v2.rgb, v1.rgb )
-					f.image.setPixelI( v2.u, v2.v, ( v2.rgb.x, v2.rgb.y, v2.rgb.z, 255 ) )
-				f.image.setPixelI( v1.u, v1.v, ( v1.rgb.x, v1.rgb.y, v1.rgb.z, 255 ) )
+			uvmap.sort() # custom sort does ascending x, ascending y
+			if len( uvmap ) == 4:
+				draw_line( f.image, uvmap[0], uvmap[1] ) # left
+				draw_line( f.image, uvmap[1], uvmap[3] ) # top
+				draw_line( f.image, uvmap[2], uvmap[3] ) # right
+				draw_line( f.image, uvmap[0], uvmap[2] ) # bottom
+				draw_line( f.image, uvmap[0], uvmap[3] ) # bottom left to top right
+			else:
+				for i in range( len(uvmap) - 1 ):
+					draw_line( f.image, uvmap[ i ], uvmap[ i + 1 ] )
 
 	mesh.activeUVLayer = currentUV
 	if finalise:
@@ -871,6 +865,35 @@ def set_alpha( image, alpha ):
 			c1[3]= c2[1]
 			image.setPixelI( x, y, c1 )
 
+def draw_line( image, start, end ):
+	'''
+	Draws a line on the image from start pixel to end pixel.
+	'''
+	diff = end - start
+	if diff.u == 0:
+		# vertical
+		drawVLine( image, start.u, start.v, end.v, start.rgb, end.rgb )
+	elif diff.v == 0:
+		# horizontal
+		drawHLine( image, start.v, start.u, end.u, start.rgb, end.rgb )
+	elif diff.u == diff.v:
+		# diagonal
+		if diff.u < 0:
+			diff = start
+			start = end
+			end = diff
+			diff = end - start
+		if diff.u == 1:
+			image.setPixelI( start.u, start.v, ( start.rgb.x, start.rgb.y, start.rgb.z, 255 ) )
+			image.setPixelI( end.u, end.v, ( end.rgb.x, end.rgb.y, end.rgb.z, 255 ) )
+		else:
+			delta = diff.rgb / diff.u
+			c = start.rgb
+			for i in range( diff.u + 1 ):
+				image.setPixelI( start.u + i, start.v + i, ( clip( int(c.x)), clip(int(c.y)), clip(int(c.z)), 255 ) )
+				c += delta
+	# other lines not currently draw
+
 def drawHLine( image, y, s, e, start_rgb, end_rgb ):
 	'''
 	Draws a horizontal line on the image on row y, from column s to e.
@@ -882,12 +905,16 @@ def drawHLine( image, y, s, e, start_rgb, end_rgb ):
 	start_rgb - start colour
 	end_rgb - end_colour
 	'''
+	if s > e:
+		c = s
+		s = e
+		e = c
 	if s - e == 0:
 		image.setPixelI( e, y, ( end_rgb.x, end_rgb.y, end_rgb.z, 255 ) )
 		return
 	delta = ( end_rgb - start_rgb ) / ( e - s )
 	c = start_rgb
-	for u in xrange( s, e ):
+	for u in range( s, e + 1 ):
 		image.setPixelI( u, y, ( clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255 ) )
 		c += delta
 
@@ -902,12 +929,16 @@ def drawVLine( image, x, s, e, start_rgb, end_rgb ):
 	start_rgb - start colour
 	end_rgb - end_colour
 	'''
+	if s > e:
+		c = s
+		s = e
+		e = c
 	if s - e == 0:
 		image.setPixelI( x, e, ( end_rgb.x, end_rgb.y, end_rgb.z, 255 ) )
 		return
 	delta = ( end_rgb - start_rgb ) / ( e - s )
 	c = start_rgb
-	for v in xrange( s, e ):
+	for v in range( s, e + 1 ):
 		image.setPixelI( x, v, ( clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255 ) )
 		c += delta
 
