@@ -428,7 +428,7 @@ def active( ob ):
 			mesh.activeUVLayer = currentUV
 	return False
 
-def bake_object( ob, bb, clear = True, finalise = True ):
+def bake_object( ob, bb, clear = True ):
 	'''
 	Bakes the object's mesh to the specified bounding box.
 	'''
@@ -463,12 +463,7 @@ def bake_object( ob, bb, clear = True, finalise = True ):
 			else:
 				for i in range( len(uvmap) - 1 ):
 					draw_line( f.image, uvmap[ i ], uvmap[ i + 1 ] )
-
 	mesh.activeUVLayer = currentUV
-	if finalise:
-		for i in images:
-			fill_holes( i )
-			expand_pixels( i )
 
 def getBB( obj ):
 	'''

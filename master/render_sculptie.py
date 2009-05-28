@@ -53,6 +53,7 @@ import sculpty
 def main():
 	block = []
 	doFinal = Blender.Draw.Create( True )
+	doFill = Blender.Draw.Create( True )
 	keepScale = Blender.Draw.Create( False )
 	doExpand = Blender.Draw.Create( False )
 	keepCentre = Blender.Draw.Create( False )
@@ -69,6 +70,7 @@ def main():
 	block.append (( "Clear", doClear ))
 	block.append (( "Keep Scale", keepScale ))
 	block.append (( "Keep Center", keepCentre ))
+	block.append (( "Fill Holes", doFill ))
 	block.append (( "Finalise", doFinal ))
 	block.append (( "Protect Map", doProtect ))
 	block.append (( "With Preview", doPreview ))
@@ -109,7 +111,7 @@ def main():
 		# Good to go, do the bake
 		for ob in scene.objects.selected:
 			if sculpty.active( ob ):
-				sculpty.bake_object( ob, bb, doClear.val, doFinal.val )
+				sculpty.bake_object( ob, bb, doClear.val )
 				for image in sculpty.map_images( ob.getData( False, True) ):
 					n = Blender.sys.splitext( image.name )
 					if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
@@ -118,11 +120,15 @@ def main():
 						image.properties['scale_x'] /= bb.rgb.scale.x
 						image.properties['scale_y'] /= bb.rgb.scale.y
 						image.properties['scale_z'] /= bb.rgb.scale.z
-					if doFinal.val and doProtect.val:
-						if doPreview.val:
-							sculpty.bake_preview( image )
-						else:
-							sculpty.clear_alpha( image )
+					if doFill.val:
+						sculpty.fill_holes( image )
+					if doFinal.val:
+						sculpty.expand_pixels( image )
+						if doProtect.val:
+							if doPreview.val:
+								sculpty.bake_preview( image )
+							else:
+								sculpty.clear_alpha( image )
 
 		print "--------------------------------"
 		print 'finished baking: in %.4f sec.' % ((Blender.sys.time()-time1))
