@@ -18,7 +18,7 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 #0.12 Domino Marama 2009-05-24
 #- Image based sculptie generation added
 #0.11 Domino Marama 2008-10-27
-#- Use getBB from render_sculptie.py
+#- Use get_bounding_box from render_sculptie.py
 #0.10 Domino Marama 2008-10-25
 #- Wrapped edges are marked as seams
 #0.09 Domino Marama 2008-10-17
@@ -56,7 +56,7 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software Foundation,
-# Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# Inc., 59 Temple Place - Suite 330, Boston, maximum  02111-1307, USA.
 #
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
@@ -120,11 +120,11 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 			mesh.sel = True
 			sculpty.update_from_map( mesh, image )
 	# adjust scale for subdivision
-	mi, ma = sculpty.getBB( ob )
-	x = 1.0 / (ma.x - mi.x)
-	y = 1.0 / (ma.y - mi.y)
+	minimum, maximum = sculpty.get_bounding_box( ob )
+	x = 1.0 / (maximum.x - minimum.x)
+	y = 1.0 / (maximum.y - minimum.y)
 	try:
-		z = 1.0 / (ma.z - mi.z)
+		z = 1.0 / (maximum.z - minimum.z)
 	except:
 		z = 0.0
 	if sculpt_type == TORUS:

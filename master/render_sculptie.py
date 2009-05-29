@@ -117,9 +117,9 @@ def main():
 		if editmode: Blender.Window.EditMode(0)
 		Blender.Window.WaitCursor(1)
 		# prepare for bake, set centers and create bounding box
-		bb = sculpty.bounding_box()
-		bb.rgb.min = sculpty.xyz( minR.val, minG.val, minB.val )
-		bb.rgb.max = sculpty.xyz( maxR.val, maxG.val, maxB.val )
+		bb = sculpty.BoundingBox()
+		bb.rgb.min = sculpty.XYZ( minR.val, minG.val, minB.val )
+		bb.rgb.max = sculpty.XYZ( maxR.val, maxG.val, maxB.val )
 		bb.rgb.update()
 		for ob in scene.objects.selected:
 			if sculpty.check( ob ):
