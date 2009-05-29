@@ -156,9 +156,9 @@ def main():
 					if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
 						image.name = ob.name
 					if doScaleRGB.val:
-						image.properties['scale_x'] /= bb.rgb.scale.x
-						image.properties['scale_y'] /= bb.rgb.scale.y
-						image.properties['scale_z'] /= bb.rgb.scale.z
+						image.properties['ps_scale_x'] /= bb.rgb.scale.x
+						image.properties['ps_scale_y'] /= bb.rgb.scale.y
+						image.properties['ps_scale_z'] /= bb.rgb.scale.z
 					if doFill.val:
 						sculpty.fill_holes( image )
 					if doFinal.val:

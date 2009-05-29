@@ -52,6 +52,13 @@ def main():
 	image = Blender.Image.GetCurrent()
 	if image:
 		ob = new_from_map( image )
+		try:
+			x = image.properties['ps_size_x']
+			y = image.properties['ps_size_y']
+			z = image.properties['ps_size_z']
+			ob.setSize( x, y, z )
+		except:
+			pass
 	else:
 		Blender.Draw.PupBlock( "Can't add Sculptie", ["No current image"] )
 	if in_editmode:

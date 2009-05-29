@@ -40,12 +40,12 @@ better compression of the image.
 import Blender
 from sculpty import expand_pixels
 
-def main():
+def current():
 	image = Blender.Image.GetCurrent()
 	if image:
-		expand_pixels( image )
+		expand_pixels(image)
 	else:
-		Blender.Draw.PupBlock( "Sculptie Bake Error", ["No current image"] )
+		Blender.Draw.PupBlock("Sculptie Bake Error", ["No current image"])
 
 if __name__ == '__main__':
-	main()
+	current()

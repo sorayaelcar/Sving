@@ -400,16 +400,21 @@ def active(ob):
 	return False
 
 def bake_object(ob, bb, clear = True):
-	'''Bakes the object's mesh to the specified bounding box.'''
+	'''Bakes the object's mesh to the specified bounding box.
+	Returns False if object is not an active sculptie.
+	'''
 	if not active(ob):
-		return
+		return False
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject(ob, 0, 1)
 	images = map_images(mesh)
 	for i in images:
-		i.properties['scale_x'] = bb.scale.x
-		i.properties['scale_y'] = bb.scale.y
-		i.properties['scale_z'] = bb.scale.z
+		i.properties['ps_scale_x'] = bb.scale.x
+		i.properties['ps_scale_y'] = bb.scale.y
+		i.properties['ps_scale_z'] = bb.scale.z
+		i.properties['ps_size_x'] = bb.scale.x / ob.size[0]
+		i.properties['ps_size_y'] =  bb.scale.y / ob.size[1]
+		i.properties['ps_size_z'] = bb.scale.z / ob.size[2]
 		if clear:
 			clear_image(i)
 	currentUV = mesh.activeUVLayer
@@ -433,6 +438,7 @@ def bake_object(ob, bb, clear = True):
 				for i in range(len(uvmap) - 1):
 					draw_line(f.image, uvmap[ i ], uvmap[ i + 1 ])
 	mesh.activeUVLayer = currentUV
+	return True
 
 def get_bounding_box(obj):
 	'''Returns the post modifier stack bounding box for the object'''
