@@ -113,6 +113,7 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 			mods = ob.modifiers
 			mod = mods.append(Blender.Modifier.Types.SUBSURF)
 			mod[Blender.Modifier.Settings.LEVELS] = multires
+			mod[Blender.Modifier.Settings.RENDLEVELS] = multires
 			mod[Blender.Modifier.Settings.UV] = False
 		else:
 			mesh.multires = True
