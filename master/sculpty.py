@@ -935,7 +935,101 @@ def set_alpha(image, alpha):
 			c1[3]= c2[1]
 			image.setPixelI(x, y, c1)
 
-def expand_pixels(image):
+def draw_line(image, start, end, ends=True):
+	'''Draws a line on the image from start pixel to end pixel.'''
+	diff = end - start
+	if diff.u == 0:
+		# vertical
+		_drawVLine(image, start.u, start.v, end.v, start.rgb, end.rgb)
+	elif diff.v == 0:
+		# horizontal
+		_drawHLine(image, start.v, start.u, end.u, start.rgb, end.rgb)
+	elif (diff.u + diff.v == 0 or diff.u == diff.v):
+		# diagonal
+		if diff.u < 0:
+			diff = start
+			start = end
+			end = diff
+			diff = end - start
+		if diff.u == 1 and ends:
+			image.setPixelI(start.u, start.v, (start.rgb.x, start.rgb.y, start.rgb.z, 255))
+			image.setPixelI(end.u, end.v, (end.rgb.x, end.rgb.y, end.rgb.z, 255))
+		else:
+			delta = diff.rgb / diff.u
+			c = start.rgb
+			if ends:
+				s = 0
+				e = 1
+			else:
+				c+= delta
+				s = 1
+				e = 0
+			if diff.v < 0:
+				v = -1
+			else:
+				v = 1
+			for i in range(s, diff.u + e):
+				image.setPixelI(start.u + i, start.v + i * v, (clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255))
+				c += delta
+	# other lines not currently drawn
+
+def _drawHLine(image, y, s, e, start_rgb, end_rgb, ends=True):
+	'''Draws a horizontal line on the image on row y, from column s to e.
+
+	image - where to draw
+	y - v co-ordinate
+	s - start u co-ordinate
+	e - end u co-ordinate
+	start_rgb - start colour
+	end_rgb - end_colour
+	'''
+	if s > e:
+		c = s
+		s = e
+		e = c
+	if s - e == 0 and ends:
+		image.setPixelI(e, y, (end_rgb.x, end_rgb.y, end_rgb.z, 255))
+		return
+	delta = (end_rgb - start_rgb) / (e - s)
+	c = start_rgb
+	if ends:
+		e += 1
+	else:
+		c+= delta
+		s += 1
+	for u in range(s, e):
+		image.setPixelI(u, y, (clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255))
+		c += delta
+
+def _drawVLine(image, x, s, e, start_rgb, end_rgb, ends=True):
+	'''Draws a vertical line on the image on column x, from row s to e.
+
+	image - where to draw
+	x - u co-ordinate
+	s - start v co-ordinate
+	e - end v co-ordinate
+	start_rgb - start colour
+	end_rgb - end_colour
+	'''
+	if s > e:
+		c = s
+		s = e
+		e = c
+	if s - e == 0 and ends:
+		image.setPixelI(x, e, (end_rgb.x, end_rgb.y, end_rgb.z, 255))
+		return
+	delta = (end_rgb - start_rgb) / (e - s)
+	c = start_rgb
+	if ends:
+		e += 1
+	else:
+		c += delta
+		s += 1
+	for v in range(s , e):
+		image.setPixelI(x, v, (clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255))
+		c += delta
+
+def finalise(image):
 	'''Expands each active pixel of the sculpt map image'''
 	ss, ts = map_pixels(image.size[0], image.size[1])
 	d = 2

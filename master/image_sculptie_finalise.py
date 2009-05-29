@@ -38,12 +38,13 @@ better compression of the image.
 # --------------------------------------------------------------------------
 
 import Blender
-from sculpty import expand_pixels
+from sculpty import finalise, fill_holes
 
 def current():
 	image = Blender.Image.GetCurrent()
 	if image:
-		expand_pixels(image)
+		fill_holes(image)
+		finalise(image)
 	else:
 		Blender.Draw.PupBlock("Sculptie Bake Error", ["No current image"])
 

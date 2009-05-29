@@ -145,12 +145,12 @@ def main():
 			bb = bb.normalised()
 		if keepCenter.val:
 			bb = bb.centered()
-		if bb.min == bb.max:
-			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
 		# Good to go, do the bake
+		success = False
 		for ob in scene.objects.selected:
 			if sculpty.active( ob ):
-				sculpty.bake_object( ob, bb, doClear.val )
+				if sculpty.bake_object( ob, bb, doClear.val ):
+					success = True
 				for image in sculpty.map_images( ob.getData( False, True) ):
 					n = Blender.sys.splitext( image.name )
 					if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
@@ -162,7 +162,7 @@ def main():
 					if doFill.val:
 						sculpty.fill_holes( image )
 					if doFinal.val:
-						sculpty.expand_pixels( image )
+						sculpty.finalise( image )
 						if doProtect.val:
 							if doPreview.val:
 								sculpty.bake_preview( image )
@@ -174,6 +174,9 @@ def main():
 		Blender.Redraw()
 		if editmode: Blender.Window.EditMode(1)
 		Blender.Window.WaitCursor(0)
+		if not success:
+			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
+
 
 if __name__ == '__main__':
 	main()
