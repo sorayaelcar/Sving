@@ -192,6 +192,123 @@ class BoundingBox:
 		z = (loc.z - self.min.z) / self.scale.z
 		return self.rgb.convert(XYZ(x, y, z))
 
+class BakeMap:
+	def __init__(self, u, v):
+		self.map = []
+		self.u = u
+		self.v = v
+		for x in range(u):
+			self.map.append( [] )
+			for y in range(v):
+				self.map[x].append([ [],[],[] ])
+
+	def add( self, u, v, colour ):
+		self.map[u][v][0].append(colour.x)
+		self.map[u][v][1].append(colour.y)
+		self.map[u][v][2].append(colour.z)
+
+	def bake(self, image):
+		for x in range(self.u):
+			for y in range(self.v):
+				if self.map[x][y][0]:
+					r = int(sum(self.map[x][y][0]) / len(self.map[x][y][0]))
+					g = int(sum(self.map[x][y][1]) / len(self.map[x][y][1]))
+					b = int(sum(self.map[x][y][2]) / len(self.map[x][y][2]))
+					image.setPixelI( x, y, ( r, g, b, 255 ) )
+
+	def draw_line(self, start, end, ends=True):
+		diff = end - start
+		if diff.u == 0:
+			# vertical
+			self._drawVLine( start.u, start.v, end.v, start.rgb, end.rgb)
+		elif diff.v == 0:
+			# horizontal
+			self._drawHLine( start.v, start.u, end.u, start.rgb, end.rgb)
+		elif (diff.u + diff.v == 0 or diff.u == diff.v):
+			# diagonal
+			if diff.u < 0:
+				diff = start
+				start = end
+				end = diff
+				diff = end - start
+			if diff.u == 1 and ends:
+				self.add( start.u, start.v, start.rgb)
+				self.add( end.u, end.v, end.rgb)
+			else:
+				delta = diff.rgb / diff.u
+				c = start.rgb
+				if ends:
+					s = 0
+					e = 1
+				else:
+					c+= delta
+					s = 1
+					e = 0
+				if diff.v < 0:
+					v = -1
+				else:
+					v = 1
+				for i in range(s, diff.u + e):
+					self.add( start.u + i, start.v + i * v, c)
+					c += delta
+		# other lines not currently drawn
+
+	def _drawHLine(self, y, s, e, start_rgb, end_rgb, ends=True):
+		'''Draws a horizontal line on the image on row y, from column s to e.
+
+		image - where to draw
+		y - v co-ordinate
+		s - start u co-ordinate
+		e - end u co-ordinate
+		start_rgb - start colour
+		end_rgb - end_colour
+		'''
+		if s > e:
+			c = s
+			s = e
+			e = c
+		if s - e == 0 and ends:
+			self.add(e, y, end_rgb)
+			return
+		delta = (end_rgb - start_rgb) / (e - s)
+		c = start_rgb
+		if ends:
+			e += 1
+		else:
+			c+= delta
+			s += 1
+		for u in range(s, e):
+			self.add(u, y, c)
+			c += delta
+
+	def _drawVLine(self, x, s, e, start_rgb, end_rgb, ends=True):
+		'''Draws a vertical line on the image on column x, from row s to e.
+
+		image - where to draw
+		x - u co-ordinate
+		s - start v co-ordinate
+		e - end v co-ordinate
+		start_rgb - start colour
+		end_rgb - end_colour
+		'''
+		if s > e:
+			c = s
+			s = e
+			e = c
+		if s - e == 0 and ends:
+			self.add(x, e, end_rgb)
+			return
+		delta = (end_rgb - start_rgb) / (e - s)
+		c = start_rgb
+		if ends:
+			e += 1
+		else:
+			c += delta
+			s += 1
+		for v in range(s , e):
+			self.add( x, v, c)
+			c += delta
+
 class RGBRange:
 	def __init__(self, min_r = 0, max_r = 255, min_g = 0, max_g = 255, min_b = 0, max_b = 255):
 		self.min = XYZ(min_r, min_g, min_b)
@@ -408,7 +525,9 @@ def bake_object(ob, bb, clear = True):
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject(ob, 0, 1)
 	images = map_images(mesh)
+	maps = {}
 	for i in images:
+		maps[i.name] = BakeMap(i.size[0], i.size[1])
 		i.properties['ps_scale_x'] = bb.scale.x
 		i.properties['ps_scale_y'] = bb.scale.y
 		i.properties['ps_scale_z'] = bb.scale.z
@@ -429,15 +548,17 @@ def bake_object(ob, bb, clear = True):
 				uvmap.append(Pixel(u, v, rgb))
 			uvmap.sort() # custom sort does ascending x, ascending y
 			if len(uvmap) == 4:
-				draw_line(f.image, uvmap[0], uvmap[1]) # left
-				draw_line(f.image, uvmap[1], uvmap[3], False) # top
-				draw_line(f.image, uvmap[2], uvmap[3]) # right
-				draw_line(f.image, uvmap[0], uvmap[2], False) # bottom
-				draw_line(f.image, uvmap[0], uvmap[3], False) # bottom left to top right
-				draw_line(f.image, uvmap[1], uvmap[2], False) # top left to bottom right
+				maps[f.image.name].draw_line(uvmap[0], uvmap[1]) # left
+				maps[f.image.name].draw_line(uvmap[1], uvmap[3], False) # top
+				maps[f.image.name].draw_line(uvmap[2], uvmap[3]) # right
+				maps[f.image.name].draw_line(uvmap[0], uvmap[2], False) # bottom
+				maps[f.image.name].draw_line(uvmap[0], uvmap[3], False) # bottom left to top right
+				maps[f.image.name].draw_line(uvmap[1], uvmap[2], False) # top left to bottom right
 			else:
 				for i in range(len(uvmap) - 1):
-					draw_line(f.image, uvmap[ i ], uvmap[ i + 1 ])
+					maps[f.image.name].draw_line(f.image, uvmap[ i ], uvmap[ i + 1 ])
+	for image in images:
+		maps[f.image.name].bake( image )
 	mesh.activeUVLayer = currentUV
 	return True
 
@@ -813,100 +934,6 @@ def set_alpha(image, alpha):
 			c2 = pimage.getPixelI(x, y)
 			c1[3]= c2[1]
 			image.setPixelI(x, y, c1)
-
-def draw_line(image, start, end, ends=True):
-	'''Draws a line on the image from start pixel to end pixel.'''
-	diff = end - start
-	if diff.u == 0:
-		# vertical
-		_drawVLine(image, start.u, start.v, end.v, start.rgb, end.rgb)
-	elif diff.v == 0:
-		# horizontal
-		_drawHLine(image, start.v, start.u, end.u, start.rgb, end.rgb)
-	elif (diff.u + diff.v == 0 or diff.u == diff.v):
-		# diagonal
-		if diff.u < 0:
-			diff = start
-			start = end
-			end = diff
-			diff = end - start
-		if diff.u == 1 and ends:
-			image.setPixelI(start.u, start.v, (start.rgb.x, start.rgb.y, start.rgb.z, 255))
-			image.setPixelI(end.u, end.v, (end.rgb.x, end.rgb.y, end.rgb.z, 255))
-		else:
-			delta = diff.rgb / diff.u
-			c = start.rgb
-			if ends:
-				s = 0
-				e = 1
-			else:
-				c+= delta
-				s = 1
-				e = 0
-			if diff.v < 0:
-				v = -1
-			else:
-				v = 1
-			for i in range(s, diff.u + e):
-				image.setPixelI(start.u + i, start.v + i * v, (clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255))
-				c += delta
-	# other lines not currently drawn
-
-def _drawHLine(image, y, s, e, start_rgb, end_rgb, ends=True):
-	'''Draws a horizontal line on the image on row y, from column s to e.
-
-	image - where to draw
-	y - v co-ordinate
-	s - start u co-ordinate
-	e - end u co-ordinate
-	start_rgb - start colour
-	end_rgb - end_colour
-	'''
-	if s > e:
-		c = s
-		s = e
-		e = c
-	if s - e == 0 and ends:
-		image.setPixelI(e, y, (end_rgb.x, end_rgb.y, end_rgb.z, 255))
-		return
-	delta = (end_rgb - start_rgb) / (e - s)
-	c = start_rgb
-	if ends:
-		e += 1
-	else:
-		c+= delta
-		s += 1
-	for u in range(s, e):
-		image.setPixelI(u, y, (clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255))
-		c += delta
-
-def _drawVLine(image, x, s, e, start_rgb, end_rgb, ends=True):
-	'''Draws a vertical line on the image on column x, from row s to e.
-
-	image - where to draw
-	x - u co-ordinate
-	s - start v co-ordinate
-	e - end v co-ordinate
-	start_rgb - start colour
-	end_rgb - end_colour
-	'''
-	if s > e:
-		c = s
-		s = e
-		e = c
-	if s - e == 0 and ends:
-		image.setPixelI(x, e, (end_rgb.x, end_rgb.y, end_rgb.z, 255))
-		return
-	delta = (end_rgb - start_rgb) / (e - s)
-	c = start_rgb
-	if ends:
-		e += 1
-	else:
-		c += delta
-		s += 1
-	for v in range(s , e):
-		image.setPixelI(x, v, (clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255))
-		c += delta
 
 def expand_pixels(image):
 	'''Expands each active pixel of the sculpt map image'''
