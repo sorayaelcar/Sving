@@ -1116,7 +1116,7 @@ def fill_holes(image):
 				else:
 					if fill:
 						fill = False
-						drawVLine(image, u, s, v,
+						_drawVLine(image, u, s, v,
 								XYZ(sr, sg, sb),
 								XYZ(nc[0], nc[1], nc[2]))
 					s = v
@@ -1125,7 +1125,7 @@ def fill_holes(image):
 					sb = nc[2]
 			if fill:
 				fill = False
-				drawVLine(image, u, s, v, XYZ(sr, sg, sb), XYZ(sr, sg, sb))
+				_drawVLine(image, u, s, v, XYZ(sr, sg, sb), XYZ(sr, sg, sb))
 	skipx = fillX()
 	fillY()
 	if skipx: fillX()
