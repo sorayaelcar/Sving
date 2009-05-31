@@ -119,7 +119,6 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 			mesh.multires = True
 			mesh.addMultiresLevel( multires )
 			mesh.sel = True
-			sculpty.update_from_map( mesh, image )
 	# adjust scale for subdivision
 	minimum, maximum = sculpty.get_bounding_box( ob )
 	x = 1.0 / (maximum.x - minimum.x)

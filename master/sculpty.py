@@ -711,7 +711,7 @@ def map_images(mesh):
 	return images
 
 def set_map(mesh, image):
-	'''Assigns the image to the selected 'sculptie' uv layer faces. The mesh is updated.'''
+	'''Assigns the image to the selected 'sculptie' uv layer faces.'''
 	currentUV = mesh.activeUVLayer
 	mesh.activeUVLayer = "sculptie"
 	if mesh.multires:
@@ -723,7 +723,6 @@ def set_map(mesh, image):
 	if mesh.multires:
 		mesh.multiresDrawLevel = levels
 	mesh.activeUVLayer = currentUV
-	update_from_map(mesh, image)
 
 def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True):
 	'''Returns a sculptie mesh created from the input
@@ -775,8 +774,11 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True)
 	verts_s = s + 1 - wrap_x
 	verts_t = t + 1 - wrap_y
 	for i in xrange(verts_t):
+		profile = float(i)/t
 		for k in xrange(verts_s):
-			vert = Blender.Mathutils.Vector(0.0, 0.0, 0.0)
+			path = float(k)/s
+			pos = uv_to_rgb(sculpt_type, path, profile)
+			vert = Blender.Mathutils.Vector(pos.x - 0.5, pos.y - 0.5, pos.z - 0.5)
 			mesh.verts.extend([ vert ])
 			verts.append (mesh.verts[-1])
 		if wrap_x:
@@ -842,6 +844,40 @@ def update_from_map(mesh, image):
 	mesh.activeUVLayer = currentUV
 	mesh.sel = True
 
+def uv_to_rgb(sculpt_type, u, v):
+	'''Returns 3D location for the given UV co-ordinates on a default sculpt type'''
+	a = pi + 2 * pi * u
+	if sculpt_type == "SPHERE":
+		ps = sin(pi * v) / 2.0
+		r = 0.5 + sin(a) * ps
+		g = 0.5 - cos(a) * ps
+		b = 0.5 -cos(pi * v) / 2.0
+	elif sculpt_type == "CYLINDER":
+		r = 0.5 + sin(a) / 2.0
+		g = 0.5 - cos(a) / 2.0
+		b = v
+	elif sculpt_type == "TORUS":
+		ps = ((1.0 - radius) - sin(2.0 * pi * v) * radius) / 2.0
+		r = 0.5 + sin(a) * ps
+		g = 0.5 - cos(a) * ps
+		b = 0.5 + cos(2 * pi * v) / 2.0
+	elif sculpt_type == "HEMI":
+		b = sqrt(2.0)
+		z = -cos(2 * pi * min(u, v, 1.0 - u, 1.0 - v)) / 2.0
+		pa = u - 0.5
+		pr = v - 0.5
+		ph = sqrt(pa * pa + pr * pr)
+		ps = sqrt(sin((0.5 - z) * pi * 0.5) / 2.0)
+		if ph == 0.0: ph = 1.0
+		r = 0.5 + (pa / ph * ps) / b
+		g = 0.5 + (pr / ph * ps) / b
+		b= 0.5 + z
+	else:
+		r = u
+		g = v
+		b = 0.0
+	return XYZ(r, g, b)
+
 #***********************************************
 # sculpty image functions
 #***********************************************
@@ -862,37 +898,8 @@ def bake_default(image, sculpt_type, radius = 0.25):
 			profile = float(v) / y
 			if v == y - 1:
 				profile = 1.0
-			a = pi + 2 * pi * path
-			if sculpt_type == "SPHERE":
-				ps = sin(pi * profile) / 2.0
-				r = 0.5 + sin(a) * ps
-				g = 0.5 - cos(a) * ps
-				b = 0.5 -cos(pi * profile) / 2.0
-			elif sculpt_type == "CYLINDER":
-				r = 0.5 + sin(a) / 2.0
-				g = 0.5 - cos(a ) / 2.0
-				b = profile
-			elif sculpt_type == "TORUS":
-				ps = ((1.0 - radius) - sin(2.0 * pi * profile) * radius) / 2.0
-				r = 0.5 + sin(a) * ps
-				g = 0.5 - cos(a) * ps
-				b = 0.5 + cos(2 * pi * profile) / 2.0
-			elif sculpt_type == "HEMI":
-				b = sqrt(2.0)
-				z = -cos(2 * pi * min(path, profile, 1.0 - path, 1.0 - profile)) / 2.0
-				pa = path - 0.5
-				pr = profile - 0.5
-				ph = sqrt(pa * pa + pr * pr)
-				ps = sqrt(sin((0.5 - z) * pi * 0.5) / 2.0)
-				if ph == 0.0: ph = 1.0
-				r = 0.5 + (pa / ph * ps) / b
-				g = 0.5 + (pr / ph * ps) / b
-				b = 0.5 + z
-			else:
-				r = path
-				g = profile
-				b= 0.0
-			image.setPixelI(u, v, (int(r * 255.0), int(g * 255.0), int(b * 255.0), 255))
+			rgb = uv_to_rgb(sculpt_type, path, profile)
+			image.setPixelF(u, v, (rgb.x, rgb.y, rgb.z , 1.0))
 
 def bake_lod(image):
 	'''Bakes the sculptie LOD points for the image size.
