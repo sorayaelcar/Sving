@@ -187,10 +187,14 @@ class BoundingBox:
 
 	def xyz_to_rgb(self, loc):
 		'''converts a location in the bounding box to rgb sculpt map values'''
+		return self.rgb.convert(self.xyz_to_float(loc))
+
+	def xyz_to_float(self, loc):
+		'''converts a location in the bounding box to float rgb sculpt map values'''
 		x = (loc.x - self.min.x) / self.scale.x
 		y = (loc.y - self.min.y) / self.scale.y
 		z = (loc.z - self.min.z) / self.scale.z
-		return self.rgb.convert(XYZ(x, y, z))
+		return XYZ(x, y ,z)
 
 class BakeMap:
 	def __init__(self, u, v):
@@ -202,7 +206,7 @@ class BakeMap:
 			for y in range(v):
 				self.map[x].append([ [],[],[] ])
 
-	def add( self, u, v, colour ):
+	def add(self, u, v, colour):
 		self.map[u][v][0].append(colour.x)
 		self.map[u][v][1].append(colour.y)
 		self.map[u][v][2].append(colour.z)
@@ -216,14 +220,23 @@ class BakeMap:
 					b = int(sum(self.map[x][y][2]) / len(self.map[x][y][2]))
 					image.setPixelI( x, y, ( r, g, b, 255 ) )
 
+	def bake_float(self, image):
+		for x in range(self.u):
+			for y in range(self.v):
+				if self.map[x][y][0]:
+					r = clip(sum(self.map[x][y][0]) / len(self.map[x][y][0]), 0.0, 1.0)
+					g = clip(sum(self.map[x][y][1]) / len(self.map[x][y][1]), 0.0, 1.0)
+					b = clip(sum(self.map[x][y][2]) / len(self.map[x][y][2]), 0.0, 1.0)
+					image.setPixelF(x, y, ( r, g, b, 1.0 ))
+
 	def draw_line(self, start, end, ends=True):
 		diff = end - start
 		if diff.u == 0:
 			# vertical
-			self._drawVLine( start.u, start.v, end.v, start.rgb, end.rgb)
+			self._drawVLine(start.u, start.v, end.v, start.rgb, end.rgb)
 		elif diff.v == 0:
 			# horizontal
-			self._drawHLine( start.v, start.u, end.u, start.rgb, end.rgb)
+			self._drawHLine(start.v, start.u, end.u, start.rgb, end.rgb)
 		elif (diff.u + diff.v == 0 or diff.u == diff.v):
 			# diagonal
 			if diff.u < 0:
@@ -232,8 +245,8 @@ class BakeMap:
 				end = diff
 				diff = end - start
 			if diff.u == 1 and ends:
-				self.add( start.u, start.v, start.rgb)
-				self.add( end.u, end.v, end.rgb)
+				self.add(start.u, start.v, start.rgb)
+				self.add(end.u, end.v, end.rgb)
 			else:
 				delta = diff.rgb / diff.u
 				c = start.rgb
@@ -249,7 +262,7 @@ class BakeMap:
 				else:
 					v = 1
 				for i in range(s, diff.u + e):
-					self.add( start.u + i, start.v + i * v, c)
+					self.add(start.u + i, start.v + i * v, c)
 					c += delta
 		# other lines not currently drawn
 
@@ -531,9 +544,9 @@ def bake_object(ob, bb, clear = True):
 		i.properties['ps_scale_x'] = bb.scale.x
 		i.properties['ps_scale_y'] = bb.scale.y
 		i.properties['ps_scale_z'] = bb.scale.z
-		i.properties['ps_size_x'] = bb.scale.x / ob.size[0]
-		i.properties['ps_size_y'] =  bb.scale.y / ob.size[1]
-		i.properties['ps_size_z'] = bb.scale.z / ob.size[2]
+		i.properties['ps_size_x'] = bb.scale.x * ob.size[0]
+		i.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
+		i.properties['ps_size_z'] = bb.scale.z * ob.size[2]
 		if clear:
 			clear_image(i)
 	currentUV = mesh.activeUVLayer
@@ -544,7 +557,7 @@ def bake_object(ob, bb, clear = True):
 			for i in range(len(f.verts)):
 				u = min(int(f.uv[ i ][0] * f.image.size[0]), f.image.size[0] - 1)
 				v = min(int(f.uv[ i ][1] * f.image.size[1]), f.image.size[1] - 1)
-				rgb = bb.xyz_to_rgb(f.verts[i].co)
+				rgb = bb.xyz_to_float(f.verts[i].co)
 				uvmap.append(Pixel(u, v, rgb))
 			uvmap.sort() # custom sort does ascending x, ascending y
 			if len(uvmap) == 4:
@@ -558,7 +571,7 @@ def bake_object(ob, bb, clear = True):
 				for i in range(len(uvmap) - 1):
 					maps[f.image.name].draw_line(f.image, uvmap[ i ], uvmap[ i + 1 ])
 	for image in images:
-		maps[f.image.name].bake( image )
+		maps[f.image.name].bake_float(image)
 	mesh.activeUVLayer = currentUV
 	return True
 
@@ -631,6 +644,13 @@ def new_from_map(image):
 				mat.invert()
 				mat.resize4x4()
 				ob.setMatrix(mat)
+	except:
+		pass
+	try:
+		x = image.properties['ps_size_x']
+		y = image.properties['ps_size_y']
+		z = image.properties['ps_size_z']
+		ob.setSize( x, y, z )
 	except:
 		pass
 	if in_editmode:
