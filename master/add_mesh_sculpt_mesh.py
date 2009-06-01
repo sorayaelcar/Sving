@@ -105,7 +105,7 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods=True
 		Blender.Registry.SetKey('ImportSculptie', settings, True) # save latest settings
 	mesh = sculpty.new_mesh( basename,
 			["none","SPHERE","TORUS","PLANE","CYLINDER","HEMI"][sculpt_type],
-			faces_x, faces_y, multires, clean_lods)
+			faces_x, faces_y, multires, clean_lods, settings['radius'])
 	s, t, w, h, clean_s, clean_t = sculpty.map_size( faces_x, faces_y, multires )
 	image = Blender.Image.New( basename, w, h, 32 )
 	sculpty.bake_lod(image)
@@ -128,7 +128,7 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods=True
 				mod[Blender.Modifier.Settings.TYPES] = 1
 		else:
 			mesh.multires = True
-			mesh.addMultiresLevel( multires, ('simple', 'catmull-clark')[catmull] )
+			mesh.addMultiresLevel(multires, ('simple', 'catmull-clark')[catmull])
 			mesh.sel = True
 	# adjust scale for subdivision
 	minimum, maximum = sculpty.get_bounding_box( ob )

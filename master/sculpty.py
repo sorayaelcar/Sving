@@ -429,7 +429,7 @@ def bake_default(image, sculpt_type, radius = 0.25):
 			profile = float(v) / y
 			if v == y - 1:
 				profile = 1.0
-			rgb = uv_to_rgb(sculpt_type, path, profile)
+			rgb = uv_to_rgb(sculpt_type, path, profile, radius)
 			image.setPixelF(u, v, (rgb.x, rgb.y, rgb.z , 1.0))
 
 def bake_lod(image):
@@ -962,7 +962,7 @@ def new_from_map(image):
 	Blender.Window.WaitCursor(0)
 	return ob
 
-def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True):
+def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True, radius=0.25):
 	'''Returns a sculptie mesh created from the input
 
 	name - the mesh name
@@ -1015,7 +1015,7 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True)
 		profile = float(i)/t
 		for k in xrange(verts_s):
 			path = float(k)/s
-			pos = uv_to_rgb(sculpt_type, path, profile)
+			pos = uv_to_rgb(sculpt_type, path, profile, radius)
 			vert = Blender.Mathutils.Vector(pos.x - 0.5, pos.y - 0.5, pos.z - 0.5)
 			mesh.verts.extend([ vert ])
 			verts.append (mesh.verts[-1])
@@ -1142,7 +1142,7 @@ def update_from_map(mesh, image):
 	mesh.activeUVLayer = currentUV
 	mesh.sel = True
 
-def uv_to_rgb(sculpt_type, u, v):
+def uv_to_rgb(sculpt_type, u, v, radius=0.25):
 	'''Returns 3D location for the given UV co-ordinates on a default sculpt type'''
 	a = pi + 2 * pi * u
 	if sculpt_type == "SPHERE":
@@ -1160,15 +1160,15 @@ def uv_to_rgb(sculpt_type, u, v):
 		g = 0.5 - cos(a) * ps
 		b = 0.5 + cos(2 * pi * v) / 2.0
 	elif sculpt_type == "HEMI":
-		b = sqrt(2.0)
 		z = -cos(2 * pi * min(u, v, 1.0 - u, 1.0 - v)) / 2.0
 		pa = u - 0.5
 		pr = v - 0.5
 		ph = sqrt(pa * pa + pr * pr)
 		ps = sqrt(sin((0.5 - z) * pi * 0.5) / 2.0)
 		if ph == 0.0: ph = 1.0
-		r = 0.5 + (pa / ph * ps) / b
-		g = 0.5 + (pr / ph * ps) / b
+		sr2 = sqrt(2.0)
+		r = 0.5 + (pa / ph * ps) / sr2
+		g = 0.5 + (pr / ph * ps) / sr2
 		b= 0.5 + z
 	else:
 		r = u
