@@ -80,17 +80,22 @@ class BoundingBox:
 	'''class for calculating the bounding box for post modifier stack meshes'''
 	def __init__(self, ob = None):
 		self.rgb = RGBRange()
-		self._dirty = XYZ(True, True, True)
 		self._dmin = XYZ(0.0, 0.0, 0.0)
 		self._dmax = XYZ(0.0, 0.0, 0.0)
 		if ob != None:
 			self.min, self.max = get_bounding_box(ob)
 			self._default = XYZ(False, False, False)
+			self._dirty = XYZ(False, False, False)
 		else:
+			self._dirty = XYZ(True, True, True)
 			self._default = XYZ(True, True, True)
 			self.min = XYZ(0.0, 0.0, 0.0)
 			self.max = XYZ(0.0, 0.0, 0.0)
 		self.update()
+
+	def __repr__(self):
+		return "bb{ min=" + repr(self.min) +", max=" + repr(self.max) + ", scale=" +\
+			repr(self.scale) + ", center" + repr(self.center) + "}"
 
 	def add(self, ob):
 		'''Expands box to contain object (if neccessary).'''
@@ -224,9 +229,9 @@ class BakeMap:
 		for x in range(self.u):
 			for y in range(self.v):
 				if self.map[x][y][0]:
-					r = clip(sum(self.map[x][y][0]) / len(self.map[x][y][0]), 0.0, 1.0)
-					g = clip(sum(self.map[x][y][1]) / len(self.map[x][y][1]), 0.0, 1.0)
-					b = clip(sum(self.map[x][y][2]) / len(self.map[x][y][2]), 0.0, 1.0)
+					r = sum(self.map[x][y][0]) / len(self.map[x][y][0])
+					g = sum(self.map[x][y][1]) / len(self.map[x][y][1])
+					b = sum(self.map[x][y][2]) / len(self.map[x][y][2])
 					image.setPixelF(x, y, ( r, g, b, 1.0 ))
 
 	def draw_line(self, start, end, ends=True):
@@ -323,25 +328,25 @@ class BakeMap:
 			c += delta
 
 class RGBRange:
-	def __init__(self, min_r = 0, max_r = 255, min_g = 0, max_g = 255, min_b = 0, max_b = 255):
-		self.min = XYZ(min_r, min_g, min_b)
-		self.max = XYZ(max_r, max_g, max_b)
+	def __init__(self, minimum=XYZ(0, 0, 0), maximum=XYZ(255, 255, 255)):
+		self.min = minimum
+		self.max = maximum
 		self.update()
 
 	def convert(self, rgb):
 		'''converts float rgb to integers from the range'''
-		return XYZ(clip(self.min.x + int(self.max.x * rgb.x)),
-				clip(self.min.y + int(self.max.y * rgb.y)),
-				clip(self.min.z + int(self.max.z * rgb.z)))
+		return XYZ(int(round(self.min.x + self.range.x * rgb.x)),
+				int(round(self.min.y + self.range.y * rgb.y)),
+				int(round(self.min.z + self.range.z * rgb.z)))
 
 	def update(self):
 		'''Call after setting min and max to refresh the scale and center.'''
-		self.scale = XYZ((self.max.x - self.min.x) / 255.0,
-				(self.max.y - self.min.y) / 255.0,
-				(self.max.z - self.min.z) / 255.0)
-		self.center = XYZ(((self.min.x + (self.max.x * 0.5)) / 255.0) - 0.5,
-				((self.min.y + (self.max.y * 0.5)) / 255.0) - 0.5,
-				((self.min.z + (self.max.z * 0.5)) / 255.0) - 0.5)
+		self.range = self.max - self.min
+		self.scale = self.range / 255.0
+		self.center = (self.min + self.max * 0.5) / 255.0 - XYZ(0.5, 0.5, 0.5)
+
+	def __repr__(self):
+		return "RGBRange(" + repr(self.min) + ", " + repr(self.max) + ")"
 
 class Pixel:
 	def __init__(self, u, v, rgb):
@@ -475,8 +480,8 @@ def bake_object(ob, bb, clear = True):
 		if f.image != None:
 			uvmap = []
 			for i in range(len(f.verts)):
-				u = min(int(f.uv[ i ][0] * f.image.size[0]), f.image.size[0] - 1)
-				v = min(int(f.uv[ i ][1] * f.image.size[1]), f.image.size[1] - 1)
+				u = min(int(round(f.uv[ i ][0] * f.image.size[0])), f.image.size[0] - 1)
+				v = min(int(round(f.uv[ i ][1] * f.image.size[1])), f.image.size[1] - 1)
 				rgb = bb.xyz_to_float(f.verts[i].co)
 				uvmap.append(Pixel(u, v, rgb))
 			uvmap.sort() # custom sort does ascending x, ascending y
@@ -1122,8 +1127,8 @@ def update_from_map(mesh, image):
 				verts.remove(f.verts[ vi ].index)
 				if f.verts[ vi ].sel:
 					u, v = f.uv[ vi ]
-					u = int(2.0 / image.size[0] + u * image.size[0])
-					v = int(2.0 / image.size[1] + v * image.size[1])
+					u = int(round(u * image.size[0]))
+					v = int(round(v * image.size[1]))
 					if u == image.size[0]:
 						u = image.size[0] - 1
 					if v == image.size[1]:
@@ -1166,7 +1171,7 @@ def uv_to_rgb(sculpt_type, u, v):
 	else:
 		r = u
 		g = v
-		b = 0.0
+		b = 0.5
 	return XYZ(r, g, b)
 
 def vertex_pixels(size, faces):
