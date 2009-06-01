@@ -850,27 +850,35 @@ def map_size(x_faces, y_faces, levels):
 	cs - True if x face count was corrected
 	ct - True if y face count was corrected
 	'''
-	w = int(pow(2, levels + 1 + ceil(log(x_faces) / log(2))))
-	h = int(pow(2, levels + 1 + ceil(log(y_faces) / log(2))))
-	w, h = face_count(w, h, 32, 32)
-	s = min(w, x_faces)
-	t = min(h, y_faces)
-	w = int(pow(2, levels + 1 + ceil(log(w>>levels) / log(2))))
-	h = int(pow(2, levels + 1 + ceil(log(h>>levels) / log(2))))
-	if w == h == 8:
-		# 8 x 8 won't upload
-		w = 16
-		h = 16
-	cs = True
-	ct = True
-	if (s<<(levels + 1) > w):
-		s = w>>(levels + 1)
-	if (t<<(levels +1) > h):
-		t = h>>(levels + 1)
-	if (s < x_faces):
-		cs = False
-	if (t < y_faces):
-		ct = False
+	if ( (( x_faces == 9 and y_faces == 4) or ( x_faces == 4 and y_faces == 9))
+		and levels == 0):
+		s = x_faces
+		t = y_faces
+		w = (x_faces - x_faces % 2) * 2
+		h = (y_faces - y_faces % 2) * 2
+		cs = ct = False
+	else:
+		w = int(pow(2, levels + 1 + ceil(log(x_faces) / log(2))))
+		h = int(pow(2, levels + 1 + ceil(log(y_faces) / log(2))))
+		w, h = face_count(w, h, 32, 32)
+		s = min(w, x_faces)
+		t = min(h, y_faces)
+		w = int(pow(2, levels + 1 + ceil(log(w>>levels) / log(2))))
+		h = int(pow(2, levels + 1 + ceil(log(h>>levels) / log(2))))
+		if w == h == 8:
+			# 8 x 8 won't upload
+			w = 16
+			h = 16
+		cs = True
+		ct = True
+		if (s<<(levels + 1) > w):
+			s = w>>(levels + 1)
+		if (t<<(levels +1) > h):
+			t = h>>(levels + 1)
+		if (s < x_faces):
+			cs = False
+		if (t < y_faces):
+			ct = False
 	return s, t, w, h, cs, ct
 
 def map_type(image):
