@@ -1134,9 +1134,11 @@ def update_from_map(mesh, image):
 					if v == image.size[1]:
 						v = image.size[1] - 1
 					p  = image.getPixelF(u, v)
-					f.verts[ vi ].co = Blender.Mathutils.Vector((p[0] - 0.5),
-							(p[1] - 0.5),
-							(p[2] - 0.5))
+					adjust = 256.0 / 255.0
+					x = min( p[0]  * adjust, 1.0 ) - 0.5
+					y = min( p[1]  * adjust, 1.0 ) - 0.5
+					z = min( p[2]  * adjust, 1.0 ) - 0.5
+					f.verts[ vi ].co = Blender.Mathutils.Vector(x, y, z)
 	mesh.activeUVLayer = currentUV
 	mesh.sel = True
 
