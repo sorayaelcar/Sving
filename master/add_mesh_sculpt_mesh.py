@@ -214,8 +214,11 @@ def main():
 				in_editmode = Blender.Get('add_editmode')
 			except:
 				pass
-		ob = add_sculptie(sculpt_type.val, faces_x.val, faces_y.val,
+		try:
+			ob = add_sculptie(sculpt_type.val, faces_x.val, faces_y.val,
 					multires_levels.val, clean_lod.val, subsurf.val, catmull.val )
+		except RuntimeError:
+			Blender.Draw.PupBlock( "Unable to create sculptie", ["Please decrease face counts","or subdivision levels"] )
 		if in_editmode:
 			Blender.Window.EditMode(1)
 
