@@ -75,9 +75,16 @@ PLANE = 3
 CYLINDER = 4
 HEMI = 5
 
-settings = {'x_faces':8,'y_faces':8,'type':1,'multires':2, 'clean_lod':True, 'radius':0.25, 'subsurf':True}
+settings = {'x_faces':8,
+		'y_faces':8,
+		'type':1,
+		'multires':2,
+		'clean_lod':True,
+		'radius':0.25,
+		'subsurf':True,
+		'catmull':True}
 
-def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = True, subsurf = False ):
+def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods=True, subsurf=False, catmull=True ):
 	Blender.Window.WaitCursor(1)
 	basename = ("Sphere", "Torus", "Plane", "Cylinder", "Hemi")[sculpt_type -1]
 	scene = Blender.Scene.GetCurrent()
@@ -96,10 +103,12 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 		Blender.Window.WaitCursor(1)
 		settings['radius'] = radius.val
 		Blender.Registry.SetKey('ImportSculptie', settings, True) # save latest settings
-	mesh = sculpty.new_mesh( basename, ["none","SPHERE","TORUS","PLANE","CYLINDER","HEMI"][sculpt_type], faces_x, faces_y, multires, clean_lods )
+	mesh = sculpty.new_mesh( basename,
+			["none","SPHERE","TORUS","PLANE","CYLINDER","HEMI"][sculpt_type],
+			faces_x, faces_y, multires, clean_lods)
 	s, t, w, h, clean_s, clean_t = sculpty.map_size( faces_x, faces_y, multires )
 	image = Blender.Image.New( basename, w, h, 32 )
-	sculpty.bake_default( image, ["none","SPHERE","TORUS","PLANE","CYLINDER","HEMI"][sculpt_type], settings['radius'] )
+	sculpty.bake_lod(image)
 	ob = scene.objects.new( mesh, basename )
 	if sculpt_type != PLANE:
 		mesh.flipNormals()
@@ -115,9 +124,11 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods = Tr
 			mod[Blender.Modifier.Settings.LEVELS] = multires
 			mod[Blender.Modifier.Settings.RENDLEVELS] = multires
 			mod[Blender.Modifier.Settings.UV] = False
+			if not catmull:
+				mod[Blender.Modifier.Settings.TYPES] = 1
 		else:
 			mesh.multires = True
-			mesh.addMultiresLevel( multires )
+			mesh.addMultiresLevel( multires, ('simple', 'catmull-clark')[catmull] )
 			mesh.sel = True
 	# adjust scale for subdivision
 	minimum, maximum = sculpty.get_bounding_box( ob )
@@ -158,23 +169,33 @@ def main():
 			settings['type'] = rdict['type']
 			settings['clean_lod'] = rdict['clean_lod']
 			settings['subsurf'] = rdict['subsurf']
+			settings['catmull'] = rdict['catmull']
 		except:
 			pass
 	block = []
-	sculpt_type = Blender.Draw.Create ( settings['type'] )
-	faces_x = Blender.Draw.Create( settings['x_faces'] )
-	faces_y = Blender.Draw.Create( settings['y_faces'] )
-	multires_levels = Blender.Draw.Create( settings['multires'] )
-	clean_lod = Blender.Draw.Create( settings['clean_lod'] )
-	subsurf = Blender.Draw.Create( settings['subsurf'] )
-	block.append (( "Mesh Type: ", sculpt_type, 1, 5 ))
-	block.append (( "  1 Sphere  2 Torus  3 Plane" ))
-	block.append (( "      4 Cylinder  5 Hemi" ))
-	block.append (( "X Faces", faces_x, 2, 256 ))
-	block.append (( "Y Faces", faces_y, 2, 256 ))
-	block.append (( "Subdivision Levels", multires_levels, 0, 16 ))
-	block.append (( "Use Subsurf", subsurf ))
-	block.append (( "Clean LODs", clean_lod ))
+	sculpt_type = Blender.Draw.Create(settings['type'])
+	faces_x = Blender.Draw.Create(settings['x_faces'])
+	faces_y = Blender.Draw.Create(settings['y_faces'])
+	multires_levels = Blender.Draw.Create(settings['multires'])
+	clean_lod = Blender.Draw.Create(settings['clean_lod'])
+	subsurf = Blender.Draw.Create(settings['subsurf'])
+	catmull = Blender.Draw.Create(settings['catmull'])
+	block.append(("Mesh Type: ", sculpt_type, 1, 5))
+	block.append(("  1 Sphere  2 Torus  3 Plane"))
+	block.append(("      4 Cylinder  5 Hemi"))
+	block.append(("X Faces", faces_x, 2, 256))
+	block.append(("Y Faces", faces_y, 2, 256))
+	block.append(("Subdivision Levels", multires_levels, 0, 16))
+	block.append (("Clean LODs", clean_lod))
+	block.append("")
+	block.append("Primstar")
+	block.append("by Domino Marama")
+	block.append("")
+	block.append("http://dominodesigns.info")
+	block.append("")
+	block.append(("Use Subsurf", subsurf))
+	block.append(("Use Catmull", catmull))
+
 	if Blender.Draw.PupBlock( "Sculpt Mesh Options", block ):
 		settings['x_faces'] = faces_x.val
 		settings['y_faces'] = faces_y.val
@@ -182,6 +203,7 @@ def main():
 		settings['type'] = sculpt_type.val
 		settings['clean_lod'] = clean_lod.val
 		settings['subsurf'] = subsurf.val
+		settings['catmull'] = catmull.val
 		Blender.Registry.SetKey('AddMeshSculptMesh', settings, True)
 		in_editmode = Blender.Window.EditMode()
 		# MUST leave edit mode before changing an active mesh:
@@ -192,7 +214,8 @@ def main():
 				in_editmode = Blender.Get('add_editmode')
 			except:
 				pass
-		ob = add_sculptie( sculpt_type.val, faces_x.val, faces_y.val, multires_levels.val, clean_lod.val, subsurf.val )
+		ob = add_sculptie(sculpt_type.val, faces_x.val, faces_y.val,
+					multires_levels.val, clean_lod.val, subsurf.val, catmull.val )
 		if in_editmode:
 			Blender.Window.EditMode(1)
 
