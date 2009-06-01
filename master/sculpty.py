@@ -33,6 +33,9 @@ from math import sin, cos, pi, sqrt, log, ceil
 def clip(value, minimum=0, maximum=255):
 	return min(maximum, max(minimum, value))
 
+def obChildren(ob):
+    return [ob_child for ob_child in Blender.Object.Get() if ob_child.parent == ob]
+
 #***********************************************
 # classes
 #***********************************************
@@ -393,6 +396,41 @@ class Pixel:
 			str(self.v) + ", " +\
 			str(self.rgb) + ")"
 
+class Prim:
+	def __init__(self, name, ob=None):
+		self.name = name
+		self.children = []
+		self.textures = []
+		self.sculpt_maps = []
+		self.size = (1.0, 1.0, 1.0)
+		self.rotation = (0.0, 0.0, 0.0, 1.0)
+		self.location = (0.0, 0.0, 0.0)
+		if ob:
+			if active(ob):
+				mesh = ob.getData(False, True)
+				self.sculpt_maps = map_images(mesh)
+				self.textures = [Texture( i ) for i in map_images(mesh, 'UVTex')]
+			self.size = ob.size
+			r = ob.getMatrix().rotationPart().invert().toQuat()
+			self.rotation = ( r[1], r[2], r[3], r[0] )
+			self.location = ob.getLocation( 'worldspace' )
+			for c in obChildren(ob):
+				self.children.append(Prim(c.name, c))
+
+class Texture:
+	def __init__( self, image = None ):
+		self.image = image
+		self.offset = ( 0.0, 0.0 )
+		self.repeat = ( 1.0, 1.0 )
+		self.rotation = 0.0
+		self.face = 0
+
+	def save_image( self, filename ):
+		oldfile = self.image.filename
+		self.image.filename = filename
+		self.image.save()
+		self.image.filename = oldfile
+
 #***********************************************
 # functions
 #***********************************************
@@ -732,25 +770,17 @@ def fill_holes(image):
 def finalise(image):
 	'''Expands each active pixel of the sculpt map image'''
 	ss, ts = map_pixels(image.size[0], image.size[1])
-	d = 2
-	for y in xrange(0, image.size[1], d):
-		for x in xrange(0, image.size[0] - 1):
-			if x in ss:
-				c = image.getPixelI(x, y)
-			else:
-				image.setPixelI(x, y, c)
-	y = image.size[1] - 1
-	for x in xrange(0, image.size[0] - 1):
-			if x in ss:
-				c = image.getPixelI(x, y)
-			else:
-				image.setPixelI(x, y, c)
-	for x in xrange(0, image.size[0]):
-		for y in xrange(0, image.size[1] -1):
-			if y in ts:
-				c = image.getPixelI(x, y)
-			else:
-				image.setPixelI(x, y, c)
+	ss.append( image.size[0])
+	ts.append( image.size[1])
+	for x in ss[:-1]:
+		for y in ts[:-1]:
+			c = image.getPixelI(x, y)
+			if x + 1 not in ss:
+				image.setPixelI(x + 1, y, c)
+				if y + 1 not in ss:
+					image.setPixelI(x + 1, y + 1, c)
+			if y + 1 not in ss:
+				image.setPixelI(x, y + 1, c)
 
 def flip_pixels(pixels):
 	'''Converts a list of pixels on a sculptie map to their mirror positions.'''
@@ -803,12 +833,12 @@ def lod_size(width, height, lod):
 	y_faces = verts // x_faces
 	return int(x_faces), int(y_faces)
 
-def map_images(mesh):
+def map_images(mesh, layer='sculptie'):
 	'''Returns the list of images assigned to the 'sculptie' UV layer.'''
 	images = []
-	if "sculptie" in mesh.getUVLayerNames():
+	if layer in mesh.getUVLayerNames():
 		currentUV = mesh.activeUVLayer
-		mesh.activeUVLayer = "sculptie"
+		mesh.activeUVLayer = layer
 		for f in mesh.faces:
 			if f.image != None:
 				if f.image not in images:
