@@ -91,7 +91,7 @@ settings = {
 			'minB':0,
 			'maxB':255,
 			'doScaleRGB':True
-		   }
+}
 
 
 # ===================================================================
@@ -193,18 +193,18 @@ def drawCreateBox():
 	title = ""
 
 	block = []
-	title = "Sculptie Bake Options "+sculpty.RELEASE;
+	title = "Sculptie Bake Options"
 	Blender.Draw.Label(title, row[0], y, 345, 20)
 
 
-	# =======================================================		
+	# =======================================================
 	# Left popup block
 	# =======================================================
-		
+
 	Blender.Draw.Label("Color Range Adjustment:", row[0], y-30, 150, 20)
-		
+
 	Blender.Draw.BeginAlign()
-		
+
 	x = Blender.Draw.Button("",    EVENT_NONE, row[0],    y-50, 30, 20)
 	x = Blender.Draw.Button("Min", EVENT_NONE, row[0]+35, y-50, 55, 20)
 	x = Blender.Draw.Button("Max", EVENT_NONE, row[0]+90, y-50, 55, 20)
@@ -212,7 +212,7 @@ def drawCreateBox():
 	x = Blender.Draw.Button("R:", EVENT_NONE, row[0], y-70, 30, 20)
 	GLOBALS['minR'] = Blender.Draw.Number("", EVENT_NONE, row[0]+35, y-70, 55, 20, GLOBALS['minR'].val, 0, 255)
 	GLOBALS['maxR'] = Blender.Draw.Number("", EVENT_NONE, row[0]+90, y-70, 55, 20, GLOBALS['maxR'].val, 0, 255)
-	
+
 	x = Blender.Draw.Button("G:", EVENT_NONE, row[0], y-90, 30, 20)
 	GLOBALS['minG'] = Blender.Draw.Number("", EVENT_NONE, row[0]+35, y-90, 55, 20, GLOBALS['minG'].val, 0, 255)
 	GLOBALS['maxG'] = Blender.Draw.Number("", EVENT_NONE, row[0]+90, y-90, 55, 20, GLOBALS['maxG'].val, 0, 255)
@@ -221,101 +221,99 @@ def drawCreateBox():
 	GLOBALS['minB'] = Blender.Draw.Number("", EVENT_NONE, row[0]+35, y-110, 55, 20, GLOBALS['minB'].val, 0, 255)
 	GLOBALS['maxB'] = Blender.Draw.Number("", EVENT_NONE, row[0]+90, y-110, 55, 20, GLOBALS['maxB'].val, 0, 255)
 
-	GLOBALS['doScaleRGB'] = Blender.Draw.Toggle("Include in size", 
-	                                            EVENT_INCLUDE_IN_SIZE, 
-	                                            row[0], y-130, 
-	                                            145, 20, 
-	                                            GLOBALS['doScaleRGB'].val,
-	                                            "in LSL script: correct rescaling due to color adjustment", 
-	                                            do_toggle_button)
+	GLOBALS['doScaleRGB'] = Blender.Draw.Toggle("Include in size",
+						    EVENT_INCLUDE_IN_SIZE,
+						    row[0], y-130,
+						    145, 20,
+						    GLOBALS['doScaleRGB'].val,
+						    "in LSL script: correct rescaling due to color adjustment",
+						    do_toggle_button)
 	Blender.Draw.EndAlign()
 
 	Blender.Draw.Label("UV-Map options", row[0], y-155, 150, 20)
 	Blender.Draw.BeginAlign()
 	GLOBALS['doClear'] = Blender.Draw.Toggle( "Clear map",
-	                                           EVENT_DO_CLEAR,
-	                                           row[0], y-175,
-	                                           145, 20,
-	                                           GLOBALS['doClear'].val,
-	                                           "Remove all data from map before baking.",
-	                                           do_toggle_button)
+						   EVENT_DO_CLEAR,
+						   row[0], y-175,
+						   145, 20,
+						   GLOBALS['doClear'].val,
+						   "Remove all data from map before baking.",
+						   do_toggle_button)
 
 	GLOBALS['doFill'] = Blender.Draw.Toggle( "Fill holes",
-	                                           EVENT_DO_FILL,
-	                                           row[0], y-195,
-	                                           145, 20,
-	                                           GLOBALS['doFill'].val,
-	                                           "Add missing faces otherwise rendered as pure black.",
-	                                           do_toggle_button)
+						   EVENT_DO_FILL,
+						   row[0], y-195,
+						   145, 20,
+						   GLOBALS['doFill'].val,
+						   "Add missing faces otherwise rendered as pure black.",
+						   do_toggle_button)
 	Blender.Draw.EndAlign()
 
 
-	# =======================================================		
-	# Right popup block	
-	# =======================================================		
+	# =======================================================
+	# Right popup block
+	# =======================================================
 
 	Blender.Draw.Label("Map protection (alpha)", row[1], y-30, 150, 20)
 	Blender.Draw.BeginAlign()
 
 	GLOBALS['doProtect'] = Blender.Draw.Toggle( "Protect map",
-	                       EVENT_MAP_PROTECT,
-	                       row[1], y-50,
-	                       140, 20,
-	                       GLOBALS['doProtect'].val,
-	                       "Enable alpha mask protection of your sculptie. Hint enable F10 -> Format -> RGBA !",
-	                       do_toggle_button)
-		
+			       EVENT_MAP_PROTECT,
+			       row[1], y-50,
+			       140, 20,
+			       GLOBALS['doProtect'].val,
+			       "Enable alpha mask protection of your sculptie. Hint enable F10 -> Format -> RGBA !",
+			       do_toggle_button)
+
 	if GLOBALS['doProtect'].val:
 		GLOBALS['protect_type_simple'] = Blender.Draw.Toggle( "Transparent",
-	                       EVENT_PROTECT_TYPE_INVISIBLE,
-	                       row[1], y-70,
-	                       80,20,
-	                       GLOBALS['protect_type_simple'].val,
-	                       "Make image fully transparent. Hint: enable 'draw image with alpha' in UV-editor",
-	                       do_protection_type_sel)
-		                                            
+			       EVENT_PROTECT_TYPE_INVISIBLE,
+			       row[1], y-70,
+			       80,20,
+			       GLOBALS['protect_type_simple'].val,
+			       "Make image fully transparent. Hint: enable 'draw image with alpha' in UV-editor",
+			       do_protection_type_sel)
+
 		GLOBALS['protect_type_silhouette'] = Blender.Draw.Toggle( "Preview",
-	                       EVENT_PROTECT_TYPE_SILHOUETTE,
-	                       row[1]+80, y-70,
-	                       60,20,
-	                       GLOBALS['protect_type_silhouette'].val,
-	                       "Use front view silhouette as alpha mask.",
-	                       do_protection_type_sel)
-		                                            		                                            
+			       EVENT_PROTECT_TYPE_SILHOUETTE,
+			       row[1]+80, y-70,
+			       60,20,
+			       GLOBALS['protect_type_silhouette'].val,
+			       "Use front view silhouette as alpha mask.",
+			       do_protection_type_sel)
 	Blender.Draw.EndAlign()
 
 	Blender.Draw.Label("Transformation", row[1], y-135, 120, 20)
 	Blender.Draw.BeginAlign()
 	GLOBALS['keepScale'] = Blender.Draw.Toggle("Keep Scale",
-	                                         EVENT_DO_SCALE,
-	                                         row[1], y-155,
-	                                         140, 20, 
-	                                         GLOBALS['keepScale'].val,
-	                                         "Maintain aspect ration. No rescale necessary (but reduces resolution)",
-	                                         do_toggle_button)
+						 EVENT_DO_SCALE,
+						 row[1], y-155,
+						 140, 20,
+						 GLOBALS['keepScale'].val,
+						 "Maintain aspect ration. No rescale necessary (but reduces resolution)",
+						 do_toggle_button)
 
 	GLOBALS['keepCenter'] = Blender.Draw.Toggle( "Keep Center",
-	                                            EVENT_KEEP_CENTER,
-	                                            row[1], y-175,
-	                                            140, 20,
-	                                            GLOBALS['keepCenter'].val,
-	                                            "With Keep Scale: ensure, that object center is preserved",
-	                                            do_toggle_button)
-		
+						    EVENT_KEEP_CENTER,
+						    row[1], y-175,
+						    140, 20,
+						    GLOBALS['keepCenter'].val,
+						    "With Keep Scale: ensure, that object center is preserved",
+						    do_toggle_button)
+
 	GLOBALS['doFinal'] = Blender.Draw.Toggle( "Finalize",
-	                                           EVENT_MAKE_FLIPABLE,
-	                                           row[1], y-195,
-	                                           140, 20,
-	                                           GLOBALS['doFinal'].val,
-	                                           "Optimize sculpt-map for precise mirroring (caution with odd face numbers!)",
-	                                           do_toggle_button)
+						   EVENT_MAKE_FLIPABLE,
+						   row[1], y-195,
+						   140, 20,
+						   GLOBALS['doFinal'].val,
+						   "Optimize sculpt-map for precise mirroring (caution with odd face numbers!)",
+						   do_toggle_button)
 
 	Blender.Draw.EndAlign()
 
-
-	# =======================================================		
-	# OK block	
-	# =======================================================		
+	# =======================================================
+	# OK block
+	# =======================================================
 
 	GLOBALS['button_ok']    = Blender.Draw.Button("OK", EVENT_OK, row[2], y-195, 25, 165,  "Create object", do_toggle_button)
 
@@ -330,7 +328,7 @@ def bake_sculptie():
 		bb.rgb.min = sculpty.XYZ( GLOBALS['minR'].val, GLOBALS['minG'].val, GLOBALS['minB'].val )
 		bb.rgb.max = sculpty.XYZ( GLOBALS['maxR'].val, GLOBALS['maxG'].val, GLOBALS['maxB'].val )
 		bb.rgb.update()
-		
+
 		scene = Blender.Scene.GetCurrent()
 		for ob in scene.objects.selected:
 			if sculpty.check( ob ):
@@ -388,8 +386,6 @@ def bake_sculptie():
 		if not success:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
 
-
-
 # ===============================================================
 # Main loop.
 # Note: The UIBlock is redrawn with every mouse click, so that
@@ -400,7 +396,6 @@ def bake_sculptie():
 # button is clicked, the sculptie will be baked.
 # ===============================================================
 def main():
-
 	create_gui_globals()
 	GLOBALS['event'] = EVENT_REDRAW
 	while GLOBALS['event'] != EVENT_EXIT and GLOBALS['event'] != EVENT_OK:

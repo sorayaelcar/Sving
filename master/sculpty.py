@@ -18,21 +18,13 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
-#
-#Gaia Clary 2009-06-07
-#- RELEASE constant added
-
-#***********************************************
-# Constants
-#***********************************************
-RELEASE = "primstar-git    by Domino Designs(c)"
 
 #***********************************************
 # Import modules
 #***********************************************
 
 import Blender
-from math import sin, cos, pi, sqrt, log, ceil
+from math import sin, cos, pi, sqrt, log, ceil, atan2
 
 #***********************************************
 # helper functions
@@ -1187,6 +1179,63 @@ def update_from_map(mesh, image):
 					f.verts[ vi ].co = Blender.Mathutils.Vector(x, y, z)
 	mesh.activeUVLayer = currentUV
 	mesh.sel = True
+
+def uv_corners(mesh):
+	'''returns the four corner points of the UV layout'''
+	edge_faces = dict([(ed.key, []) for ed in mesh.edges])
+	for f in mesh.faces:
+		for key in f.edge_keys:
+		       edge_faces[key].append(f)
+	edge_start = []
+	edge_end = []
+	for key, face_users in edge_faces.iteritems():
+		if len(face_users) == 1:
+			edge_start.append(key[0])
+			edge_end.append(key[1])
+	corners = []
+	for v in edge_start:
+		if edge_start.count(v) > 1:
+			if v not in corners:
+				corners.append(v)
+	for v in edge_end:
+		if edge_end.count(v) >1:
+			if v not in corners:
+				corners.append(v)
+	if len(corners) != 4:
+		return XYZ(0.0, 0.0, 0.0), XYZ(0.0, 1.0, 0.0), XYZ(1.0, 0.0, 0.0), XYZ(1.0, 1.0, 0.0)
+	tl = False
+	for f in mesh.faces:
+		for i in range(len(f.verts)):
+			if f.verts[i].index in corners:
+				if not tl:
+					tl = XYZ(f.uv[i][0], f.uv[i][1], 0.0 )
+					bl = XYZ(f.uv[i][0], f.uv[i][1], 0.0 )
+					tr= XYZ(f.uv[i][0], f.uv[i][1], 0.0 )
+					br = XYZ(f.uv[i][0], f.uv[i][1], 0.0 )
+				else:
+					if f.uv[i][0] < bl.x and  f.uv[i][1] <= tl.y:
+						bl.x = f.uv[i][0]
+						bl.y = f.uv[i][1]
+					if f.uv[i][0] <= tl.x and f.uv[i][1] >= bl.y:
+						tl.x = f.uv[i][0]
+						tl.y = f.uv[i][1]
+					if f.uv[i][0] >= br.x and f.uv[i][1] <= tr.y:
+						br.x = f.uv[i][0]
+						br.y = f.uv[i][1]
+					if f.uv[i][0] >= tr.x and f.uv[i][1] >= br.y:
+						tr.x = f.uv[i][0]
+						tr.y = f.uv[i][1]
+	return bl, tl, br, tr
+
+def uv_params(mesh):
+	'''returns the scale and rotation of the UV layout'''
+	bl, tl, br, tr = uv_corners(mesh)
+	hv = tl - bl
+	wv = br - bl
+	a = atan2(hv.x,hv.y)
+	s = XYZ( Blender.Mathutils.Vector( wv.x, wv.y ).length,
+			Blender.Mathutils.Vector( hv.x, hv.y ).length, 0.0 )
+	return s,a
 
 def uv_to_rgb(sculpt_type, u, v, radius=0.25):
 	'''Returns 3D location for the given UV co-ordinates on a default sculpt type'''

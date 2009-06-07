@@ -15,32 +15,6 @@ Sculpt Mesh
 
 This script creates an object with a gridded UV map suitable for Second Life sculpties.
 """
-#0.13 Gaia Clary 2009-06-07
-#- Enhanced GUI added
-#0.12 Domino Marama 2009-05-24
-#- Image based sculptie generation added
-#0.11 Domino Marama 2008-10-27
-#- Use get_bounding_box from render_sculptie.py
-#0.10 Domino Marama 2008-10-25
-#- Wrapped edges are marked as seams
-#0.09 Domino Marama 2008-10-17
-#- Added subsurf modifer for lod levels
-#0.08 Domino Marama 2008-10-17
-#- Added clean LODs option and proper oblong support
-#0.07 Domino Marama 2008-08-27
-#- Increased max faces for oblong sculpties
-#0.06 Domino Marama 2008-07-13
-#- Added hemi sculpt type
-#0.05 Domino Marama 2008-06-28
-#- settings ranges reduced to be mostly sensible
-#0.04 Domino Marama 2008-06-26
-#- space removed from registry key name
-#0.03 Domino Marama 2008-05-07
-#- use preferences for entering edit mode on add mesh
-#0.02 Domino Marama 2008-04-30
-#- Added versioning info and persistant settings
-#0.01 Domino Marama
-#- Initial Version
 
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
@@ -330,7 +304,7 @@ def drawCreateBox():
 
 	block = []
 		
-	title = "Sculpt Mesh Options " + sculpty.RELEASE
+	title = "Sculpt Mesh Options"
 	# Left Popup Block
 			
 	Blender.Draw.Label(title, row[0], y, 335, 20)
