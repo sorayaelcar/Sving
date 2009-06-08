@@ -17,8 +17,6 @@ Bake Sculptie Map
 This script requires a square planar mapping. It bakes the local vertex
 positions to the prim's sculptie map image.
 """
-#0.36 Gaia Clary 2009-06-07
-#- Enhanced GUI added
 
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
@@ -39,7 +37,6 @@ positions to the prim's sculptie map image.
 # Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # ***** END GPL LICENCE BLOCK *****
-# --------------------------------------------------------------------------
 
 #***********************************************
 # Import modules
@@ -56,7 +53,6 @@ PROTECTION_NONE       = 0
 PROTECTION_SIMPLE     = 1
 PROTECTION_SILHOUETTE = 2
 PROTECTION_IMAGE      = 3
-
 
 EVENT_NONE = 0
 EVENT_EXIT = 1
@@ -106,20 +102,20 @@ def create_gui_globals():
 
 	scene = Blender.Scene.GetCurrent()
 	try:
-		settings['doFinal']    = scene.objects.active.properties["bake_final"]
-		settings['doFill']     = scene.objects.active.properties["bake_fill"]
-		settings['keepScale']  = scene.objects.active.properties["bake_scale"]
-		settings['keepCenter'] = scene.objects.active.properties["bake_center"]
-		settings['doClear']    = scene.objects.active.properties["bake_clear"]
-		settings['doProtect']  = scene.objects.active.properties["bake_protect"]
-		settings['doPreview']  = scene.objects.active.properties["bake_preview"]
-		settings['minR']       = scene.objects.active.properties["bake_min_r"]
-		settings['minG']       = scene.objects.active.properties["bake_min_g"]
-		settings['minB']       = scene.objects.active.properties["bake_min_b"]
-		settings['maxR']       = scene.objects.active.properties["bake_max_r"]
-		settings['maxG']       = scene.objects.active.properties["bake_max_g"]
-		settings['maxB']       = scene.objects.active.properties["bake_max_b"]
-		settings['doScaleRGB'] = scene.objects.active.properties["bake_scale_rgb"]
+		settings['doFinal']    = scene.objects.active.properties["ps_bake_final"]
+		settings['doFill']     = scene.objects.active.properties["ps_bake_fill"]
+		settings['keepScale']  = scene.objects.active.properties["ps_bake_scale"]
+		settings['keepCenter'] = scene.objects.active.properties["ps_bake_center"]
+		settings['doClear']    = scene.objects.active.properties["ps_bake_clear"]
+		settings['doProtect']  = scene.objects.active.properties["ps_bake_protect"]
+		settings['doPreview']  = scene.objects.active.properties["ps_bake_preview"]
+		settings['minR']       = scene.objects.active.properties["ps_bake_min_r"]
+		settings['minG']       = scene.objects.active.properties["ps_bake_min_g"]
+		settings['minB']       = scene.objects.active.properties["ps_bake_min_b"]
+		settings['maxR']       = scene.objects.active.properties["ps_bake_max_r"]
+		settings['maxG']       = scene.objects.active.properties["ps_bake_max_g"]
+		settings['maxB']       = scene.objects.active.properties["ps_bake_max_b"]
+		settings['doScaleRGB'] = scene.objects.active.properties["ps_bake_scale_rgb"]
 	except:
 		settings['doFinal']    = True
 		settings['doFill']     = True
@@ -332,48 +328,48 @@ def bake_sculptie():
 		scene = Blender.Scene.GetCurrent()
 		for ob in scene.objects.selected:
 			if sculpty.check( ob ):
-				ob.properties["bake_final"]     = GLOBALS['doFinal'].val
-				ob.properties["bake_fill"]      = GLOBALS['doFill'].val
-				ob.properties["bake_scale"]     = GLOBALS['keepScale'].val
-				ob.properties["bake_center"]    = GLOBALS['keepCenter'].val
-				ob.properties["bake_clear"]     = GLOBALS['doClear'].val
-				ob.properties["bake_protect"]   = GLOBALS['doProtect'].val
-				ob.properties["bake_preview"]   = GLOBALS['protect_type_silhouette'].val == True
-				ob.properties["bake_min_r"]     = GLOBALS['minR'].val
-				ob.properties["bake_min_g"]     = GLOBALS['minG'].val
-				ob.properties["bake_min_b"]     = GLOBALS['minB'].val
-				ob.properties["bake_max_r"]     = GLOBALS['maxR'].val
-				ob.properties["bake_max_g"]     = GLOBALS['maxG'].val
-				ob.properties["bake_max_b"]     = GLOBALS['maxB'].val
-				ob.properties["bake_scale_rgb"] = GLOBALS['doScaleRGB'].val
-				if not ob.properties["bake_center"]:
+				ob.properties["ps_bake_final"]     = GLOBALS['doFinal'].val
+				ob.properties["ps_bake_fill"]      = GLOBALS['doFill'].val
+				ob.properties["ps_bake_scale"]     = GLOBALS['keepScale'].val
+				ob.properties["ps_bake_center"]    = GLOBALS['keepCenter'].val
+				ob.properties["ps_bake_clear"]     = GLOBALS['doClear'].val
+				ob.properties["ps_bake_protect"]   = GLOBALS['doProtect'].val
+				ob.properties["ps_bake_preview"]   = GLOBALS['protect_type_silhouette'].val == True
+				ob.properties["ps_bake_min_r"]     = GLOBALS['minR'].val
+				ob.properties["ps_bake_min_g"]     = GLOBALS['minG'].val
+				ob.properties["ps_bake_min_b"]     = GLOBALS['minB'].val
+				ob.properties["ps_bake_max_r"]     = GLOBALS['maxR'].val
+				ob.properties["ps_bake_max_g"]     = GLOBALS['maxG'].val
+				ob.properties["ps_bake_max_b"]     = GLOBALS['maxB'].val
+				ob.properties["ps_bake_scale_rgb"] = GLOBALS['doScaleRGB'].val
+				if not ob.properties["ps_bake_center"]:
 					#center new
 					sculpty.set_center( ob )
 				bb.add( ob )
-		if ob.properties["bake_scale"]:
+		if ob.properties["ps_bake_scale"]:
 			bb = bb.normalised()
-		if ob.properties["bake_center"]:
+		if ob.properties["ps_bake_center"]:
 			bb = bb.centered()
 		# Good to go, do the bake
 		success = False
 		for ob in scene.objects.selected:
 			if sculpty.active( ob ):
-				if sculpty.bake_object( ob, bb, ob.properties["bake_clear"] ):
+				if sculpty.bake_object( ob, bb, ob.properties["ps_bake_clear"] ):
 					success = True
 				for image in sculpty.map_images( ob.getData( False, True) ):
 					n = Blender.sys.splitext( image.name )
 					if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
 						image.name = ob.name
-					if ob.properties["bake_scale_rgb"]:
+					if ob.properties["ps_bake_scale_rgb"]:
 						image.properties['ps_scale_x'] /= bb.rgb.scale.x
 						image.properties['ps_scale_y'] /= bb.rgb.scale.y
 						image.properties['ps_scale_z'] /= bb.rgb.scale.z
-					if ob.properties["bake_fill"]:
+					if ob.properties["ps_bake_fill"]:
 						sculpty.fill_holes( image )
-					if ob.properties["bake_final"]:
+					if ob.properties["ps_bake_final"]:
 						sculpty.finalise( image )
-						if ob.properties["bake_protect"]:
-							if ob.properties["bake_preview"]:
+						if ob.properties["ps_bake_protect"]:
+							if ob.properties["ps_bake_preview"]:
 								sculpty.bake_preview( image )
 							else:
 								sculpty.clear_alpha( image )
