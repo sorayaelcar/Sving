@@ -241,22 +241,22 @@ def do_force_clean_lod_sel(event, val):
 def do_ok_sel(event, val):
 	GLOBALS['event'] = event
 
-def addLodRow(label, xpos, ypos, width, height, lod, levels, tooltip ):
-	Blender.Draw.Button(label, EVENT_NONE, xpos, ypos, 55, 20, tooltip)
+def addLodRow(label, x, y, width, height, lod, levels, tooltip ):
+	Blender.Draw.Button(label, EVENT_NONE, x, y, 55, 20, tooltip)
 	factor = 2**levels
 	x_faces = width  * factor
 	y_faces = height * factor
 	lx,ly = sculpty.lod_size( x_faces , y_faces, lod )
 	print "(",x_faces,",",y_faces,") --> (",lx,",",ly,") lod:",lod, " levels:",levels, "factor:",factor 
-	Blender.Draw.Button(str(lx),  EVENT_NONE, xpos+55, ypos , 35, 20)
-	Blender.Draw.Button(str(ly) , EVENT_NONE, xpos+90, ypos, 35, 20)
-	Blender.Draw.Button(str(ly*lx) , EVENT_NONE, xpos+125, ypos, 50, 20)
+	Blender.Draw.Button(str(lx),     EVENT_NONE, x+55,  y, 35, 20)
+	Blender.Draw.Button(str(ly) ,    EVENT_NONE, x+90,  y, 35, 20)
+	Blender.Draw.Button(str(ly*lx) , EVENT_NONE, x+125, y, 50, 20)
 
-def addLodLabelRow(xpos, ypos):
-	Blender.Draw.Button("faces:", EVENT_NONE, xpos, ypos, 55, 20)
-	Blender.Draw.Button("X",   EVENT_NONE, xpos+55, ypos , 35, 20)
-	Blender.Draw.Button("Y" ,  EVENT_NONE, xpos+90, ypos, 35, 20)
-	Blender.Draw.Button("X*Y", EVENT_NONE, xpos+125, ypos, 50, 20)
+def addLodLabelRow(x, y):
+	Blender.Draw.Button("faces:", EVENT_NONE, x,  y, 55, 20)
+	Blender.Draw.Button("X",      EVENT_NONE, x+ 55, y, 35, 20)
+	Blender.Draw.Button("Y" ,     EVENT_NONE, x+ 90, y, 35, 20)
+	Blender.Draw.Button("X*Y",    EVENT_NONE, x+125, y, 50, 20)
 
 # ===================================================================
 # This method presets the GLOBAL map from where the UIBlock and the 
@@ -313,6 +313,7 @@ def create_gui_globals():
 	
 	GLOBALS['mouseCoords'] = Blender.Window.GetMouseCoords()
 	GLOBALS['event'] = EVENT_NONE
+	
 
 # ===============================================================
 # The main drawing routine
@@ -320,11 +321,11 @@ def create_gui_globals():
 def drawCreateBox():
 	
 	mouseCoords = GLOBALS['mouseCoords']
-	x,y = mouseCoords
-	x-=260
-	y+=200
+	mouse_x, mouse_y = mouseCoords
+	mouse_x-=260
+	mouse_y+=200
 
-	row  = [x + 0, x + 190, x + 305]
+	row  = [mouse_x + 0, mouse_x + 190, mouse_x + 305]
 
 	GLOBALS['event'] = EVENT_EXIT
 
@@ -332,61 +333,70 @@ def drawCreateBox():
 		
 	title = "Sculpt Mesh Options " + sculpty.RELEASE
 	# Left Popup Block
-			
-	Blender.Draw.Label(title, row[0], y, 335, 20)
 
+	x = row[0]
+	y = mouse_y	
+	
+	Blender.Draw.Label(title, x, y, 335, 20)
 			
 	# ==========================================================
 	# MESH GEOMETRY
 	# ==========================================================
-	Blender.Draw.Label("Mesh Geometry:", row[0], y-30, 150, 20)
+	y -= 30
+	Blender.Draw.Label("Mesh Geometry:", x, y, 150, 20); y -= 20
 
 	Blender.Draw.BeginAlign()
-	GLOBALS['faces_x'] = Blender.Draw.Number("X Faces", EVENT_MESH_CHANGE, row[0], y-50, 175, 20, GLOBALS['faces_x'].val, 0, 256, "Number of faces along the X-axis", toggle_button)
-	GLOBALS['faces_y'] = Blender.Draw.Number("Y Faces", EVENT_MESH_CHANGE, row[0], y-70, 175, 20, GLOBALS['faces_y'].val, 0, 256, "Number of faces along the Y-axis", toggle_button)
-   
+	GLOBALS['faces_x']   = Blender.Draw.Number("X Faces", EVENT_MESH_CHANGE, x,y, 175, 20, GLOBALS['faces_x'].val, 0, 256, "Number of faces along the X-axis", toggle_button); y -=20
+	GLOBALS['faces_y']   = Blender.Draw.Number("Y Faces", EVENT_MESH_CHANGE, x,y, 175, 20, GLOBALS['faces_y'].val, 0, 256, "Number of faces along the Y-axis", toggle_button); y -=20
+	GLOBALS['clean_lod'] = Blender.Draw.Toggle("Clean LODs", EVENT_CLEAN_LOD, x,y, 175, 20, GLOBALS['clean_lod'].val,   "For non power of 2 facecounts: Ensure the object will use good LOD settings", toggle_button); y -=20
 	Blender.Draw.EndAlign()
+
+	y -= 10
 	Blender.Draw.BeginAlign()
+	GLOBALS['multires_levels'] = Blender.Draw.Number("subdivision levels", EVENT_MESH_CHANGE, x,y, 175, 20, GLOBALS['multires_levels'].val, 0, 256, "Number of mesh subdivisions (Corresponds to SL LOD)", toggle_button); y -=20
+	GLOBALS['subdiv_type_catmull_clark'] = Blender.Draw.Toggle("Catmull-Clark", EVENT_SUBDIV_CATMULL, x,y, 100, 20, GLOBALS['subdiv_type_catmull_clark'].val,"Catmull-Clark", do_subdiv_type_sel) 
+	GLOBALS['subdiv_type_simple']        = Blender.Draw.Toggle("Simple",        EVENT_SUBDIV_SIMPLE, x+100, y, 75, 20, GLOBALS['subdiv_type_simple'].val, "Simple", do_subdiv_type_sel); y -=20
+	Blender.Draw.EndAlign()
 
-	GLOBALS['multires_levels'] = Blender.Draw.Number("subdivision levels", EVENT_MESH_CHANGE, row[0], y-100, 175, 20, GLOBALS['multires_levels'].val, 0, 256, "Number of mesh subdivisions (Corresponds to SL LOD)", toggle_button)
-
-	GLOBALS['subdiv_type_catmull_clark'] = Blender.Draw.Toggle("Catmull-Clark", EVENT_SUBDIV_CATMULL, row[0], y-121, 100, 20, GLOBALS['subdiv_type_catmull_clark'].val,"Catmull-Clark", do_subdiv_type_sel)
-	GLOBALS['subdiv_type_simple']        = Blender.Draw.Toggle("Simple",        EVENT_SUBDIV_SIMPLE, row[0]+100, y-121, 75, 20, GLOBALS['subdiv_type_simple'].val, "Simple", do_subdiv_type_sel)
-
+	y -=10
 	Blender.Draw.BeginAlign()
-	addLodLabelRow(row[0], y-150)
-	addLodRow("LOD3", row[0], y-170, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 3, GLOBALS['multires_levels'].val+1, "Maximum Number of rendered faces (when object is close to camera)" )
-	addLodRow("LOD2", row[0], y-190, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 2, GLOBALS['multires_levels'].val+1, "First reduction of rendered faces (when object is near to camera)")
-	addLodRow("LOD1", row[0], y-210, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 1, GLOBALS['multires_levels'].val+1, "Secnd reduction of rendered faces (when object is further away from camera")
-	addLodRow("LOD0", row[0], y-230, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 0, GLOBALS['multires_levels'].val+1, "Minimum Number of rendered faces (when object is far away from camera")
-
-	GLOBALS['clean_lod'] = Blender.Draw.Toggle("Clean LODs", EVENT_CLEAN_LOD, row[0], y-250, 175, 20, GLOBALS['clean_lod'].val,   "For non power of 2 facecounts: Ensure the object will use good LOD settings", toggle_button)
-
+	addLodLabelRow(x,y); y -=20
+	addLodRow("LOD3", x,y, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 3, GLOBALS['multires_levels'].val+1, "Maximum Number of rendered faces (when object is close to camera)" ); y -=20
+	addLodRow("LOD2", x,y, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 2, GLOBALS['multires_levels'].val+1, "First reduction of rendered faces (when object is near to camera)"); y -=20
+	addLodRow("LOD1", x,y, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 1, GLOBALS['multires_levels'].val+1, "Secnd reduction of rendered faces (when object is further away from camera"); y -=20
+	addLodRow("LOD0", x,y, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 0, GLOBALS['multires_levels'].val+1, "Minimum Number of rendered faces (when object is far away from camera"); y -=20
 	Blender.Draw.EndAlign()
 	
 	# ==========================================================
 	# MESH TYPE
 	# ==========================================================
-	Blender.Draw.Label("Mesh type:", row[1], y-30, 100, 20)			
+	x = row[1]
+	y = mouse_y - 30
+	
+	Blender.Draw.Label("Mesh type:", x,y, 100, 20); y -=20
 
 	Blender.Draw.BeginAlign()
-	GLOBALS['sculpt_type_sphere']   = Blender.Draw.Toggle("Sphere",   EVENT_SCULPT_TYPE_SPHERE,   row[1], y-50,  100, 18, GLOBALS['sculpt_type_sphere'].val,  "Spherical shaped object", do_sculpt_type_sel)
-	GLOBALS['sculpt_type_torus']    = Blender.Draw.Toggle("Torus",    EVENT_SCULPT_TYPE_TORUS,    row[1], y-68,  100, 18, GLOBALS['sculpt_type_torus'].val,   "Torus shaped object",     do_sculpt_type_sel)
-	GLOBALS['sculpt_type_plane']    = Blender.Draw.Toggle("Plane",    EVENT_SCULPT_TYPE_PLANE,    row[1], y-86,  100, 18, GLOBALS['sculpt_type_plane'].val,   "Plane object",            do_sculpt_type_sel)
-	GLOBALS['sculpt_type_cylinder'] = Blender.Draw.Toggle("Cylinder", EVENT_SCULPT_TYPE_CYLINDER, row[1], y-104, 100, 18, GLOBALS['sculpt_type_cylinder'].val,"Cylinder shaped object",  do_sculpt_type_sel)
-	GLOBALS['sculpt_type_hemi']     = Blender.Draw.Toggle("Hemi",     EVENT_SCULPT_TYPE_HEMI,     row[1], y-122, 100, 18, GLOBALS['sculpt_type_hemi'].val,    "Hemi shaped object",      do_sculpt_type_sel)
+	GLOBALS['sculpt_type_sphere']   = Blender.Draw.Toggle("Sphere",   EVENT_SCULPT_TYPE_SPHERE,  x, y, 100, 18, GLOBALS['sculpt_type_sphere'].val,  "Spherical shaped object", do_sculpt_type_sel); y -=20
+	GLOBALS['sculpt_type_torus']    = Blender.Draw.Toggle("Torus",    EVENT_SCULPT_TYPE_TORUS,   x, y, 100, 18, GLOBALS['sculpt_type_torus'].val,   "Torus shaped object",     do_sculpt_type_sel);	y -=20
+	GLOBALS['sculpt_type_plane']    = Blender.Draw.Toggle("Plane",    EVENT_SCULPT_TYPE_PLANE,   x, y, 100, 18, GLOBALS['sculpt_type_plane'].val,   "Plane object",            do_sculpt_type_sel);	y -=20
+	GLOBALS['sculpt_type_cylinder'] = Blender.Draw.Toggle("Cylinder", EVENT_SCULPT_TYPE_CYLINDER,x, y, 100, 18, GLOBALS['sculpt_type_cylinder'].val,"Cylinder shaped object",  do_sculpt_type_sel);	y -=20
+	GLOBALS['sculpt_type_hemi']     = Blender.Draw.Toggle("Hemi",     EVENT_SCULPT_TYPE_HEMI,    x, y, 100, 18, GLOBALS['sculpt_type_hemi'].val,    "Hemi shaped object",      do_sculpt_type_sel);	y -=20
 	Blender.Draw.EndAlign()
 
 	# ==========================================================
 	# BUILD STYLE
 	# ==========================================================
-	Blender.Draw.Label("Build style:", row[1], y-200, 100, 20)			
+	y -=60
+
+	Blender.Draw.Label("Build style:", x, y, 100, 20); y -=20			
 	Blender.Draw.BeginAlign()
-	GLOBALS['build_mode_subsurf']  = Blender.Draw.Toggle("Subsurf",  EVENT_BUILD_MODE_SUBSURF , row[1], y-226, 100, 20, GLOBALS['build_mode_subsurf'].val, "subsurf (beginners, easy LOD)", do_build_mode_sel)
-	GLOBALS['build_mode_multires'] = Blender.Draw.Toggle("Multires", EVENT_BUILD_MODE_MULTIRES, row[1], y-250, 100, 20, GLOBALS['build_mode_multires'].val,"multires (experts, high flexibility)", do_build_mode_sel)
+	GLOBALS['build_mode_subsurf']  = Blender.Draw.Toggle("Subsurf",  EVENT_BUILD_MODE_SUBSURF , x, y, 100, 20, GLOBALS['build_mode_subsurf'].val, "subsurf (beginners, easy LOD)", do_build_mode_sel); y -= 20
+	GLOBALS['build_mode_multires'] = Blender.Draw.Toggle("Multires", EVENT_BUILD_MODE_MULTIRES, x, y, 100, 20, GLOBALS['build_mode_multires'].val,"multires (experts, high flexibility)", do_build_mode_sel); y -= 20
 	Blender.Draw.EndAlign()
-	
-	GLOBALS['button_ok']    = Blender.Draw.Button("OK", EVENT_OK, row[2], y-250, 25, 220,  "Create object", do_ok_sel)
+
+	x = row[2]
+	y = mouse_y - 250	
+	GLOBALS['button_ok']    = Blender.Draw.Button("OK", EVENT_OK, x, y, 25, 220,  "Create object", do_ok_sel)
 
 def create_sculpty():
 
