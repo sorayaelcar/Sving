@@ -17,8 +17,6 @@ Bake Sculptie Map
 This script requires a square planar mapping. It bakes the local vertex
 positions to the prim's sculptie map image.
 """
-#0.36 Gaia Clary 2009-06-07
-#- Enhanced GUI added
 
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
@@ -39,7 +37,6 @@ positions to the prim's sculptie map image.
 # Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 # ***** END GPL LICENCE BLOCK *****
-# --------------------------------------------------------------------------
 
 #***********************************************
 # Import modules
@@ -56,7 +53,6 @@ PROTECTION_NONE       = 0
 PROTECTION_SIMPLE     = 1
 PROTECTION_SILHOUETTE = 2
 PROTECTION_IMAGE      = 3
-
 
 EVENT_NONE = 0
 EVENT_EXIT = 1
@@ -91,7 +87,7 @@ settings = {
 			'minB':0,
 			'maxB':255,
 			'doScaleRGB':True
-		   }
+}
 
 
 # ===================================================================
@@ -106,20 +102,20 @@ def create_gui_globals():
 
 	scene = Blender.Scene.GetCurrent()
 	try:
-		settings['doFinal']    = scene.objects.active.properties["bake_final"]
-		settings['doFill']     = scene.objects.active.properties["bake_fill"]
-		settings['keepScale']  = scene.objects.active.properties["bake_scale"]
-		settings['keepCenter'] = scene.objects.active.properties["bake_center"]
-		settings['doClear']    = scene.objects.active.properties["bake_clear"]
-		settings['doProtect']  = scene.objects.active.properties["bake_protect"]
-		settings['doPreview']  = scene.objects.active.properties["bake_preview"]
-		settings['minR']       = scene.objects.active.properties["bake_min_r"]
-		settings['minG']       = scene.objects.active.properties["bake_min_g"]
-		settings['minB']       = scene.objects.active.properties["bake_min_b"]
-		settings['maxR']       = scene.objects.active.properties["bake_max_r"]
-		settings['maxG']       = scene.objects.active.properties["bake_max_g"]
-		settings['maxB']       = scene.objects.active.properties["bake_max_b"]
-		settings['doScaleRGB'] = scene.objects.active.properties["bake_scale_rgb"]
+		settings['doFinal']    = scene.objects.active.properties["ps_bake_final"]
+		settings['doFill']     = scene.objects.active.properties["ps_bake_fill"]
+		settings['keepScale']  = scene.objects.active.properties["ps_bake_scale"]
+		settings['keepCenter'] = scene.objects.active.properties["ps_bake_center"]
+		settings['doClear']    = scene.objects.active.properties["ps_bake_clear"]
+		settings['doProtect']  = scene.objects.active.properties["ps_bake_protect"]
+		settings['doPreview']  = scene.objects.active.properties["ps_bake_preview"]
+		settings['minR']       = scene.objects.active.properties["ps_bake_min_r"]
+		settings['minG']       = scene.objects.active.properties["ps_bake_min_g"]
+		settings['minB']       = scene.objects.active.properties["ps_bake_min_b"]
+		settings['maxR']       = scene.objects.active.properties["ps_bake_max_r"]
+		settings['maxG']       = scene.objects.active.properties["ps_bake_max_g"]
+		settings['maxB']       = scene.objects.active.properties["ps_bake_max_b"]
+		settings['doScaleRGB'] = scene.objects.active.properties["ps_bake_scale_rgb"]
 	except:
 		settings['doFinal']    = True
 		settings['doFill']     = True
@@ -193,18 +189,18 @@ def drawCreateBox():
 	title = ""
 
 	block = []
-	title = "Sculptie Bake Options "+sculpty.RELEASE;
+	title = "Sculptie Bake Options"
 	Blender.Draw.Label(title, row[0], y, 345, 20)
 
 
-	# =======================================================		
+	# =======================================================
 	# Left popup block
 	# =======================================================
-		
+
 	Blender.Draw.Label("Color Range Adjustment:", row[0], y-30, 150, 20)
-		
+
 	Blender.Draw.BeginAlign()
-		
+
 	x = Blender.Draw.Button("",    EVENT_NONE, row[0],    y-50, 30, 20)
 	x = Blender.Draw.Button("Min", EVENT_NONE, row[0]+35, y-50, 55, 20)
 	x = Blender.Draw.Button("Max", EVENT_NONE, row[0]+90, y-50, 55, 20)
@@ -212,7 +208,7 @@ def drawCreateBox():
 	x = Blender.Draw.Button("R:", EVENT_NONE, row[0], y-70, 30, 20)
 	GLOBALS['minR'] = Blender.Draw.Number("", EVENT_NONE, row[0]+35, y-70, 55, 20, GLOBALS['minR'].val, 0, 255)
 	GLOBALS['maxR'] = Blender.Draw.Number("", EVENT_NONE, row[0]+90, y-70, 55, 20, GLOBALS['maxR'].val, 0, 255)
-	
+
 	x = Blender.Draw.Button("G:", EVENT_NONE, row[0], y-90, 30, 20)
 	GLOBALS['minG'] = Blender.Draw.Number("", EVENT_NONE, row[0]+35, y-90, 55, 20, GLOBALS['minG'].val, 0, 255)
 	GLOBALS['maxG'] = Blender.Draw.Number("", EVENT_NONE, row[0]+90, y-90, 55, 20, GLOBALS['maxG'].val, 0, 255)
@@ -221,101 +217,99 @@ def drawCreateBox():
 	GLOBALS['minB'] = Blender.Draw.Number("", EVENT_NONE, row[0]+35, y-110, 55, 20, GLOBALS['minB'].val, 0, 255)
 	GLOBALS['maxB'] = Blender.Draw.Number("", EVENT_NONE, row[0]+90, y-110, 55, 20, GLOBALS['maxB'].val, 0, 255)
 
-	GLOBALS['doScaleRGB'] = Blender.Draw.Toggle("Include in size", 
-	                                            EVENT_INCLUDE_IN_SIZE, 
-	                                            row[0], y-130, 
-	                                            145, 20, 
-	                                            GLOBALS['doScaleRGB'].val,
-	                                            "in LSL script: correct rescaling due to color adjustment", 
-	                                            do_toggle_button)
+	GLOBALS['doScaleRGB'] = Blender.Draw.Toggle("Include in size",
+						    EVENT_INCLUDE_IN_SIZE,
+						    row[0], y-130,
+						    145, 20,
+						    GLOBALS['doScaleRGB'].val,
+						    "in LSL script: correct rescaling due to color adjustment",
+						    do_toggle_button)
 	Blender.Draw.EndAlign()
 
 	Blender.Draw.Label("UV-Map options", row[0], y-155, 150, 20)
 	Blender.Draw.BeginAlign()
 	GLOBALS['doClear'] = Blender.Draw.Toggle( "Clear map",
-	                                           EVENT_DO_CLEAR,
-	                                           row[0], y-175,
-	                                           145, 20,
-	                                           GLOBALS['doClear'].val,
-	                                           "Remove all data from map before baking.",
-	                                           do_toggle_button)
+						   EVENT_DO_CLEAR,
+						   row[0], y-175,
+						   145, 20,
+						   GLOBALS['doClear'].val,
+						   "Remove all data from map before baking.",
+						   do_toggle_button)
 
 	GLOBALS['doFill'] = Blender.Draw.Toggle( "Fill holes",
-	                                           EVENT_DO_FILL,
-	                                           row[0], y-195,
-	                                           145, 20,
-	                                           GLOBALS['doFill'].val,
-	                                           "Add missing faces otherwise rendered as pure black.",
-	                                           do_toggle_button)
+						   EVENT_DO_FILL,
+						   row[0], y-195,
+						   145, 20,
+						   GLOBALS['doFill'].val,
+						   "Add missing faces otherwise rendered as pure black.",
+						   do_toggle_button)
 	Blender.Draw.EndAlign()
 
 
-	# =======================================================		
-	# Right popup block	
-	# =======================================================		
+	# =======================================================
+	# Right popup block
+	# =======================================================
 
 	Blender.Draw.Label("Map protection (alpha)", row[1], y-30, 150, 20)
 	Blender.Draw.BeginAlign()
 
 	GLOBALS['doProtect'] = Blender.Draw.Toggle( "Protect map",
-	                       EVENT_MAP_PROTECT,
-	                       row[1], y-50,
-	                       140, 20,
-	                       GLOBALS['doProtect'].val,
-	                       "Enable alpha mask protection of your sculptie. Hint enable F10 -> Format -> RGBA !",
-	                       do_toggle_button)
-		
+			       EVENT_MAP_PROTECT,
+			       row[1], y-50,
+			       140, 20,
+			       GLOBALS['doProtect'].val,
+			       "Enable alpha mask protection of your sculptie. Hint enable F10 -> Format -> RGBA !",
+			       do_toggle_button)
+
 	if GLOBALS['doProtect'].val:
 		GLOBALS['protect_type_simple'] = Blender.Draw.Toggle( "Transparent",
-	                       EVENT_PROTECT_TYPE_INVISIBLE,
-	                       row[1], y-70,
-	                       80,20,
-	                       GLOBALS['protect_type_simple'].val,
-	                       "Make image fully transparent. Hint: enable 'draw image with alpha' in UV-editor",
-	                       do_protection_type_sel)
-		                                            
+			       EVENT_PROTECT_TYPE_INVISIBLE,
+			       row[1], y-70,
+			       80,20,
+			       GLOBALS['protect_type_simple'].val,
+			       "Make image fully transparent. Hint: enable 'draw image with alpha' in UV-editor",
+			       do_protection_type_sel)
+
 		GLOBALS['protect_type_silhouette'] = Blender.Draw.Toggle( "Preview",
-	                       EVENT_PROTECT_TYPE_SILHOUETTE,
-	                       row[1]+80, y-70,
-	                       60,20,
-	                       GLOBALS['protect_type_silhouette'].val,
-	                       "Use front view silhouette as alpha mask.",
-	                       do_protection_type_sel)
-		                                            		                                            
+			       EVENT_PROTECT_TYPE_SILHOUETTE,
+			       row[1]+80, y-70,
+			       60,20,
+			       GLOBALS['protect_type_silhouette'].val,
+			       "Use front view silhouette as alpha mask.",
+			       do_protection_type_sel)
 	Blender.Draw.EndAlign()
 
 	Blender.Draw.Label("Transformation", row[1], y-135, 120, 20)
 	Blender.Draw.BeginAlign()
 	GLOBALS['keepScale'] = Blender.Draw.Toggle("Keep Scale",
-	                                         EVENT_DO_SCALE,
-	                                         row[1], y-155,
-	                                         140, 20, 
-	                                         GLOBALS['keepScale'].val,
-	                                         "Maintain aspect ration. No rescale necessary (but reduces resolution)",
-	                                         do_toggle_button)
+						 EVENT_DO_SCALE,
+						 row[1], y-155,
+						 140, 20,
+						 GLOBALS['keepScale'].val,
+						 "Maintain aspect ration. No rescale necessary (but reduces resolution)",
+						 do_toggle_button)
 
 	GLOBALS['keepCenter'] = Blender.Draw.Toggle( "Keep Center",
-	                                            EVENT_KEEP_CENTER,
-	                                            row[1], y-175,
-	                                            140, 20,
-	                                            GLOBALS['keepCenter'].val,
-	                                            "With Keep Scale: ensure, that object center is preserved",
-	                                            do_toggle_button)
-		
+						    EVENT_KEEP_CENTER,
+						    row[1], y-175,
+						    140, 20,
+						    GLOBALS['keepCenter'].val,
+						    "With Keep Scale: ensure, that object center is preserved",
+						    do_toggle_button)
+
 	GLOBALS['doFinal'] = Blender.Draw.Toggle( "Finalize",
-	                                           EVENT_MAKE_FLIPABLE,
-	                                           row[1], y-195,
-	                                           140, 20,
-	                                           GLOBALS['doFinal'].val,
-	                                           "Optimize sculpt-map for precise mirroring (caution with odd face numbers!)",
-	                                           do_toggle_button)
+						   EVENT_MAKE_FLIPABLE,
+						   row[1], y-195,
+						   140, 20,
+						   GLOBALS['doFinal'].val,
+						   "Optimize sculpt-map for precise mirroring (caution with odd face numbers!)",
+						   do_toggle_button)
 
 	Blender.Draw.EndAlign()
 
-
-	# =======================================================		
-	# OK block	
-	# =======================================================		
+	# =======================================================
+	# OK block
+	# =======================================================
 
 	GLOBALS['button_ok']    = Blender.Draw.Button("OK", EVENT_OK, row[2], y-195, 25, 165,  "Create object", do_toggle_button)
 
@@ -330,52 +324,52 @@ def bake_sculptie():
 		bb.rgb.min = sculpty.XYZ( GLOBALS['minR'].val, GLOBALS['minG'].val, GLOBALS['minB'].val )
 		bb.rgb.max = sculpty.XYZ( GLOBALS['maxR'].val, GLOBALS['maxG'].val, GLOBALS['maxB'].val )
 		bb.rgb.update()
-		
+
 		scene = Blender.Scene.GetCurrent()
 		for ob in scene.objects.selected:
 			if sculpty.check( ob ):
-				ob.properties["bake_final"]     = GLOBALS['doFinal'].val
-				ob.properties["bake_fill"]      = GLOBALS['doFill'].val
-				ob.properties["bake_scale"]     = GLOBALS['keepScale'].val
-				ob.properties["bake_center"]    = GLOBALS['keepCenter'].val
-				ob.properties["bake_clear"]     = GLOBALS['doClear'].val
-				ob.properties["bake_protect"]   = GLOBALS['doProtect'].val
-				ob.properties["bake_preview"]   = GLOBALS['protect_type_silhouette'].val == True
-				ob.properties["bake_min_r"]     = GLOBALS['minR'].val
-				ob.properties["bake_min_g"]     = GLOBALS['minG'].val
-				ob.properties["bake_min_b"]     = GLOBALS['minB'].val
-				ob.properties["bake_max_r"]     = GLOBALS['maxR'].val
-				ob.properties["bake_max_g"]     = GLOBALS['maxG'].val
-				ob.properties["bake_max_b"]     = GLOBALS['maxB'].val
-				ob.properties["bake_scale_rgb"] = GLOBALS['doScaleRGB'].val
-				if not ob.properties["bake_center"]:
+				ob.properties["ps_bake_final"]     = GLOBALS['doFinal'].val
+				ob.properties["ps_bake_fill"]      = GLOBALS['doFill'].val
+				ob.properties["ps_bake_scale"]     = GLOBALS['keepScale'].val
+				ob.properties["ps_bake_center"]    = GLOBALS['keepCenter'].val
+				ob.properties["ps_bake_clear"]     = GLOBALS['doClear'].val
+				ob.properties["ps_bake_protect"]   = GLOBALS['doProtect'].val
+				ob.properties["ps_bake_preview"]   = GLOBALS['protect_type_silhouette'].val == True
+				ob.properties["ps_bake_min_r"]     = GLOBALS['minR'].val
+				ob.properties["ps_bake_min_g"]     = GLOBALS['minG'].val
+				ob.properties["ps_bake_min_b"]     = GLOBALS['minB'].val
+				ob.properties["ps_bake_max_r"]     = GLOBALS['maxR'].val
+				ob.properties["ps_bake_max_g"]     = GLOBALS['maxG'].val
+				ob.properties["ps_bake_max_b"]     = GLOBALS['maxB'].val
+				ob.properties["ps_bake_scale_rgb"] = GLOBALS['doScaleRGB'].val
+				if not ob.properties["ps_bake_center"]:
 					#center new
 					sculpty.set_center( ob )
 				bb.add( ob )
-		if ob.properties["bake_scale"]:
+		if ob.properties["ps_bake_scale"]:
 			bb = bb.normalised()
-		if ob.properties["bake_center"]:
+		if ob.properties["ps_bake_center"]:
 			bb = bb.centered()
 		# Good to go, do the bake
 		success = False
 		for ob in scene.objects.selected:
 			if sculpty.active( ob ):
-				if sculpty.bake_object( ob, bb, ob.properties["bake_clear"] ):
+				if sculpty.bake_object( ob, bb, ob.properties["ps_bake_clear"] ):
 					success = True
 				for image in sculpty.map_images( ob.getData( False, True) ):
 					n = Blender.sys.splitext( image.name )
 					if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
 						image.name = ob.name
-					if ob.properties["bake_scale_rgb"]:
+					if ob.properties["ps_bake_scale_rgb"]:
 						image.properties['ps_scale_x'] /= bb.rgb.scale.x
 						image.properties['ps_scale_y'] /= bb.rgb.scale.y
 						image.properties['ps_scale_z'] /= bb.rgb.scale.z
-					if ob.properties["bake_fill"]:
+					if ob.properties["ps_bake_fill"]:
 						sculpty.fill_holes( image )
-					if ob.properties["bake_final"]:
+					if ob.properties["ps_bake_final"]:
 						sculpty.finalise( image )
-						if ob.properties["bake_protect"]:
-							if ob.properties["bake_preview"]:
+						if ob.properties["ps_bake_protect"]:
+							if ob.properties["ps_bake_preview"]:
 								sculpty.bake_preview( image )
 							else:
 								sculpty.clear_alpha( image )
@@ -388,8 +382,6 @@ def bake_sculptie():
 		if not success:
 			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
 
-
-
 # ===============================================================
 # Main loop.
 # Note: The UIBlock is redrawn with every mouse click, so that
@@ -400,14 +392,12 @@ def bake_sculptie():
 # button is clicked, the sculptie will be baked.
 # ===============================================================
 def main():
-
 	create_gui_globals()
 	GLOBALS['event'] = EVENT_REDRAW
 	while GLOBALS['event'] != EVENT_EXIT and GLOBALS['event'] != EVENT_OK:
 		Blender.Draw.UIBlock( drawCreateBox, 0 )
 	if GLOBALS['event'] == EVENT_OK:
 		bake_sculptie()
-
 
 if __name__ == '__main__':
 	main()
