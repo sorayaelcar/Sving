@@ -221,7 +221,6 @@ def addLodRow(label, x, y, width, height, lod, levels, tooltip ):
 	x_faces = width  * factor
 	y_faces = height * factor
 	lx,ly = sculpty.lod_size( x_faces , y_faces, lod )
-	print "(",x_faces,",",y_faces,") --> (",lx,",",ly,") lod:",lod, " levels:",levels, "factor:",factor 
 	Blender.Draw.Button(str(lx),     EVENT_NONE, x+55,  y, 35, 20)
 	Blender.Draw.Button(str(ly) ,    EVENT_NONE, x+90,  y, 35, 20)
 	Blender.Draw.Button(str(ly*lx) , EVENT_NONE, x+125, y, 50, 20)

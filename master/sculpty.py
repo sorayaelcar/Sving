@@ -46,6 +46,15 @@ class XYZ:
 		self.y = y
 		self.z = z
 
+	def __cmp__(self, other):
+		if self.x == other.x:
+			if self.y == other.y:
+				return cmp(self.z, other.z)
+			else:
+				return cmp(self.y, other.y)
+		else:
+			return cmp(self.x, other.x)
+
 	def __sub__(self, other):
 		return XYZ(
 			self.x - other.x,
@@ -812,9 +821,9 @@ def get_bounding_box(obj):
 			max_z = v.co.z
 	return XYZ(min_x, min_y, min_z), XYZ(max_x, max_y, max_z)
 
-def lod_info(width, height, format = "LOD%(lod)d:%(x_faces)dx%(y_faces)d\n"):
+def lod_info(width, height, format = "LOD%(lod)d: %(x_faces)d x %(y_faces)d\n"):
 	'''Returns a string with the lod info for a map size of width * height'''
-	info = ""
+	info = "Image Size: %d x %d\n"%( width, height )
 	for i in [3,2,1,0]:
 		faces = float([ 6, 8, 16, 32 ][i])
 		x_faces, y_faces = lod_size(width, height, i)
@@ -1182,60 +1191,35 @@ def update_from_map(mesh, image):
 
 def uv_corners(mesh):
 	'''returns the four corner points of the UV layout'''
-	edge_faces = dict([(ed.key, []) for ed in mesh.edges])
-	for f in mesh.faces:
-		for key in f.edge_keys:
-		       edge_faces[key].append(f)
-	edge_start = []
-	edge_end = []
-	for key, face_users in edge_faces.iteritems():
-		if len(face_users) == 1:
-			edge_start.append(key[0])
-			edge_end.append(key[1])
-	corners = []
-	for v in edge_start:
-		if edge_start.count(v) > 1:
-			if v not in corners:
-				corners.append(v)
-	for v in edge_end:
-		if edge_end.count(v) >1:
-			if v not in corners:
-				corners.append(v)
-	if len(corners) != 4:
-		return XYZ(0.0, 0.0, 0.0), XYZ(0.0, 1.0, 0.0), XYZ(1.0, 0.0, 0.0), XYZ(1.0, 1.0, 0.0)
-	tl = False
+	max_vu = XYZ(-99999.0, -99999.0, 0.0 )
+	min_vu = XYZ(99999.0, 99999.0, 0.0 )
+	max_uv = XYZ(-99999.0, -99999.0, 0.0 )
+	min_uv = XYZ(99999.0, 99999.0, 0.0 )
 	for f in mesh.faces:
 		for i in range(len(f.verts)):
-			if f.verts[i].index in corners:
-				if not tl:
-					tl = XYZ(f.uv[i][0], f.uv[i][1], 0.0 )
-					bl = XYZ(f.uv[i][0], f.uv[i][1], 0.0 )
-					tr= XYZ(f.uv[i][0], f.uv[i][1], 0.0 )
-					br = XYZ(f.uv[i][0], f.uv[i][1], 0.0 )
-				else:
-					if f.uv[i][0] < bl.x and  f.uv[i][1] <= tl.y:
-						bl.x = f.uv[i][0]
-						bl.y = f.uv[i][1]
-					if f.uv[i][0] <= tl.x and f.uv[i][1] >= bl.y:
-						tl.x = f.uv[i][0]
-						tl.y = f.uv[i][1]
-					if f.uv[i][0] >= br.x and f.uv[i][1] <= tr.y:
-						br.x = f.uv[i][0]
-						br.y = f.uv[i][1]
-					if f.uv[i][0] >= tr.x and f.uv[i][1] >= br.y:
-						tr.x = f.uv[i][0]
-						tr.y = f.uv[i][1]
-	return bl, tl, br, tr
+			v = XYZ(f.uv[i][0], f.uv[i][1], 0.0)
+			max_uv = max(max_uv, v)
+			min_uv = min(min_uv, v)
+			v = XYZ(f.uv[i][1], f.uv[i][0], 0.0)
+			max_vu = max(max_vu, v)
+			min_vu = min(min_vu, v)
+	min_vu = XYZ(min_vu.y, min_vu.x, 0.0)
+	max_vu = XYZ(max_vu.y, max_vu.x, 0.0)
+	if min_vu == min_uv:
+		min_uv.y = max_uv.y
+	if max_vu == max_uv:
+		max_vu.y = min_vu.y
+	return min_vu, min_uv, max_vu, max_uv
 
 def uv_params(mesh):
-	'''returns the scale and rotation of the UV layout'''
+	'''returns the offset, scale and rotation of the UV layout'''
 	bl, tl, br, tr = uv_corners(mesh)
 	hv = tl - bl
 	wv = br - bl
 	a = atan2(hv.x,hv.y)
 	s = XYZ( Blender.Mathutils.Vector( wv.x, wv.y ).length,
 			Blender.Mathutils.Vector( hv.x, hv.y ).length, 0.0 )
-	return s,a
+	return bl + (tr - bl) / 2.0 - XYZ(0.5, 0.5, 0.0), s, a
 
 def uv_to_rgb(sculpt_type, u, v, radius=0.25):
 	'''Returns 3D location for the given UV co-ordinates on a default sculpt type'''
