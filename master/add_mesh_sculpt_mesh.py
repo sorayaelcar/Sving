@@ -318,14 +318,11 @@ def drawCreateBox():
 	y -= 30
 	Blender.Draw.Label("Mesh Geometry:", x, y, 150, 20); y -= 20
 
+
 	Blender.Draw.BeginAlign()
+	GLOBALS['clean_lod'] = Blender.Draw.Toggle("Clean LODs", EVENT_CLEAN_LOD, x,y, 175, 20, GLOBALS['clean_lod'].val,   "For non power of 2 facecounts: Ensure the object will use good LOD settings", toggle_button); y -=20
 	GLOBALS['faces_x']   = Blender.Draw.Number("X Faces", EVENT_MESH_CHANGE, x,y, 175, 20, GLOBALS['faces_x'].val, 0, 256, "Number of faces along the X-axis", toggle_button); y -=20
 	GLOBALS['faces_y']   = Blender.Draw.Number("Y Faces", EVENT_MESH_CHANGE, x,y, 175, 20, GLOBALS['faces_y'].val, 0, 256, "Number of faces along the Y-axis", toggle_button); y -=20
-	GLOBALS['clean_lod'] = Blender.Draw.Toggle("Clean LODs", EVENT_CLEAN_LOD, x,y, 175, 20, GLOBALS['clean_lod'].val,   "For non power of 2 facecounts: Ensure the object will use good LOD settings", toggle_button); y -=20
-	Blender.Draw.EndAlign()
-
-	y -= 10
-	Blender.Draw.BeginAlign()
 	GLOBALS['multires_levels'] = Blender.Draw.Number("subdivision levels", EVENT_MESH_CHANGE, x,y, 175, 20, GLOBALS['multires_levels'].val, 0, 256, "Number of mesh subdivisions (Corresponds to SL LOD)", toggle_button); y -=20
 	GLOBALS['subdiv_type_catmull_clark'] = Blender.Draw.Toggle("Catmull-Clark", EVENT_SUBDIV_CATMULL, x,y, 100, 20, GLOBALS['subdiv_type_catmull_clark'].val,"Catmull-Clark", do_subdiv_type_sel) 
 	GLOBALS['subdiv_type_simple']        = Blender.Draw.Toggle("Simple",        EVENT_SUBDIV_SIMPLE, x+100, y, 75, 20, GLOBALS['subdiv_type_simple'].val, "Simple", do_subdiv_type_sel); y -=20
@@ -359,7 +356,7 @@ def drawCreateBox():
 	# ==========================================================
 	# BUILD STYLE
 	# ==========================================================
-	y -=60
+	y -=50
 
 	Blender.Draw.Label("Build style:", x, y, 100, 20); y -=20			
 	Blender.Draw.BeginAlign()
@@ -368,8 +365,8 @@ def drawCreateBox():
 	Blender.Draw.EndAlign()
 
 	x = row[2]
-	y = mouse_y - 250	
-	GLOBALS['button_ok']    = Blender.Draw.Button("OK", EVENT_OK, x, y, 25, 220,  "Create object", do_ok_sel)
+	y = mouse_y - 240	
+	GLOBALS['button_ok']    = Blender.Draw.Button("OK", EVENT_OK, x, y, 25, 210,  "Create object", do_ok_sel)
 
 def create_sculpty():
 
