@@ -40,29 +40,59 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 import Blender
 import sculpty
 from Tkinter import *
+from binascii import hexlify
 
 class GuiApp:
-	def __init__(self, master):
+	def __init__(self, master, theme):
 		w,h = 32, 256
 		self.master = master
-		frame = Frame(master,relief=RAISED,border=2)
+		frame = Frame(master,relief=RAISED,border=1, bg=hex_colour(theme.neutral))
 		frame.pack()
-		self.lod_display = Label(frame, text=sculpty.lod_info(w, h), relief=GROOVE, justify=LEFT)
+		self.lod_display = Label(frame,
+				text=sculpty.lod_info(w, h),
+				relief=GROOVE,
+				justify=LEFT,
+				bg=hex_colour(theme.neutral),
+				fg=hex_colour(theme.text))
 		self.lod_display.pack(padx=5, pady=5, ipadx=3, ipady=3, side=LEFT)
-		self.map_type = Button(frame, text="Type", command=self.set_map_type)
-		self.map_type.pack(padx=5, pady=5)
-		self.sculpt_menu = Menu(frame, tearoff=0)
+		self.map_type = Button(frame,
+				text="Type",
+				command=self.set_map_type,
+				border=1,
+				bg=hex_colour(theme.textfield),
+				fg=hex_colour(theme.text),
+				activebackground=hex_colour(theme.setting))
+		self.map_type.pack(padx=5, pady=5, fill=X)
+		self.sculpt_menu = Menu(frame,
+				tearoff=0,
+				bg=hex_colour(theme.menu_item),
+				fg=hex_colour(theme.menu_text),
+				activebackground=hex_colour(theme.menu_hilite),
+				activeforeground=hex_colour(theme.menu_text_hi))
 		for sculpt_type in [ "Sphere", "Torus", "Plane", "Cylinder", "Hemi"]:
 			def type_command( sculpt_type ):
 				def new_command():
 					self.set_sculpt_type(sculpt_type)
 				return new_command
-			self.sculpt_menu.add_command(label=sculpt_type, command=type_command(sculpt_type))
+			self.sculpt_menu.add_command(label=sculpt_type,
+					command=type_command(sculpt_type))
 		self.set_sculpt_type("Sphere")
-		b = Button(frame, text="Add", command=self.add)
-		b.pack( padx=5, pady=5 )
-		b = Button(frame, text="Close", command=self.master.destroy)
-		b.pack( padx=5, pady=5 )
+		b = Button(frame, text="Add",
+				command=self.add,
+				border=1,
+				bg=hex_colour(theme.action),
+				activebackground=hex_colour(theme.action),
+				fg=hex_colour(theme.menu_text),
+				activeforeground=hex_colour(theme.menu_text_hi))
+		b.pack( padx=5, pady=5, fill=X )
+		b = Button(frame, text="Close",
+				command=self.master.destroy,
+				border=1,
+				bg=hex_colour(theme.action),
+				activebackground=hex_colour(theme.action),
+				fg=hex_colour(theme.menu_text),
+				activeforeground=hex_colour(theme.menu_text_hi))
+		b.pack( padx=5, pady=5, fill=X )
 
 	def set_map_type(self):
 		self.sculpt_menu.post(250,70)
@@ -79,12 +109,16 @@ class GuiApp:
 		print "Create a " + self.map_type.cget('text') + " sculptie"
 		# self.master.destroy()
 
+def hex_colour(theme_colour):
+	return "#" + hexlify("".join([chr(i) for i in theme_colour[:-1]]))
+
 def main():
 	root = Tk()
 	root.title("Add sculpt mesh")
 	root.overrideredirect(1)
 	root.geometry('+100+100')
-	gui = GuiApp(root)
+	theme = Blender.Window.Theme.Get()[0].get('ui')
+	gui = GuiApp(root, theme)
 	root.mainloop()
 
 if __name__ == '__main__':
