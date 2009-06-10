@@ -96,12 +96,11 @@ class GuiApp:
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting))
 		s.pack(padx=5, pady=5, side=RIGHT)
-		self.subdivision = IntVar(self.master, 2)
 		fs = LabelFrame(f,
 				text="Subdivision",
 				bg=hex_colour(theme.neutral),
 				fg=hex_colour(theme.text))
-		fs.pack(padx=5, pady=5, side=LEFT)
+		fs.pack(padx=5, pady=5)
 		self.levels = IntVar(self.master, 2)
 		fl = Frame(fs, bg=hex_colour(theme.neutral))
 		fl.pack()
@@ -120,20 +119,38 @@ class GuiApp:
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting))
 		s.pack(padx=5, pady=5, side=RIGHT)
-		Radiobutton(fs,
+		self.subdivision = IntVar(self.master, 1)
+		r = Frame(fs, bg=hex_colour(theme.neutral))
+		r.pack(side=LEFT)
+		Radiobutton(r,
 				text="Simple",
 				variable=self.subdivision,
 				highlightthickness=0,
 				bg=hex_colour(theme.neutral),
-				value=1).pack()
-		Radiobutton(fs,
+				value=0).pack()
+		Radiobutton(r,
 				text="Catmull",
 				variable=self.subdivision,
 				highlightthickness=0,
 				bg=hex_colour(theme.neutral),
-				value=2).pack()
+				value=1).pack()
+		self.sub_type = IntVar(self.master, 1)
+		r = Frame(fs, bg=hex_colour(theme.neutral))
+		r.pack(side=RIGHT)
+		Radiobutton(r,
+				text="Multires",
+				variable=self.sub_type,
+				highlightthickness=0,
+				bg=hex_colour(theme.neutral),
+				value=0).pack()
+		Radiobutton(r,
+				text="Subsurf",
+				variable=self.sub_type,
+				highlightthickness=0,
+				bg=hex_colour(theme.neutral),
+				value=1).pack()
 		self.clean_lods = BooleanVar( self.master, True )
-		c = Checkbutton(f,
+		c = Checkbutton(frame,
 				text="Clean LODs",
 				variable=self.clean_lods,
 				bg=hex_colour(theme.neutral),
@@ -213,7 +230,8 @@ class GuiApp:
 			" sculptie with " + ["", "clean LODs, "][self.clean_lods.get()] +\
 			str(self.x_faces.get()) +\
 			" x " + str(self.y_faces.get()) + " faces" +\
-			" and " + str(self.levels.get()) + " subdivision levels"
+			" and " + str(self.levels.get()) + [" simple"," catmull"][self.subdivision.get()] +\
+			[" multires"," subsurf"][self.sub_type.get()] + " levels"
 		# self.master.destroy()
 
 def hex_colour(theme_colour):
