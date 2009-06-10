@@ -46,12 +46,59 @@ class GuiApp:
 	def __init__(self, master, theme):
 		w,h = 32, 256
 		self.master = master
-		frame = Frame(master,relief=RAISED,border=1, bg=hex_colour(theme.neutral))
+		self.master.grab_set()
+		frame = LabelFrame(master,
+				border=3,
+				bg=hex_colour(theme.neutral),
+				text="Primstar - Add sculpt mesh",
+				labelanchor=N)
 		frame.pack()
+		f = LabelFrame(frame,
+				text="Geometry",
+				bg=hex_colour(theme.neutral),
+				fg=hex_colour(theme.text))
+		f.pack(padx=5, pady=5, side=LEFT)
+		fx = Frame(f, bg=hex_colour(theme.neutral))
+		fx.pack(side=LEFT)
+		t = Label(fx,
+			text="X Faces",
+			justify=RIGHT,
+			bg=hex_colour(theme.neutral),
+			fg=hex_colour(theme.text))
+		t.pack(padx=5, pady=5, side=LEFT)
+		self.x_faces = IntVar(self.master, 8)
+		s = Spinbox(fx,
+				textvariable=self.x_faces,
+				from_=1,
+				to=256,
+				width=3,
+				bg=hex_colour(theme.num),
+				fg=hex_colour(theme.text),
+				activebackground=hex_colour(theme.setting))
+		s.pack(padx=5, pady=5, side=RIGHT)
+		fy = Frame(f, bg=hex_colour(theme.neutral))
+		fy.pack(side=RIGHT)
+		t = Label(fy,
+			text="Y Faces",
+			justify=RIGHT,
+			bg=hex_colour(theme.neutral),
+			fg=hex_colour(theme.text))
+		t.pack(padx=5, pady=5, side=LEFT)
+		self.y_faces = IntVar(self.master, 8)
+		s = Spinbox(fy,
+				textvariable=self.y_faces,
+				from_=1,
+				to=256,
+				width=3,
+				bg=hex_colour(theme.num),
+				fg=hex_colour(theme.text),
+				activebackground=hex_colour(theme.setting))
+		s.pack(padx=5, pady=5, side=RIGHT)
 		f = LabelFrame(frame,
 				text="Map Image",
 				bg=hex_colour(theme.neutral),
-				fg=hex_colour(theme.text))
+				fg=hex_colour(theme.text),
+				labelanchor=N)
 		f.pack(padx=5, pady=5, side=LEFT)
 		self.lod_display = Label(f,
 				text=sculpty.lod_info(w, h)[:-1],
@@ -126,6 +173,7 @@ def main():
 	root.overrideredirect(1)
 	root.geometry('+100+100')
 	theme = Blender.Window.Theme.Get()[0].get('ui')
+	root.bg = hex_colour(theme.neutral)
 	gui = GuiApp(root, theme)
 	root.mainloop()
 
