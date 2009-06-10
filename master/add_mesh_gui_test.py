@@ -45,7 +45,7 @@ class GuiApp:
 	def __init__(self, master):
 		w,h = 32, 256
 		self.master = master
-		frame = Frame(master)
+		frame = Frame(master,relief=RAISED,border=2)
 		frame.pack()
 		self.lod_display = Label(frame, text=sculpty.lod_info(w, h), relief=GROOVE, justify=LEFT)
 		self.lod_display.pack(padx=5, pady=5, ipadx=3, ipady=3, side=LEFT)
@@ -61,16 +61,18 @@ class GuiApp:
 		self.set_sculpt_type("Sphere")
 		b = Button(frame, text="Add", command=self.add)
 		b.pack( padx=5, pady=5 )
+		b = Button(frame, text="Close", command=self.master.destroy)
+		b.pack( padx=5, pady=5 )
 
 	def set_map_type(self):
-		self.sculpt_menu.post(160,70)
+		self.sculpt_menu.post(250,70)
 
 	def set_sculpt_type(self, sculpt_type):
 		self.map_type.configure(text=sculpt_type)
 		self.redraw()
 
 	def redraw(self):
-		self.map_type.update_idletasks()
+		self.master.update_idletasks()
 		Blender.Redraw()
 
 	def add(self):
@@ -80,6 +82,8 @@ class GuiApp:
 def main():
 	root = Tk()
 	root.title("Add sculpt mesh")
+	root.overrideredirect(1)
+	root.geometry('+100+100')
 	gui = GuiApp(root)
 	root.mainloop()
 
