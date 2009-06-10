@@ -48,9 +48,13 @@ class GuiApp:
 		self.master = master
 		frame = Frame(master,relief=RAISED,border=1, bg=hex_colour(theme.neutral))
 		frame.pack()
-		self.lod_display = Label(frame,
+		f = LabelFrame(frame,
+				text="Map Image",
+				bg=hex_colour(theme.neutral),
+				fg=hex_colour(theme.text))
+		f.pack(padx=5, pady=5, side=LEFT)
+		self.lod_display = Label(f,
 				text=sculpty.lod_info(w, h)[:-1],
-				relief=GROOVE,
 				justify=LEFT,
 				bg=hex_colour(theme.neutral),
 				fg=hex_colour(theme.text))
@@ -98,7 +102,7 @@ class GuiApp:
 		t = self.map_type.cget('text')
 		i = self.sculpt_menu.index( t )
 		y = self.map_type.winfo_rooty() - self.sculpt_menu.yposition( i )
-		x  = self.map_type.winfo_rootx()
+		x  = self.master.winfo_pointerx() - self.sculpt_menu.winfo_reqwidth() // 2
 		self.sculpt_menu.post(x, y)
 
 	def set_sculpt_type(self, sculpt_type):
