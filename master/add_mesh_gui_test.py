@@ -58,7 +58,9 @@ class GuiApp:
 				bg=hex_colour(theme.neutral),
 				fg=hex_colour(theme.text))
 		f.pack(padx=5, pady=5, side=LEFT)
-		fx = Frame(f, bg=hex_colour(theme.neutral))
+		ff = Frame(f, bg=hex_colour(theme.neutral))
+		ff.pack()
+		fx = Frame(ff, bg=hex_colour(theme.neutral))
 		fx.pack(side=LEFT)
 		t = Label(fx,
 			text="X Faces",
@@ -76,13 +78,13 @@ class GuiApp:
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting))
 		s.pack(padx=5, pady=5, side=RIGHT)
-		fy = Frame(f, bg=hex_colour(theme.neutral))
+		fy = Frame(ff, bg=hex_colour(theme.neutral))
 		fy.pack(side=RIGHT)
 		t = Label(fy,
-			text="Y Faces",
-			justify=RIGHT,
-			bg=hex_colour(theme.neutral),
-			fg=hex_colour(theme.text))
+				text="Y Faces",
+				justify=RIGHT,
+				bg=hex_colour(theme.neutral),
+				fg=hex_colour(theme.text))
 		t.pack(padx=5, pady=5, side=LEFT)
 		self.y_faces = IntVar(self.master, 8)
 		s = Spinbox(fy,
@@ -94,6 +96,52 @@ class GuiApp:
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting))
 		s.pack(padx=5, pady=5, side=RIGHT)
+		self.subdivision = IntVar(self.master, 2)
+		fs = LabelFrame(f,
+				text="Subdivision",
+				bg=hex_colour(theme.neutral),
+				fg=hex_colour(theme.text))
+		fs.pack(padx=5, pady=5, side=LEFT)
+		self.levels = IntVar(self.master, 2)
+		fl = Frame(fs, bg=hex_colour(theme.neutral))
+		fl.pack()
+		t = Label(fl,
+				text="Levels",
+				justify=RIGHT,
+				bg=hex_colour(theme.neutral),
+				fg=hex_colour(theme.text))
+		t.pack(padx=5, pady=5, side=LEFT)
+		s = Spinbox(fl,
+				textvariable=self.levels,
+				from_=0,
+				to=6,
+				width=3,
+				bg=hex_colour(theme.num),
+				fg=hex_colour(theme.text),
+				activebackground=hex_colour(theme.setting))
+		s.pack(padx=5, pady=5, side=RIGHT)
+		Radiobutton(fs,
+				text="Simple",
+				variable=self.subdivision,
+				highlightthickness=0,
+				bg=hex_colour(theme.neutral),
+				value=1).pack()
+		Radiobutton(fs,
+				text="Catmull",
+				variable=self.subdivision,
+				highlightthickness=0,
+				bg=hex_colour(theme.neutral),
+				value=2).pack()
+		self.clean_lods = BooleanVar( self.master, True )
+		c = Checkbutton(f,
+				text="Clean LODs",
+				variable=self.clean_lods,
+				bg=hex_colour(theme.neutral),
+				fg=hex_colour(theme.text),
+				activebackground=hex_colour(theme.setting),
+				border=2,
+				highlightthickness=0)
+		c.pack(padx=5, pady=5, side=BOTTOM)
 		f = LabelFrame(frame,
 				text="Map Image",
 				bg=hex_colour(theme.neutral),
@@ -161,7 +209,11 @@ class GuiApp:
 		Blender.Redraw()
 
 	def add(self):
-		print "Create a " + self.map_type.cget('text') + " sculptie"
+		print "Create a " + self.map_type.cget('text') +\
+			" sculptie with " + ["", "clean LODs, "][self.clean_lods.get()] +\
+			str(self.x_faces.get()) +\
+			" x " + str(self.y_faces.get()) + " faces" +\
+			" and " + str(self.levels.get()) + " subdivision levels"
 		# self.master.destroy()
 
 def hex_colour(theme_colour):
