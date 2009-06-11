@@ -53,7 +53,9 @@ class GuiApp:
 				text="Primstar - Add sculpt mesh",
 				labelanchor=N)
 		frame.pack()
-		f = LabelFrame(frame,
+		fi = Frame(frame, bg=hex_colour(theme.neutral))
+		fi.pack()
+		f = LabelFrame(fi,
 				text="Geometry",
 				bg=hex_colour(theme.neutral),
 				fg=hex_colour(theme.text))
@@ -61,7 +63,7 @@ class GuiApp:
 		ff = Frame(f, bg=hex_colour(theme.neutral))
 		ff.pack()
 		fx = Frame(ff, bg=hex_colour(theme.neutral))
-		fx.pack(side=LEFT)
+		fx.pack()
 		t = Label(fx,
 			text="X Faces",
 			justify=RIGHT,
@@ -79,7 +81,7 @@ class GuiApp:
 				activebackground=hex_colour(theme.setting))
 		s.pack(padx=5, pady=5, side=RIGHT)
 		fy = Frame(ff, bg=hex_colour(theme.neutral))
-		fy.pack(side=RIGHT)
+		fy.pack()
 		t = Label(fy,
 				text="Y Faces",
 				justify=RIGHT,
@@ -96,7 +98,7 @@ class GuiApp:
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting))
 		s.pack(padx=5, pady=5, side=RIGHT)
-		fs = LabelFrame(f,
+		fs = LabelFrame(fi,
 				text="Subdivision",
 				bg=hex_colour(theme.neutral),
 				fg=hex_colour(theme.text))
@@ -150,7 +152,7 @@ class GuiApp:
 				bg=hex_colour(theme.neutral),
 				value=1).pack()
 		self.clean_lods = BooleanVar( self.master, True )
-		c = Checkbutton(frame,
+		c = Checkbutton(f,
 				text="Clean LODs",
 				variable=self.clean_lods,
 				bg=hex_colour(theme.neutral),
