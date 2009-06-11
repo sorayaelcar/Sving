@@ -345,16 +345,20 @@ class BakeMap:
 			c += delta
 
 class LibPath:
-	def __init__(self, path):
+	def __init__(self, path, root=None):
 		self.path = path
+		if root:
+			self.local_path = path[len(root):]
+		else:
+			self.local_path = path
 		self.name = Blender.sys.makename( path, strip=1 )
 
 	def __lt__(self, other):
 		return self.path < other.path
 
 class LibDir(LibPath):
-	def __init__(self, path):
-		LibPath.__init__(self, path)
+	def __init__(self, path, root=None):
+		LibPath.__init__(self, path, root)
 		self.files = []
 		self.dirs = []
 
@@ -369,12 +373,13 @@ def build_lib(path=None, LibDir=LibDir, LibFile=LibFile):
 	for root, dirs, files in os.walk(path):
 		dirobj = path2dir[root]
 		for name in dirs:
-			subdirobj = LibDir(os.path.join(root, name))
+			subdirobj = LibDir(os.path.join(root, name), top.path)
 			path2dir[subdirobj.path] = subdirobj
 			dirobj.dirs.append(subdirobj)
 		for name in files:
 			if name[-4:] == '.tga':
-				dirobj.files.append(LibFile(os.path.join(root, name)))
+				dirobj.files.append(LibFile(os.path.join(root, name), top.path))
+				dirobj.files[-1].local_path = dirobj.files[-1].local_path[:-4]
 	return top
 
 class RGBRange:
