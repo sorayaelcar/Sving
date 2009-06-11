@@ -243,7 +243,15 @@ def main():
 	root = Tk()
 	root.title("Add sculpt mesh")
 	root.overrideredirect(1)
-	root.geometry('+100+100')
+
+	mousePosition   = Blender.Window.GetMouseCoords()
+	screenSize      = Blender.Window.GetScreenSize()
+	sWidth, sHeight = screenSize
+	xPos, yPos      = mousePosition[0] - 128 , sHeight - mousePosition[1] - 128 
+	print "mouse x,y           = ", xPos, yPos
+	print "Blender window size = ", sWidth, sHeight
+
+	root.geometry('+'+str(xPos)+'+'+str(yPos))
 	theme = Blender.Window.Theme.Get()[0].get('ui')
 	root.bg = hex_colour(theme.neutral)
 	gui = GuiApp(root, theme)
