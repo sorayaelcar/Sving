@@ -24,7 +24,12 @@
 #***********************************************
 
 import Blender
+import bpy
+import os
 from math import sin, cos, pi, sqrt, log, ceil, atan2
+
+lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
+print lib_dir
 
 #***********************************************
 # helper functions
@@ -338,6 +343,39 @@ class BakeMap:
 		for v in range(s , e):
 			self.add( x, v, c)
 			c += delta
+
+class LibPath:
+	def __init__(self, path):
+		self.path = path
+		self.name = Blender.sys.makename( path, strip=1 )
+
+	def __lt__(self, other):
+		return self.path < other.path
+
+class LibDir(LibPath):
+	def __init__(self, path):
+		LibPath.__init__(self, path)
+		self.files = []
+		self.dirs = []
+
+class LibFile(LibPath):
+	pass
+
+def build_lib(path=None, LibDir=LibDir, LibFile=LibFile):
+	if not path:
+		path = lib_dir
+	top = LibDir(path)
+	path2dir = {path: top}
+	for root, dirs, files in os.walk(path):
+		dirobj = path2dir[root]
+		for name in dirs:
+			subdirobj = LibDir(os.path.join(root, name))
+			path2dir[subdirobj.path] = subdirobj
+			dirobj.dirs.append(subdirobj)
+		for name in files:
+			if name[-4:] == '.tga':
+				dirobj.files.append(LibFile(os.path.join(root, name)))
+	return top
 
 class RGBRange:
 	def __init__(self, minimum=XYZ(0, 0, 0), maximum=XYZ(255, 255, 255)):
