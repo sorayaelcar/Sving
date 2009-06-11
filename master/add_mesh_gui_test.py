@@ -244,12 +244,20 @@ def main():
 	root.title("Add sculpt mesh")
 	root.overrideredirect(1)
 
+	# Calculate the position where the popup appears.
+	# Note: Currently the positioning assumes, that the upper left corner
+	#       of the blender window is located at [0,0]. This is true only
+	#       for fullscreen mode. If blender runs in window mode, the top 
+	#       left position of the popup window will be shifted towards upper left
+	# TODO: Find a way to determine the absolute position of the blender window.
+
 	mousePosition   = Blender.Window.GetMouseCoords()
 	screenSize      = Blender.Window.GetScreenSize()
 	sWidth, sHeight = screenSize
 	xPos, yPos      = mousePosition[0] - 128 , sHeight - mousePosition[1] - 128 
-	print "mouse x,y           = ", xPos, yPos
-	print "Blender window size = ", sWidth, sHeight
+	print "mouse x,y (relative to upper left corner) = ", xPos, yPos
+	print "Blender full window size                  = ", sWidth, sHeight
+
 
 	root.geometry('+'+str(xPos)+'+'+str(yPos))
 	theme = Blender.Window.Theme.Get()[0].get('ui')
