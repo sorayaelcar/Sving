@@ -45,8 +45,13 @@ from binascii import hexlify
 class GuiApp:
 	def __init__(self, master, theme):
 		w,h = 32, 256
+
 		self.master = master
 		self.master.grab_set()
+		
+		# remove the popup as soon as user moves the mouse out of the widget:
+		self.master.bind( "<Leave>", self.destroyHandler)
+		
 		frame = LabelFrame(master,
 				border=3,
 				bg=hex_colour(theme.neutral),
@@ -236,8 +241,19 @@ class GuiApp:
 			[" multires"," subsurf"][self.sub_type.get()] + " levels"
 		# self.master.destroy()
 
+	# =================================================================================
+	# This handler is called whenever the mouse leaves a widget inside the self.master.
+	# If the mouse leaves the self.master itself, the whole application will be
+	# destroyed.
+	# =================================================================================
+	def destroyHandler(self, event):
+		if(event.widget == self.master):
+			print "Mouse left application. Self destroy"
+			self.master.destroy()
+
 def hex_colour(theme_colour):
 	return "#" + hexlify("".join([chr(i) for i in theme_colour[:-1]]))
+
 
 def main():
 	root = Tk()
@@ -260,11 +276,12 @@ def main():
 	print "mouse x,y (relative to upper left corner) = ", xPos, yPos
 	print "Blender full window size                  = ", sWidth, sHeight
 
-
+	
 	root.geometry('+'+str(xPos)+'+'+str(yPos))
 	theme = Blender.Window.Theme.Get()[0].get('ui')
 	root.bg = hex_colour(theme.neutral)
 	gui = GuiApp(root, theme)
+	
 	root.mainloop()
 
 if __name__ == '__main__':
