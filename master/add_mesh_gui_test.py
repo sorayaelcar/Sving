@@ -50,7 +50,7 @@ class GuiApp:
 		self.master.grab_set()
 		
 		# remove the popup as soon as user moves the mouse out of the widget:
-		self.master.bind( "<Leave>", self.destroyHandler)
+		self.master.bind( "<Button>", self.destroyHandler)
 		
 		frame = LabelFrame(master,
 				border=3,
@@ -188,8 +188,8 @@ class GuiApp:
 		self.map_type.pack(padx=5, pady=5, fill=X)
 		self.sculpt_menu = Menu(frame,
 				tearoff=0,
-				bg=hex_colour(theme.menu_item),
-				fg=hex_colour(theme.menu_text),
+				background=hex_colour(theme.menu_item),
+				foreground=hex_colour(theme.menu_text),
 				activebackground=hex_colour(theme.menu_hilite),
 				activeforeground=hex_colour(theme.menu_text_hi))
 		for sculpt_type in [ "Sphere", "Torus", "Plane", "Cylinder", "Hemi"]:
@@ -247,9 +247,11 @@ class GuiApp:
 	# destroyed.
 	# =================================================================================
 	def destroyHandler(self, event):
+		print "leave [", event.widget.winfo_name(), "]"
+		
 		if(event.widget == self.master):
 			print "Mouse left application. Self destroy"
-			self.master.destroy()
+			#self.master.destroy()
 
 def hex_colour(theme_colour):
 	return "#" + hexlify("".join([chr(i) for i in theme_colour[:-1]]))
@@ -261,26 +263,17 @@ def main():
 	root.overrideredirect(1)
 
 	# ==========================================================================
-	# Calculate the position where the popup appears.
-	# Note: Currently the positioning assumes, that the upper left corner
-	#       of the blender window is located at [0,0]. This is true only
-	#       for fullscreen mode. If blender runs in window mode, the top 
-	#       left position of the popup window will be shifted towards upper left
-	# TODO: Find a way to determine the absolute position of the blender window.
+	# Calculate the position where the popup appears. Assume the dimension of 
+	# the window is 256*256 pixel and correct the window position so thet the
+	# mouse is in the center of the window 
 	# ==========================================================================
-	mousePosition   = Blender.Window.GetMouseCoords()
-	screenSize      = Blender.Window.GetScreenSize()
-	sWidth, sHeight = screenSize
-	xPos, yPos      = mousePosition[0] - 128 , sHeight - mousePosition[1] - 128 
+	xPos, yPos      = root.winfo_pointerxy()
+	root.geometry('+'+str(xPos-128)+'+'+str(yPos-128))
 
-	print "mouse x,y (relative to upper left corner) = ", xPos, yPos
-	print "Blender full window size                  = ", sWidth, sHeight
-
-	
-	root.geometry('+'+str(xPos)+'+'+str(yPos))
 	theme = Blender.Window.Theme.Get()[0].get('ui')
 	root.bg = hex_colour(theme.neutral)
 	gui = GuiApp(root, theme)
+	
 	
 	root.mainloop()
 
