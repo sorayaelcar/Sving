@@ -377,7 +377,7 @@ def build_lib(path=None, LibDir=LibDir, LibFile=LibFile):
 			path2dir[subdirobj.path] = subdirobj
 			dirobj.dirs.append(subdirobj)
 		for name in files:
-			if name[-4:] == '.tga':
+			if name[-4:] == '.png':
 				dirobj.files.append(LibFile(os.path.join(root, name), top.path))
 				dirobj.files[-1].local_path = dirobj.files[-1].local_path[:-4]
 	return top
