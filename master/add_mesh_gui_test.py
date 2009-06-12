@@ -250,13 +250,6 @@ class GuiApp:
 		Blender.Redraw()
 
 	def add(self):
-		print "Create a " + self.map_type.cget('text') +\
-			" sculptie with " + ["", "clean LODs, "][self.clean_lods.get()] +\
-			str(self.x_faces.get()) +\
-			" x " + str(self.y_faces.get()) + " faces" +\
-			" and " + str(self.levels.get()) + [" simple"," catmull"][self.subdivision.get()] +\
-			[" multires"," subsurf"][self.sub_type.get()] + " levels"
-		# self.master.destroy()
 		Blender.Window.WaitCursor(1)
 		name = self.map_type.cget('text')
 		if name[:1] == os.sep:
@@ -274,14 +267,16 @@ class GuiApp:
 			mesh = sculpty.new_mesh( basename,sculpt_type,
 					self.x_faces.get(), self.y_faces.get(),
 					self.levels.get(), self.clean_lods.get(), 0.25) #todo: 0.25 radius needs gui add..
-			s, t, w, h, clean_s, clean_t = sculpty.map_size( self.x_faces.get(), self.y_faces.get(), self.levels.get())
-			image = Blender.Image.New( basename, w, h, 32 )
+			s, t, w, h, clean_s, clean_t = sculpty.map_size(self.x_faces.get(), self.y_faces.get(), self.levels.get())
+			image = Blender.Image.New(basename, w, h, 32)
 			sculpty.bake_lod(image)
-			ob = scene.objects.new( mesh, basename )
+			ob = scene.objects.new(mesh, basename)
 			mesh.flipNormals()
 			ob.sel = True
-			ob.setLocation( Blender.Window.GetCursorPos() )
-			sculpty.set_map( mesh, image )
+			ob.setLocation(Blender.Window.GetCursorPos())
+			sculpty.set_map(mesh, image)
+			if baseimage:
+				sculpty.update_from_map(mesh, baseimage)
 			if self.levels.get():
 				if self.sub_type.get():
 					mods = ob.modifiers
@@ -295,10 +290,8 @@ class GuiApp:
 					mesh.multires = True
 					mesh.addMultiresLevel(multires, ('simple', 'catmull-clark')[self.subdivision.get()])
 					mesh.sel = True
-			if baseimage:
-				sculpty.update_from_map(mesh, baseimage)
 			# adjust scale for subdivision
-			minimum, maximum = sculpty.get_bounding_box( ob )
+			minimum, maximum = sculpty.get_bounding_box(ob)
 			x = 1.0 / (maximum.x - minimum.x)
 			y = 1.0 / (maximum.y - minimum.y)
 			try:
@@ -309,8 +302,8 @@ class GuiApp:
 				z = 0.25 * z #todo: radius again
 			elif sculpt_type == "HEMI":
 				z = 0.5 * z
-			tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
-			mesh.transform( tran )
+			tran = Blender.Mathutils.Matrix([ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z]).resize4x4()
+			mesh.transform(tran)
 			# align to view
 			try:
 				quat = None
@@ -324,7 +317,8 @@ class GuiApp:
 			except:
 				pass
 		except RuntimeError:
-			Blender.Draw.PupBlock( "Unable to create sculptie", ["Please decrease face counts","or subdivision levels"] )
+			#todo tkinter this
+			Blender.Draw.PupBlock("Unable to create sculptie", ["Please decrease face counts","or subdivision levels"])
 		Blender.Window.WaitCursor(0)
 		self.redraw()
 
