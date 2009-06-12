@@ -257,6 +257,76 @@ class GuiApp:
 			" and " + str(self.levels.get()) + [" simple"," catmull"][self.subdivision.get()] +\
 			[" multires"," subsurf"][self.sub_type.get()] + " levels"
 		# self.master.destroy()
+		Blender.Window.WaitCursor(1)
+		name = self.map_type.cget('text')
+		if name[:1] == os.sep:
+			basename = name.split(os.sep)[1]
+			baseimage = Blender.Image.Load(os.path.join(sculpty.lib_dir, name[1:]) + '.tga')
+			sculpt_type = sculpty.map_type(baseimage)
+		else:
+			basename = name
+			sculpt_type = name.upper()
+			baseimage = None
+		scene = Blender.Scene.GetCurrent()
+		for ob in scene.objects:
+			ob.sel = False
+		try:
+			mesh = sculpty.new_mesh( basename,sculpt_type,
+					self.x_faces.get(), self.y_faces.get(),
+					self.levels.get(), self.clean_lods.get(), 0.25) #todo: 0.25 radius needs gui add..
+			s, t, w, h, clean_s, clean_t = sculpty.map_size( self.x_faces.get(), self.y_faces.get(), self.levels.get())
+			image = Blender.Image.New( basename, w, h, 32 )
+			sculpty.bake_lod(image)
+			ob = scene.objects.new( mesh, basename )
+			mesh.flipNormals()
+			ob.sel = True
+			ob.setLocation( Blender.Window.GetCursorPos() )
+			sculpty.set_map( mesh, image )
+			if self.levels.get():
+				if self.sub_type.get():
+					mods = ob.modifiers
+					mod = mods.append(Blender.Modifier.Types.SUBSURF)
+					mod[Blender.Modifier.Settings.LEVELS] = self.levels.get()
+					mod[Blender.Modifier.Settings.RENDLEVELS] = self.levels.get()
+					mod[Blender.Modifier.Settings.UV] = False
+					if not self.subdivision.get():
+						mod[Blender.Modifier.Settings.TYPES] = 1
+				else:
+					mesh.multires = True
+					mesh.addMultiresLevel(multires, ('simple', 'catmull-clark')[self.subdivision.get()])
+					mesh.sel = True
+			if baseimage:
+				sculpty.update_from_map(mesh, baseimage)
+			# adjust scale for subdivision
+			minimum, maximum = sculpty.get_bounding_box( ob )
+			x = 1.0 / (maximum.x - minimum.x)
+			y = 1.0 / (maximum.y - minimum.y)
+			try:
+				z = 1.0 / (maximum.z - minimum.z)
+			except:
+				z = 0.0
+			if sculpt_type == "TORUS":
+				z = 0.25 * z #todo: radius again
+			elif sculpt_type == "HEMI":
+				z = 0.5 * z
+			tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
+			mesh.transform( tran )
+			# align to view
+			try:
+				quat = None
+				if Blender.Get('add_view_align'):
+					quat = Blender.Mathutils.Quaternion(Blender.Window.GetViewQuat())
+					if quat:
+						mat = quat.toMatrix()
+						mat.invert()
+						mat.resize4x4()
+						ob.setMatrix(mat)
+			except:
+				pass
+		except RuntimeError:
+			Blender.Draw.PupBlock( "Unable to create sculptie", ["Please decrease face counts","or subdivision levels"] )
+		Blender.Window.WaitCursor(0)
+		self.redraw()
 
 def hex_colour(theme_colour):
 	return "#" + hexlify("".join([chr(i) for i in theme_colour[:-1]]))

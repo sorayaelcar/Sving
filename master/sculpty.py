@@ -237,19 +237,19 @@ class BakeMap:
 		for x in range(self.u):
 			for y in range(self.v):
 				if self.map[x][y][0]:
-					r = int(sum(self.map[x][y][0]) / len(self.map[x][y][0]))
-					g = int(sum(self.map[x][y][1]) / len(self.map[x][y][1]))
-					b = int(sum(self.map[x][y][2]) / len(self.map[x][y][2]))
-					image.setPixelI( x, y, ( r, g, b, 255 ) )
+					r = clip(int(sum(self.map[x][y][0]) / len(self.map[x][y][0])))
+					g = clip(int(sum(self.map[x][y][1]) / len(self.map[x][y][1])))
+					b = clip(int(sum(self.map[x][y][2]) / len(self.map[x][y][2])))
+					image.setPixelI(x, y, (r, g, b, 255))
 
 	def bake_float(self, image):
 		for x in range(self.u):
 			for y in range(self.v):
 				if self.map[x][y][0]:
-					r = sum(self.map[x][y][0]) / len(self.map[x][y][0])
-					g = sum(self.map[x][y][1]) / len(self.map[x][y][1])
-					b = sum(self.map[x][y][2]) / len(self.map[x][y][2])
-					image.setPixelF(x, y, ( r, g, b, 1.0 ))
+					r = clip(sum(self.map[x][y][0]) / len(self.map[x][y][0]), 0.0, 1.0)
+					g = clip(sum(self.map[x][y][1]) / len(self.map[x][y][1]), 0.0, 1.0)
+					b = clip(sum(self.map[x][y][2]) / len(self.map[x][y][2]), 0.0, 1.0)
+					image.setPixelF(x, y, (r, g, b, 1.0))
 
 	def draw_line(self, start, end, ends=True):
 		diff = end - start
