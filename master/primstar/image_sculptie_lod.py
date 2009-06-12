@@ -37,7 +37,7 @@ This script bakes a sculptie LOD helper to the active image
 # --------------------------------------------------------------------------
 
 import Blender
-from sculpty import bake_lod
+from primstar.sculpty import bake_lod
 
 def main():
 	image = Blender.Image.GetCurrent()

@@ -43,7 +43,7 @@ This script exports Second Life sculpties in lsl + tga files
 #***********************************************
 
 import Blender
-import sculpty
+from primstar import sculpty
 
 #***********************************************
 # Templates

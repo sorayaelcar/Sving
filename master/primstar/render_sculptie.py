@@ -43,7 +43,7 @@ positions to the prim's sculptie map image.
 #***********************************************
 
 import Blender
-import sculpty
+from primstar import sculpty
 
 #***********************************************
 # constants

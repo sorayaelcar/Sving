@@ -38,7 +38,7 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 # --------------------------------------------------------------------------
 
 import Blender
-import sculpty
+from primstar import sculpty
 import os
 from Tkinter import *
 from binascii import hexlify

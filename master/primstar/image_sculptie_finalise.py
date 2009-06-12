@@ -38,7 +38,7 @@ better compression of the image.
 # --------------------------------------------------------------------------
 
 import Blender
-from sculpty import finalise, fill_holes
+from primstar.sculpty import finalise, fill_holes
 
 def current():
 	image = Blender.Image.GetCurrent()

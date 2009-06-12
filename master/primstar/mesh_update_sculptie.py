@@ -1,25 +1,33 @@
 #!BPY
 
 """
-Name: 'Second Life Sculptie (.tga)'
-Blender: 246
-Group: 'Import'
-Tooltip: 'Import from a Second Life sculptie image map (.tga)'
+Name: 'Update from Sculptie'
+Blender: 245
+Group: 'Mesh'
+Tooltip: 'Updates a mesh with a sculptie UV layer from a .tga map file'
 """
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "1.00"
+__version__ = "0.03"
 __bpydoc__ = """\
 
-Sculptie Importer
+Sculptie Updater
 
-This script creates an object from a Second Life sculptie image map
+This script updates a sculptie mesh from a Second Life sculptie image map
 """
+#TODO:
+# Needs to work with shape keys
+#0.03 Domino Marama 2009-05-24
+#- Now uses sculpty.py
+#0.02 Domino Marama 2009-05-22
+#- Removed image to face assignments and scaling
+#0.01 Domino Marama 2007-08-10
+#- Initial Version
 
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
-# Script copyright (C) 2007-2009 Domino Designs Limited
+# Script copyright (C) Domino Designs Limited
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -43,37 +51,30 @@ This script creates an object from a Second Life sculptie image map
 #***********************************************
 
 import Blender
-import sculpty
+from primstar.sculpty import update_from_map
 
 #***********************************************
-# load sculptie file
+# Import modules
 #***********************************************
 
-def load_sculptie(filename):
-	time1 = Blender.sys.time()
-	Blender.SaveUndoState( "Import Sculptie" )
-	print "--------------------------------"
-	print 'Importing "%s"' % filename
-	in_editmode = Blender.Window.EditMode()
-	# MUST leave edit mode before changing an active mesh:
-	if in_editmode:
-		Blender.Window.EditMode(0)
-	else:
-		try:
-			in_editmode = Blender.Get('add_editmode')
-		except:
-			pass
-	ob = sculpty.open( filename )
-	if in_editmode:
-		Blender.Window.EditMode(1)
-	Blender.Redraw()
-	print 'finished importing: "%s" in %.4f sec.' % (filename, (Blender.sys.time()-time1))
+def main( filename ):
+	image = Blender.Image.Load( filename )
+	editmode = Blender.Window.EditMode()
+	if editmode: Blender.Window.EditMode(0)
+	Blender.Window.WaitCursor(1)
+	ob = Blender.Scene.GetCurrent().getActiveObject()
+	if ob.type == 'Mesh':
+		mesh = ob.getData( False, True)
+		if "sculptie" in mesh.getUVLayerNames():
+			update_from_map( mesh, image )
+		else:
+			Blender.Draw.PupBlock( "Sculptie Error", ["Mesh has no 'sculptie' UV Layer"] )
+	Blender.Window.WaitCursor(0)
+	Blender.Window.EditMode( editmode )
 
 #***********************************************
-# register callback
+# Request image file
 #***********************************************
-def my_callback(filename):
-	load_sculptie(filename)
 
-if __name__ == '__main__':
-	Blender.Window.FileSelector(my_callback, "Import Sculptie", '.tga')
+Blender.Window.FileSelector( main, 'Select Sculptie Map', '.tga' )
+
