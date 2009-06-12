@@ -29,7 +29,6 @@ import os
 from math import sin, cos, pi, sqrt, log, ceil, atan2
 
 lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
-print lib_dir
 
 #***********************************************
 # helper functions

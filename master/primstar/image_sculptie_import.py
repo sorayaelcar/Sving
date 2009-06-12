@@ -37,7 +37,7 @@ This script imports the active image as a sculptie
 # --------------------------------------------------------------------------
 
 import Blender
-from sculpty import new_from_map
+from primstar.sculpty import new_from_map
 
 def main():
 	in_editmode = Blender.Window.EditMode()

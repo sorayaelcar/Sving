@@ -39,7 +39,7 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 
 import Blender
 from math import log, ceil, sqrt, pi, sin, cos
-import sculpty
+from primstar import sculpty
 
 #***********************************************
 # constants
