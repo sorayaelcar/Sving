@@ -39,8 +39,24 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 
 import Blender
 import sculpty
+import os
 from Tkinter import *
 from binascii import hexlify
+
+class MenuMap(sculpty.LibFile):
+	def get_command(self, app):
+		def new_command():
+			app.set_sculpt_type(self.local_path)
+		return new_command
+
+class MenuDir(sculpty.LibDir):
+	def add_to_menu(self, app, menu):
+		for f in self.files:
+			menu.add_command(label=f.name, command=f.get_command(app))
+		for d in self.dirs:
+			submenu = Menu(menu, tearoff=0)
+			d.add_to_menu( app, submenu )
+			menu.add_cascade(label=d.name, menu=submenu)
 
 class GuiApp:
 	def __init__(self, master, theme):
@@ -194,6 +210,8 @@ class GuiApp:
 				return new_command
 			self.sculpt_menu.add_command(label=sculpt_type,
 					command=type_command(sculpt_type))
+		library = sculpty.build_lib(LibDir=MenuDir, LibFile=MenuMap)
+		library.add_to_menu(self, self.sculpt_menu)
 		self.set_sculpt_type("Sphere")
 		b = Button(frame, text="Add",
 				command=self.add,
@@ -213,7 +231,11 @@ class GuiApp:
 		b.pack( padx=5, pady=5, fill=X )
 
 	def set_map_type(self):
-		t = self.map_type.cget('text')
+		t = self.map_type.cget('text').split(os.sep)
+		if t[0]:
+			t = t[0]
+		else:
+			t = t[1]
 		i = self.sculpt_menu.index( t )
 		y = self.map_type.winfo_rooty() - self.sculpt_menu.yposition( i )
 		x  = self.master.winfo_pointerx() - self.sculpt_menu.winfo_reqwidth() // 2
