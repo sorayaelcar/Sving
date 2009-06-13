@@ -66,32 +66,30 @@ class GuiApp:
 
 		self.master = master
 		
-		# ===============================================================
-		# Force all events to be handled by the master window.
-		# This is needed so that we can detect a mouse click outside of 
-		# the self.master. Move <Leave events> to the self.leaveHandler
-		# And preset the focusMovedOutOfApplication to False (the cursor 
-		# is on top of the window right now)
-		# ===============================================================
-		self.master.grab_set_global()
-		self.master.bind( "<Leave>",   self.leaveHandler) # track leave main window
-		self.master.bind( "<Enter>",   self.enterHandler) # track enter main window
-		self.focusMovedOutOfApplication=False # remember focus inside/outside of window
-		self.buttonClicked=False			  # remember Button pressed (buttons may be outside of window)
-		
+		# ==========================================
+		# Main window section		
+		# ==========================================
+
 		frame = LabelFrame(master,
 				border=3,
 				bg=hex_colour(theme.neutral),
 				text=ADD_SCULPT_MESH_LABEL,
 				labelanchor=N)
 		frame.pack()
-		fi = Frame(frame, bg=hex_colour(theme.neutral))
-		fi.pack()
-		f = LabelFrame(fi,
+
+		# ==========================================
+		# Geometry section
+		# ==========================================
+
+		upperFrame = Frame(frame, bg=hex_colour(theme.neutral))
+		upperFrame.pack()
+		
+		f = LabelFrame(upperFrame,
 				text="Geometry",
-				bg=hex_colour(theme.neutral),
+				bg= hex_colour(theme.neutral),
 				fg=hex_colour(theme.text))
-		f.pack(padx=5, pady=5, side=LEFT)
+		f.pack(padx=5, pady=5, fill=BOTH, side=LEFT, anchor=CENTER ) 
+		
 		ff = Frame(f, bg=hex_colour(theme.neutral))
 		ff.pack()
 		fx = Frame(ff, bg=hex_colour(theme.neutral))
@@ -130,15 +128,33 @@ class GuiApp:
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting))
 		s.pack(padx=5, pady=5, side=RIGHT)
-		fs = LabelFrame(fi,
-				text="Subdivision",
+
+		self.clean_lods = BooleanVar( self.master, True )
+		c = Checkbutton(f,
+				text="Clean LODs",
+				variable=self.clean_lods,
 				bg=hex_colour(theme.neutral),
+				fg=hex_colour(theme.text),
+				activebackground=hex_colour(theme.setting),
+				border=2,
+				highlightthickness=0)
+		c.pack(padx=0, pady=5, side=LEFT)
+
+
+		# ==========================================
+		# Subdivision section
+		# ==========================================
+
+		fs = LabelFrame(upperFrame,
+				text="Subdivision",
+				bg= hex_colour(theme.neutral),
 				fg=hex_colour(theme.text))
-		fs.pack(padx=5, pady=5, fill=BOTH, anchor=CENTER )
+		fs.pack(padx=5, pady=5, fill=BOTH, side=RIGHT, anchor=CENTER )
 		
 		self.levels = IntVar(self.master, 2)
 		fl = Frame(fs, bg=hex_colour(theme.neutral))
 		fl.pack()
+
 		t = Label(fl,
 				text="Levels",
 				justify=RIGHT,
@@ -154,7 +170,8 @@ class GuiApp:
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting))
 		s.pack(padx=5, pady=5, side=RIGHT)
-		self.subdivision = IntVar(self.master, 1)
+
+ 		self.subdivision = IntVar(self.master, 1)
 		r = Frame(fs, bg=hex_colour(theme.neutral))
 		r.pack(side=LEFT)
 		Radiobutton(r,
@@ -184,38 +201,41 @@ class GuiApp:
 				highlightthickness=0,
 				bg=hex_colour(theme.neutral),
 				value=0).pack()
-		self.clean_lods = BooleanVar( self.master, True )
-		c = Checkbutton(f,
-				text="Clean LODs",
-				variable=self.clean_lods,
-				bg=hex_colour(theme.neutral),
-				fg=hex_colour(theme.text),
-				activebackground=hex_colour(theme.setting),
-				border=2,
-				highlightthickness=0)
-		c.pack(padx=5, pady=5, side=BOTTOM)
+
+		# ==========================================
+		# LOD display
+		# ==========================================				
+				
 		f = LabelFrame(frame,
 				text="Map Image",
 				bg=hex_colour(theme.neutral),
-				fg=hex_colour(theme.text),
-				labelanchor=N)
-		f.pack(padx=5, pady=5, side=LEFT)
+				fg=hex_colour(theme.text))
+		f.pack(padx=6, ipadx=3, pady=3, fill=BOTH, side=LEFT, anchor=CENTER)
+
 		self.lod_display = Label(f,
 				text=sculpty.lod_info(w, h)[:-1],
 				justify=LEFT,
 				bg=hex_colour(theme.neutral),
 				fg=hex_colour(theme.text))
 		self.lod_display.pack(padx=5, pady=5, ipadx=3, ipady=3, side=LEFT)
-		self.map_type = Button(frame,
+
+		# ==========================================
+		# Sculpty type selection
+		# ==========================================
+
+		controlFrame = Frame(frame,bg=hex_colour(theme.neutral))
+		controlFrame.pack(padx=5, pady=6, fill=Y, side=RIGHT, anchor=N)
+
+		self.map_type = Button(controlFrame,
 				text="Type",
 				command=self.set_map_type,
 				border=1,
 				bg=hex_colour(theme.textfield),
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting))
-		self.map_type.pack(padx=5, pady=12, fill=X)
+		self.map_type.pack(padx=4, fill=X, pady=5, side=TOP, anchor=CENTER)
 		
-		self.sculpt_menu = Menu(frame,
+		self.sculpt_menu = Menu(controlFrame,
 				tearoff=0,
 				background=hex_colour(theme.menu_item),
 				foreground=hex_colour(theme.menu_text),
@@ -236,24 +256,47 @@ class GuiApp:
 
 		self.set_sculpt_type("Sphere") # TODO: retrieve settings from registry		
 
+
+		# ==========================================
+		# Control section
+		# ==========================================
+
+		buttonFrame = Frame(controlFrame, bg=hex_colour(theme.neutral))
+		buttonFrame.pack(side=BOTTOM, anchor=CENTER)
+
+
 		# Cancel/Create buttons need layout tuning.
-		b = Button(frame, text="Create",
+		b = Button(buttonFrame, text="Create",
 				command=self.add,
 				border=1,
 				bg=hex_colour(theme.action),
 				activebackground=hex_colour(theme.action),
 				fg=hex_colour(theme.menu_text),
 				activeforeground=hex_colour(theme.menu_text_hi))
-		b.pack( ipadx=5, padx=5, pady=5, side=RIGHT, anchor=S)
+		b.pack( ipadx=7 , padx=4, pady=5, side=RIGHT, anchor=SE)
 		
-		b = Button(frame, text="Cancel",
+		b = Button(buttonFrame, text="Cancel",
 				command=self.master.quit,
 				border=1,
 				bg=hex_colour(theme.action),
 				activebackground=hex_colour(theme.action),
 				fg=hex_colour(theme.menu_text),
 				activeforeground=hex_colour(theme.menu_text_hi))
-		b.pack( ipadx=5, padx=10, pady=5, side=RIGHT, anchor=S)
+		b.pack( ipadx=7, padx=4, pady=5, side=LEFT, anchor=SW)
+		
+		# ===============================================================
+		# Force all events to be handled by the master window.
+		# This is needed so that we can detect a mouse click outside of 
+		# the self.master. Move <Leave events> to the self.leaveHandler
+		# And preset the focusMovedOutOfApplication to False (the cursor 
+		# is on top of the window right now)
+		# ===============================================================
+		self.master.grab_set()
+		self.master.bind( "<Leave>",   self.leaveHandler) # track leave main window
+		self.master.bind( "<Enter>",   self.enterHandler) # track enter main window
+		self.focusMovedOutOfApplication=False # remember focus inside/outside of window
+		self.buttonClicked=False			  # remember Button pressed (buttons may be outside of window)
+		
 
 	def set_map_type(self):
 		t = self.map_type.cget('text').split(os.sep)
@@ -292,7 +335,7 @@ class GuiApp:
 		print "Create a [", name, "] of type ", sculpt_type
 		scene = Blender.Scene.GetCurrent()
 		for ob in scene.objects:
-			ob.sel = False
+ 			ob.sel = False
 		try:
 			mesh = sculpty.new_mesh( basename,sculpt_type,
 					self.x_faces.get(), self.y_faces.get(),
@@ -318,7 +361,7 @@ class GuiApp:
 						mod[Blender.Modifier.Settings.TYPES] = 1
 				else:
 					mesh.multires = True
-					mesh.addMultiresLevel(multires, ('simple', 'catmull-clark')[self.subdivision.get()])
+					mesh.addMultiresLevel(self.levels.get(), ('simple', 'catmull-clark')[self.subdivision.get()])
 					mesh.sel = True
 			# adjust scale for subdivision
 			minimum, maximum = sculpty.get_bounding_box(ob)
@@ -378,11 +421,14 @@ class GuiApp:
 				self.focusMovedOutOfApplication == False  
 				#print "Selection active. ["+wclass+":"+wname+"] member of ["+tlw+"]"
 				self.buttonClicked = False
+				self.master.grab_set()
 			else:
 				if (self.focusMovedOutOfApplication == True): # Mouse clicked outside main window
 					#print "quit now...       ["+wclass+":"+wname+"] member of ["+tlw+"]"
+					self.master.grab_set()
 					self.master.quit() # user clicked mouse button outside of application 
 				else:
+					self.master.grab_set_global()
 					self.focusMovedOutOfApplication=True #Mouse moved outside of the application
 					#print "Mouse outside app ["+wclass+":"+wname+"] member of ["+tlw+"]"
 		else:
@@ -396,6 +442,7 @@ class GuiApp:
 		#print "Mouse inside app (E) ["+wclass+":"+wname+"] memeber of ["+tlw+"]"
 		self.focusMovedOutOfApplication=False # mouse moved back to application window
 		self.buttonClicked = False # We enter into the application window, so nothing clicked
+		self.master.grab_set()
 
 	def buttonHandler(self, event):
 		wname  = event.widget.winfo_name()
@@ -403,6 +450,7 @@ class GuiApp:
 		tlw    = event.widget.winfo_toplevel().winfo_name()
 		#print "Clicked  button ["+wclass+":"+wname+"] memeber of ["+tlw+"]"
 		self.buttonClicked  = True # We have clicked on one of the buttons, so we are active.
+		self.master.grab_set()
 
 def hex_colour(theme_colour):
 	return "#" + hexlify("".join([chr(i) for i in theme_colour[:-1]]))
