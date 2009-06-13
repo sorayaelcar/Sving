@@ -43,6 +43,8 @@ import os
 from Tkinter import *
 from binascii import hexlify
 
+ADD_SCULPT_MESH_LABEL = "Primstar - Add sculpt mesh"
+
 class MenuMap(sculpty.LibFile):
 	def get_command(self, app):
 		def new_command():
@@ -63,15 +65,24 @@ class GuiApp:
 		w,h = 32, 256
 
 		self.master = master
-		self.master.grab_set()
 		
-		# remove the popup as soon as user moves the mouse out of the widget:
-		self.master.bind( "<Button>", self.destroyHandler)
+		# ===============================================================
+		# Force all events to be handled by the master window.
+		# This is needed so that we can detect a mouse click outside of 
+		# the self.master. Move <Leave events> to the self.leaveHandler
+		# And preset the focusMovedOutOfApplication to False (the cursor 
+		# is on top of the window right now)
+		# ===============================================================
+		self.master.grab_set_global()
+		self.master.bind( "<Leave>",   self.leaveHandler) # track leave main window
+		self.master.bind( "<Enter>",   self.enterHandler) # track enter main window
+		self.focusMovedOutOfApplication=False # remember focus inside/outside of window
+		self.buttonClicked=False			  # remember Button pressed (buttons may be outside of window)
 		
 		frame = LabelFrame(master,
 				border=3,
 				bg=hex_colour(theme.neutral),
-				text="Primstar - Add sculpt mesh",
+				text=ADD_SCULPT_MESH_LABEL,
 				labelanchor=N)
 		frame.pack()
 		fi = Frame(frame, bg=hex_colour(theme.neutral))
@@ -123,7 +134,8 @@ class GuiApp:
 				text="Subdivision",
 				bg=hex_colour(theme.neutral),
 				fg=hex_colour(theme.text))
-		fs.pack(padx=5, pady=5)
+		fs.pack(padx=5, pady=5, fill=BOTH, anchor=CENTER )
+		
 		self.levels = IntVar(self.master, 2)
 		fl = Frame(fs, bg=hex_colour(theme.neutral))
 		fl.pack()
@@ -146,32 +158,32 @@ class GuiApp:
 		r = Frame(fs, bg=hex_colour(theme.neutral))
 		r.pack(side=LEFT)
 		Radiobutton(r,
-				text="Simple",
-				variable=self.subdivision,
-				highlightthickness=0,
-				bg=hex_colour(theme.neutral),
-				value=0).pack()
-		Radiobutton(r,
 				text="Catmull",
 				variable=self.subdivision,
 				highlightthickness=0,
 				bg=hex_colour(theme.neutral),
 				value=1).pack()
-		self.sub_type = IntVar(self.master, 1)
-		r = Frame(fs, bg=hex_colour(theme.neutral))
-		r.pack(side=RIGHT)
 		Radiobutton(r,
-				text="Multires",
-				variable=self.sub_type,
+				text="Simple",
+				variable=self.subdivision,
 				highlightthickness=0,
 				bg=hex_colour(theme.neutral),
 				value=0).pack()
+		self.sub_type = IntVar(self.master, 1)
+		r = Frame(fs, bg=hex_colour(theme.neutral))
+		r.pack(side=RIGHT)
 		Radiobutton(r,
 				text="Subsurf",
 				variable=self.sub_type,
 				highlightthickness=0,
 				bg=hex_colour(theme.neutral),
 				value=1).pack()
+		Radiobutton(r,
+				text="Multires",
+				variable=self.sub_type,
+				highlightthickness=0,
+				bg=hex_colour(theme.neutral),
+				value=0).pack()
 		self.clean_lods = BooleanVar( self.master, True )
 		c = Checkbutton(f,
 				text="Clean LODs",
@@ -201,7 +213,8 @@ class GuiApp:
 				bg=hex_colour(theme.textfield),
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting))
-		self.map_type.pack(padx=5, pady=5, fill=X)
+		self.map_type.pack(padx=5, pady=12, fill=X)
+		
 		self.sculpt_menu = Menu(frame,
 				tearoff=0,
 				background=hex_colour(theme.menu_item),
@@ -217,23 +230,30 @@ class GuiApp:
 					command=type_command(sculpt_type))
 		library = sculpty.build_lib(LibDir=MenuDir, LibFile=MenuMap)
 		library.add_to_menu(self, self.sculpt_menu)
-		self.set_sculpt_type("Sphere")
-		b = Button(frame, text="Add",
+
+		#This event sequence is the signature for a button pressed:
+		self.sculpt_menu.bind_all  ( "<Enter><Button><Leave>",  self.buttonHandler)
+
+		self.set_sculpt_type("Sphere") # TODO: retrieve settings from registry		
+
+		# Cancel/Create buttons need layout tuning.
+		b = Button(frame, text="Create",
 				command=self.add,
 				border=1,
 				bg=hex_colour(theme.action),
 				activebackground=hex_colour(theme.action),
 				fg=hex_colour(theme.menu_text),
 				activeforeground=hex_colour(theme.menu_text_hi))
-		b.pack( padx=5, pady=5, fill=X )
-		b = Button(frame, text="Close",
-				command=self.master.destroy,
+		b.pack( ipadx=5, padx=5, pady=5, side=RIGHT, anchor=S)
+		
+		b = Button(frame, text="Cancel",
+				command=self.master.quit,
 				border=1,
 				bg=hex_colour(theme.action),
 				activebackground=hex_colour(theme.action),
 				fg=hex_colour(theme.menu_text),
 				activeforeground=hex_colour(theme.menu_text_hi))
-		b.pack( padx=5, pady=5, fill=X )
+		b.pack( ipadx=5, padx=10, pady=5, side=RIGHT, anchor=S)
 
 	def set_map_type(self):
 		t = self.map_type.cget('text').split(os.sep)
@@ -250,6 +270,10 @@ class GuiApp:
 		self.map_type.configure(text=sculpt_type)
 		self.redraw()
 
+		#Current select operation terminated, reset memory
+		#print "sculpt type changed to [",sculpt_type,"] return to application"
+		self.buttonClicked = False # So no button clicked at the moment
+
 	def redraw(self):
 		self.master.update_idletasks()
 		Blender.Redraw()
@@ -265,6 +289,7 @@ class GuiApp:
 			basename = name
 			sculpt_type = name.upper()
 			baseimage = None
+		print "Create a [", name, "] of type ", sculpt_type
 		scene = Blender.Scene.GetCurrent()
 		for ob in scene.objects:
 			ob.sel = False
@@ -325,19 +350,59 @@ class GuiApp:
 			#todo tkinter this
 			Blender.Draw.PupBlock("Unable to create sculptie", ["Please decrease face counts","or subdivision levels"])
 		Blender.Window.WaitCursor(0)
-		self.redraw()
+		self.master.quit() # self.master.destroy() makes blender crash occasionally (thread problems)
 
 	# =================================================================================
-	# This handler is called whenever the mouse leaves a widget inside the self.master.
-	# If the mouse leaves the self.master itself, the whole application will be
-	# destroyed.
+	# Purpose: Quit the application when the user clicks anywhere outside of the
+	# application window.
+	# This handler is called whenever the mouse leaves a widget. If 2 consecutive
+	# events happen, which both state that the self.master widget has been left, then
+	# the application will be terminated.
+	# 
+	# EXPLANATION: This situation happens only when
+	# 1.) The mouse has fully left the application 
+	# 2.) The user has clicked somewhere on the screen (outside the application)
+	#
+	# Exception: When the user has opened a Menu, the menu itemns can lay outside of the
+	# application window. But we have remembered, that the menu has been opened. This
+	# is stored in (self.buttonClicked = True) When the user selects a menu option, it
+	# is then possible that a Window Left event happens, although focus will return
+	# instantly to the main menu. In that case the Leave event is ignored.
 	# =================================================================================
-	def destroyHandler(self, event):
-		print "leave [", event.widget.winfo_name(), "]"
-		
-		if(event.widget == self.master):
-			print "Mouse left application. Self destroy"
-			#self.master.destroy()
+	def leaveHandler(self, event):
+		wname  = event.widget.winfo_name()
+		wclass = event.widget.winfo_class()
+		tlw    = event.widget.winfo_toplevel().winfo_name()
+		if (wname == self.master.winfo_name()):
+			if (self.buttonClicked == True):
+				self.focusMovedOutOfApplication == False  
+				#print "Selection active. ["+wclass+":"+wname+"] member of ["+tlw+"]"
+				self.buttonClicked = False
+			else:
+				if (self.focusMovedOutOfApplication == True): # Mouse clicked outside main window
+					#print "quit now...       ["+wclass+":"+wname+"] member of ["+tlw+"]"
+					self.master.quit() # user clicked mouse button outside of application 
+				else:
+					self.focusMovedOutOfApplication=True #Mouse moved outside of the application
+					#print "Mouse outside app ["+wclass+":"+wname+"] member of ["+tlw+"]"
+		else:
+			self.focusMovedOutOfApplication=False # mouse moved back to application window
+			#print "Mouse inside app (L) ["+wclass+":"+wname+"] member of ["+tlw+"]"
+
+	def enterHandler(self, event):
+		wname  = event.widget.winfo_name()
+		wclass = event.widget.winfo_class()
+		tlw    = event.widget.winfo_toplevel().winfo_name()
+		#print "Mouse inside app (E) ["+wclass+":"+wname+"] memeber of ["+tlw+"]"
+		self.focusMovedOutOfApplication=False # mouse moved back to application window
+		self.buttonClicked = False # We enter into the application window, so nothing clicked
+
+	def buttonHandler(self, event):
+		wname  = event.widget.winfo_name()
+		wclass = event.widget.winfo_class()
+		tlw    = event.widget.winfo_toplevel().winfo_name()
+		#print "Clicked  button ["+wclass+":"+wname+"] memeber of ["+tlw+"]"
+		self.buttonClicked  = True # We have clicked on one of the buttons, so we are active.
 
 def hex_colour(theme_colour):
 	return "#" + hexlify("".join([chr(i) for i in theme_colour[:-1]]))
@@ -345,8 +410,7 @@ def hex_colour(theme_colour):
 
 def main():
 	root = Tk()
-	root.title("Add sculpt mesh")
-	root.overrideredirect(1)
+ 	root.overrideredirect(1)
 
 	# ==========================================================================
 	# Calculate the position where the popup appears. Assume the dimension of 
@@ -359,9 +423,14 @@ def main():
 	theme = Blender.Window.Theme.Get()[0].get('ui')
 	root.bg = hex_colour(theme.neutral)
 	gui = GuiApp(root, theme)
-	
-	
+
+	print ADD_SCULPT_MESH_LABEL + " started." 		
 	root.mainloop()
+	
+	# finalize application
+	root.update_idletasks()
+	root.destroy()   # If omitted, blender crashes (Threading problems)
+	print ADD_SCULPT_MESH_LABEL + " terminated."
 
 if __name__ == '__main__':
 	main()
