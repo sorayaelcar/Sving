@@ -497,6 +497,7 @@ def active(ob):
 	'''Returns True if object is an active sculptie.
 	An active sculptie is a mesh with a 'sculptie' uv layer with an image assigned
 	'''
+	debug(50, "sculpty.active(%s)"%(ob.name))
 	if ob.type == 'Mesh':
 		mesh = ob.getData(False, True)
 		if 'sculptie' in mesh.getUVLayerNames():
@@ -515,6 +516,7 @@ def bake_default(image, sculpt_type, radius = 0.25):
 	sculpt_type - one of "SPHERE", "TORUS", "CYLINDER", "PLANE" or "HEMI"
 	radius - inner radius value for torus
 	'''
+	debug(30, "sculpty.bake_default(%s, %s, %f)"%(image.name, sculpt_type, radius))
 	x = image.size[0]
 	y = image.size[1]
 	for u in range(x):
@@ -532,6 +534,7 @@ def bake_lod(image):
 	'''Bakes the sculptie LOD points for the image size.
 	The brighter the blue dots, the more LODs use that pixel.
 	'''
+	debug(30, "sculpty.bake_lod(%s)"%(image.name))
 	x = image.size[0]
 	y = image.size[1]
 	for u in range(x):
@@ -554,6 +557,7 @@ def bake_object(ob, bb, clear = True):
 	'''Bakes the object's mesh to the specified bounding box.
 	Returns False if object is not an active sculptie.
 	'''
+	debug(20, "sculpty.bake_object(%s, %s, %d)"%(ob.name, str(bb), clear))
 	if not active(ob):
 		return False
 	mesh = Blender.Mesh.New()
@@ -598,6 +602,7 @@ def bake_object(ob, bb, clear = True):
 
 def bake_preview(image):
 	'''Bakes a pseudo 3D representation of the sculpt map image to it's alpha channel'''
+	debug(30, "sculpty.bake_preview(%s)"%(image.name))
 	clear_alpha(image)
 	for x in xrange(image.size[0]):
 		for y in xrange(image.size[1]):
@@ -611,6 +616,7 @@ def bake_preview(image):
 				image.setPixelF(s, t, c2)
 def check(ob):
 	'''Returns true if the object is a mesh with a sculptie uv layer'''
+	debug(50, "sculpty.check(%s)"%(ob.name))
 	if ob.type == 'Mesh':
 		mesh = ob.getData(False, True)
 		if 'sculptie' in mesh.getUVLayerNames():
@@ -621,12 +627,14 @@ def clear_image(image):
 	'''
 	Clears the image to black with alpha 0
 	'''
+	debug(30, "sculpty.clear_image(%s)"%(image.name))
 	for x in xrange(image.size[0]):
 		for y in xrange(image.size[1]):
 			image.setPixelI(x, y, (0, 0, 0, 0))
 
 def clear_alpha(image):
 	'''Clears the alpha channel of the sculpt map image to hide the map'''
+	debug(30, "sculpty.clear_alpha(%s)"%(image.name))
 	for x in xrange(image.size[0]):
 		for y in xrange(image.size[1]):
 			c1 = image.getPixelI(x, y)
@@ -736,6 +744,8 @@ def face_count(width, height, x_faces, y_faces, model = True):
 	y_faces - desired y face count
 	model - when true, returns 8 x 4 instead of 9 x 4 to give extra subdivision
 	'''
+	debug(40, "sculpty.face_count(%d, %d, %d, %d, %d)"%(
+			width, height, x_faces, y_faces, model))
 	ratio = float(width) / float(height)
 	verts = int(min(0.25 * width * height, x_faces * y_faces))
 	if (width != height) and model:
@@ -749,6 +759,7 @@ def face_count(width, height, x_faces, y_faces, model = True):
 
 def fill_holes(image):
 	'''Any pixels with alpha 0 on the image have colour interpolated from neighbours'''
+	debug( 30, "sculpty.fill_holes(%s)"%(image.name))
 	def getFirstX(y):
 		for x in xrange(image.size[0]):
 			c = image.getPixelI(x, y)
@@ -827,17 +838,18 @@ def fill_holes(image):
 
 def finalise(image):
 	'''Expands each active pixel of the sculpt map image'''
-	ss, ts = map_pixels(image.size[0], image.size[1])
-	ss.append( image.size[0])
-	ts.append( image.size[1])
-	for x in ss[:-1]:
-		for y in ts[:-1]:
+	debug(30, "sculpty.finalise(%s)"%(image.name))
+	u_pixels, v_pixels = map_pixels(image.size[0], image.size[1])
+	u_pixels.append(image.size[0])
+	v_pixels.append(image.size[1])
+	for x in u_pixels[:-1]:
+		for y in v_pixels[:-1]:
 			c = image.getPixelI(x, y)
-			if x + 1 not in ss:
+			if x + 1 not in u_pixels:
 				image.setPixelI(x + 1, y, c)
-				if y + 1 not in ss:
+				if y + 1 not in v_pixels:
 					image.setPixelI(x + 1, y + 1, c)
-			if y + 1 not in ss:
+			if y + 1 not in v_pixels:
 				image.setPixelI(x, y + 1, c)
 
 def flip_pixels(pixels):
@@ -847,6 +859,7 @@ def flip_pixels(pixels):
 
 def get_bounding_box(obj):
 	'''Returns the post modifier stack bounding box for the object'''
+	debug(40, "sculpty.get_bounding_box(%s)"%(obj.name))
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject(obj, 0, 1)
 	min_x = mesh.verts[0].co.x
@@ -872,6 +885,7 @@ def get_bounding_box(obj):
 
 def lod_info(width, height, format = "LOD%(lod)d: %(x_faces)d x %(y_faces)d\n"):
 	'''Returns a string with the lod info for a map size of width * height'''
+	debug(40, "sculpty.lod_info(%d, %d, %s)"%(width, height, format))
 	info = "SIZE: %d x %d\n"%( width, height )
 	for i in [3,2,1,0]:
 		faces = float([ 6, 8, 16, 32 ][i])
@@ -881,6 +895,7 @@ def lod_info(width, height, format = "LOD%(lod)d: %(x_faces)d x %(y_faces)d\n"):
 
 def lod_size(width, height, lod):
 	'''Returns x and y face counts for the given map size and lod'''
+	debug(40, "sculpty.lod_size(%d, %d, %d)"%(width, height, lod))
 	sides = float([ 6, 8, 16, 32 ][lod])
 	ratio = float(width) / float(height)
 	verts = int(min(0.25 * width * height, sides * sides))
