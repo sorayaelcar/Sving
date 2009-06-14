@@ -29,7 +29,6 @@ import os
 from math import sin, cos, pi, sqrt, log, ceil, atan2
 
 lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
-DEBUG = Blender.Get('rt')
 
 #***********************************************
 # helper functions
@@ -42,7 +41,7 @@ def clip(value, minimum=0, maximum=255):
 	return result
 
 def debug(num,msg):
-	if DEBUG >= num:
+	if Blender.Get('rt') >= num:
 		print 'debug:', (' '*num), msg
 
 def obChildren(ob):
@@ -894,6 +893,7 @@ def lod_size(width, height, lod):
 
 def map_images(mesh, layer='sculptie'):
 	'''Returns the list of images assigned to the 'sculptie' UV layer.'''
+	debug(40, "sculpty.map_images(%s, %s)"%(mesh.name, layer))
 	images = []
 	if layer in mesh.getUVLayerNames():
 		currentUV = mesh.activeUVLayer
@@ -907,6 +907,7 @@ def map_images(mesh, layer='sculptie'):
 
 def map_pixels(width, height):
 	'''Returns ss and ts as lists of used pixels for the given map size.'''
+	debug(40, "sculpty.map_pixels(%d, %d)"%(width, height))
 	ss = [ width - 1 ]
 	ts = [ height - 1 ]
 	for i in [3,2,1,0]:
@@ -939,6 +940,7 @@ def map_size(x_faces, y_faces, levels):
 	cs - True if x face count was corrected
 	ct - True if y face count was corrected
 	'''
+	debug(30, "sculpty.map_size(%d, %d, %d)"%(x_faces, y_faces, levels))
 	if ( (( x_faces == 9 and y_faces == 4) or ( x_faces == 4 and y_faces == 9))
 		and levels == 0):
 		s = x_faces
@@ -972,6 +974,7 @@ def map_size(x_faces, y_faces, levels):
 
 def map_type(image):
 	'''Returns the sculpt type of the sculpt map image'''
+	debug(20, "sculpty.map_type(%s)"%(image.name))
 	poles = True
 	xseam = True
 	yseam = True
@@ -1003,6 +1006,7 @@ def map_type(image):
 
 def new_from_map(image):
 	'''Returns a new sculptie object created from the sculpt map image.'''
+	debug(10, "sculpty.new_from_map(%s)"%(image.name))
 	Blender.Window.WaitCursor(1)
 	in_editmode = Blender.Window.EditMode()
 	if in_editmode:
@@ -1069,6 +1073,14 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True,
 	levels - LOD levels
 	clean_lods - aligns UV layout with power of two grid if True
 	'''
+	debug(10, "sculpty.new_mesh( %s, %s,%d, %d, %d, %d, %f)"%(
+			name,
+			sculpt_type,
+			x_faces,
+			y_faces,
+			levels,
+			clean_lods,
+			radius))
 	mesh = Blender.Mesh.New(name)
 	uv = []
 	verts = []
@@ -1156,6 +1168,7 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True,
 
 def open(filename):
 	'''Creates a sculptie object from the image map file'''
+	debug(10, "sculpty.open(%s)"%(filename))
 	image = Blender.Image.Load(filename)
 	image.name = Blender.sys.splitext(image.name)[0]
 	image.properties["scale_x"] = 1.0
@@ -1165,6 +1178,7 @@ def open(filename):
 
 def set_alpha(image, alpha):
 	'''Sets the alpha channel of the sculpt map image to the alpha image'''
+	debug(30, "sculpty.set_alpha(%s, %s)"%(image.name, alpha.name))
 	for x in xrange(image.size[0]):
 		for y in xrange(image.size[1]):
 			c1 = image.getPixelI (x, y)
@@ -1178,6 +1192,7 @@ def set_center(ob, offset=XYZ(0.0, 0.0, 0.0)):
 	ob - object to update
 	offset - (x, y, z) offset for mesh center
 	'''
+	debug(30, "sculpty.set_center(%s, %s)"%(ob.name, str(offset)))
 	loc = ob.getLocation()
 	bb = BoundingBox(ob)
 	offset += bb.center
@@ -1200,6 +1215,7 @@ def set_center(ob, offset=XYZ(0.0, 0.0, 0.0)):
 
 def set_map(mesh, image):
 	'''Assigns the image to the selected 'sculptie' uv layer faces.'''
+	debug(30, "sculpty.set_map(%s, %s)"%(mesh.name, image.name))
 	currentUV = mesh.activeUVLayer
 	mesh.activeUVLayer = "sculptie"
 	if mesh.multires:
@@ -1214,6 +1230,7 @@ def set_map(mesh, image):
 
 def update_from_map(mesh, image):
 	'''Updates the mesh to locations from the sculpt map image'''
+	debug(30, "sculpty.update_from_map(%s, %s)"%(mesh.name, image.name))
 	currentUV = mesh.activeUVLayer
 	if "sculptie" in mesh.getUVLayerNames():
 		mesh.activeUVLayer = "sculptie"
@@ -1241,6 +1258,7 @@ def update_from_map(mesh, image):
 
 def uv_corners(mesh):
 	'''returns the four corner points of the UV layout'''
+	debug(40, "sculpty.uv_corners(%s)"%(mesh.name))
 	max_vu = XYZ(-99999.0, -99999.0, 0.0 )
 	min_vu = XYZ(99999.0, 99999.0, 0.0 )
 	max_uv = XYZ(-99999.0, -99999.0, 0.0 )
@@ -1263,6 +1281,7 @@ def uv_corners(mesh):
 
 def uv_params(mesh):
 	'''returns the offset, scale and rotation of the UV layout'''
+	debug(40, "sculpty.uv_params(%s)"%(mesh.name))
 	bl, tl, br, tr = uv_corners(mesh)
 	hv = tl - bl
 	wv = br - bl
@@ -1273,6 +1292,7 @@ def uv_params(mesh):
 
 def uv_to_rgb(sculpt_type, u, v, radius=0.25):
 	'''Returns 3D location for the given UV co-ordinates on a default sculpt type'''
+	debug(90, "sculpty.uv_to_rgb(%s, %f, %f, %f)"%(sculpt_type, u, v, radius))
 	a = pi + 2 * pi * u
 	if sculpt_type == "SPHERE":
 		ps = sin(pi * v) / 2.0
@@ -1307,6 +1327,7 @@ def uv_to_rgb(sculpt_type, u, v, radius=0.25):
 
 def vertex_pixels(size, faces):
 	'''Returns a list of pixels used for vertex points on map size'''
+	debug(50, "sculpty.vertex_pixels(%d, %d)"%(size, faces))
 	pixels = [ int(size * i / float(faces)) for i in range(faces) ]
 	pixels.append(faces - 1)
 	return pixels
