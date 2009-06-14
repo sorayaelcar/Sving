@@ -280,7 +280,7 @@ class GuiApp:
 				activebackground=hex_colour(theme.action),
 				fg=hex_colour(theme.text),
 				activeforeground=hex_colour(theme.text_hi))
-		createButton.pack( ipadx=7 , padx=4, pady=0, side=RIGHT, anchor=SE)
+		createButton.pack( ipadx=7 , padx=8, pady=0, side=RIGHT, anchor=SE)
 		
 		b = Button(buttonFrame, text="Cancel",
 				command=self.master.quit,
