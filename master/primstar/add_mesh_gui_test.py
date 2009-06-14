@@ -6,7 +6,7 @@ Group: 'AddMesh'
 Tooltip: 'Add a Second Life sculptie compatible mesh - Test GUI'
 """
 
-__author__ = ["Domino Marama"]
+__author__ = ["Domino Marama", "Gaia Clary"]
 __url__ = ("http://dominodesigns.info")
 __version__ = "0.00"
 __bpydoc__ = """\
@@ -56,7 +56,11 @@ class MenuDir(sculpty.LibDir):
 		for f in self.files:
 			menu.add_command(label=f.name, command=f.get_command(app))
 		for d in self.dirs:
-			submenu = Menu(menu, tearoff=0)
+			submenu = Menu(menu, tearoff=0,
+				background=hex_colour(app.theme.menu_back),
+				foreground=hex_colour(app.theme.menu_text),
+				activebackground=hex_colour(app.theme.menu_hilite),
+				activeforeground=hex_colour(app.theme.menu_text_hi) )
 			d.add_to_menu( app, submenu )
 			menu.add_cascade(label=d.name, menu=submenu)
 
@@ -64,40 +68,45 @@ class GuiApp:
 	def __init__(self, master, theme):
 		w,h = 32, 256
 
+		self.theme  = theme
 		self.master = master
+		self.master.overrideredirect(True)
 		
 		# ==========================================
-		# Main window section		
+		# Main window frame		
 		# ==========================================
+		topFrame = Frame(master, border=4, bg=hex_colour(theme.popup))
+		topFrame.pack()
 
-		frame = LabelFrame(master,
-				border=3,
-				bg=hex_colour(theme.neutral),
+		frame = LabelFrame(topFrame,
+				border=3, relief=FLAT,
+				fg=hex_colour(theme.text),
+				bg=hex_colour(theme.menu_back),
 				text=ADD_SCULPT_MESH_LABEL,
-				labelanchor=N)
-		frame.pack()
+				labelanchor=NW)
+		frame.pack(anchor=CENTER)
 
 		# ==========================================
-		# Geometry section
+		# Geometry section (top left)
 		# ==========================================
 
-		upperFrame = Frame(frame, bg=hex_colour(theme.neutral))
+		upperFrame = Frame(frame, bg=hex_colour(theme.menu_back))
 		upperFrame.pack()
 		
 		f = LabelFrame(upperFrame,
 				text="Geometry",
-				bg= hex_colour(theme.neutral),
+				bg= hex_colour(theme.menu_back),
 				fg=hex_colour(theme.text))
 		f.pack(padx=5, pady=5, fill=BOTH, side=LEFT, anchor=CENTER ) 
 		
-		ff = Frame(f, bg=hex_colour(theme.neutral))
+		ff = Frame(f, bg=hex_colour(theme.menu_back))
 		ff.pack()
-		fx = Frame(ff, bg=hex_colour(theme.neutral))
+		fx = Frame(ff, bg=hex_colour(theme.menu_back))
 		fx.pack()
 		t = Label(fx,
 			text="X Faces",
 			justify=RIGHT,
-			bg=hex_colour(theme.neutral),
+			bg=hex_colour(theme.menu_back),
 			fg=hex_colour(theme.text))
 		t.pack(padx=5, pady=5, side=LEFT)
 		self.x_faces = IntVar(self.master, 8)
@@ -110,12 +119,12 @@ class GuiApp:
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting))
 		s.pack(padx=5, pady=5, side=RIGHT)
-		fy = Frame(ff, bg=hex_colour(theme.neutral))
+		fy = Frame(ff, bg=hex_colour(theme.menu_back))
 		fy.pack()
 		t = Label(fy,
 				text="Y Faces",
 				justify=RIGHT,
-				bg=hex_colour(theme.neutral),
+				bg=hex_colour(theme.menu_back),
 				fg=hex_colour(theme.text))
 		t.pack(padx=5, pady=5, side=LEFT)
 		self.y_faces = IntVar(self.master, 8)
@@ -133,7 +142,7 @@ class GuiApp:
 		c = Checkbutton(f,
 				text="Clean LODs",
 				variable=self.clean_lods,
-				bg=hex_colour(theme.neutral),
+				bg=hex_colour(theme.menu_back),
 				fg=hex_colour(theme.text),
 				activebackground=hex_colour(theme.setting),
 				border=2,
@@ -142,23 +151,23 @@ class GuiApp:
 
 
 		# ==========================================
-		# Subdivision section
+		# Subdivision section (top right)
 		# ==========================================
 
 		fs = LabelFrame(upperFrame,
 				text="Subdivision",
-				bg= hex_colour(theme.neutral),
+				bg= hex_colour(theme.menu_back),
 				fg=hex_colour(theme.text))
 		fs.pack(padx=5, pady=5, fill=BOTH, side=RIGHT, anchor=CENTER )
 		
 		self.levels = IntVar(self.master, 2)
-		fl = Frame(fs, bg=hex_colour(theme.neutral))
+		fl = Frame(fs, bg=hex_colour(theme.menu_back))
 		fl.pack()
 
 		t = Label(fl,
 				text="Levels",
 				justify=RIGHT,
-				bg=hex_colour(theme.neutral),
+				bg=hex_colour(theme.menu_back),
 				fg=hex_colour(theme.text))
 		t.pack(padx=5, pady=5, side=LEFT)
 		s = Spinbox(fl,
@@ -172,75 +181,75 @@ class GuiApp:
 		s.pack(padx=5, pady=5, side=RIGHT)
 
  		self.subdivision = IntVar(self.master, 1)
-		r = Frame(fs, bg=hex_colour(theme.neutral))
+		r = Frame(fs, bg=hex_colour(theme.menu_back))
 		r.pack(side=LEFT)
 		Radiobutton(r,
 				text="Catmull",
 				variable=self.subdivision,
 				highlightthickness=0,
-				bg=hex_colour(theme.neutral),
+				bg=hex_colour(theme.menu_back),
 				value=1).pack()
 		Radiobutton(r,
 				text="Simple",
 				variable=self.subdivision,
 				highlightthickness=0,
-				bg=hex_colour(theme.neutral),
+				bg=hex_colour(theme.menu_back),
 				value=0).pack()
 		self.sub_type = IntVar(self.master, 1)
-		r = Frame(fs, bg=hex_colour(theme.neutral))
+		r = Frame(fs, bg=hex_colour(theme.menu_back))
 		r.pack(side=RIGHT)
 		Radiobutton(r,
 				text="Subsurf",
 				variable=self.sub_type,
 				highlightthickness=0,
-				bg=hex_colour(theme.neutral),
+				bg=hex_colour(theme.menu_back),
 				value=1).pack()
 		Radiobutton(r,
 				text="Multires",
 				variable=self.sub_type,
 				highlightthickness=0,
-				bg=hex_colour(theme.neutral),
+				bg=hex_colour(theme.menu_back),
 				value=0).pack()
 
 		# ==========================================
-		# LOD display
+		# LOD display (bottom left)
 		# ==========================================				
 				
 		f = LabelFrame(frame,
 				text="Map Image",
-				bg=hex_colour(theme.neutral),
+				bg=hex_colour(theme.menu_back),
 				fg=hex_colour(theme.text))
 		f.pack(padx=6, ipadx=3, pady=3, fill=BOTH, side=LEFT, anchor=CENTER)
 
 		self.lod_display = Label(f,
 				text=sculpty.lod_info(w, h)[:-1],
 				justify=LEFT,
-				bg=hex_colour(theme.neutral),
+				bg=hex_colour(theme.menu_back),
 				fg=hex_colour(theme.text))
 		self.lod_display.pack(padx=5, pady=5, ipadx=3, ipady=3, side=LEFT)
 
 		# ==========================================
-		# Sculpty type selection
+		# Sculpty type selection (bottom right)
 		# ==========================================
 
-		controlFrame = Frame(frame,bg=hex_colour(theme.neutral))
+		controlFrame = Frame(frame,bg=hex_colour(theme.menu_back))
 		controlFrame.pack(padx=5, pady=6, fill=Y, side=RIGHT, anchor=N)
 
 		self.map_type = Button(controlFrame,
 				text="Type",
 				command=self.set_map_type,
 				border=1,
-				bg=hex_colour(theme.textfield),
-				fg=hex_colour(theme.text),
+				bg=hex_colour(theme.menu_hilite),
+				fg=hex_colour(theme.menu_text_hi),
 				activebackground=hex_colour(theme.setting))
 		self.map_type.pack(padx=4, fill=X, pady=5, side=TOP, anchor=CENTER)
 		
 		self.sculpt_menu = Menu(controlFrame,
 				tearoff=0,
-				background=hex_colour(theme.menu_item),
+				background=hex_colour(theme.menu_back),
 				foreground=hex_colour(theme.menu_text),
 				activebackground=hex_colour(theme.menu_hilite),
-				activeforeground=hex_colour(theme.menu_text_hi))
+				activeforeground=hex_colour(theme.menu_text_hi) )
 		for sculpt_type in [ "Sphere", "Torus", "Plane", "Cylinder", "Hemi"]:
 			def type_command( sculpt_type ):
 				def new_command():
@@ -251,52 +260,50 @@ class GuiApp:
 		library = sculpty.build_lib(LibDir=MenuDir, LibFile=MenuMap)
 		library.add_to_menu(self, self.sculpt_menu)
 
-		#This event sequence is the signature for a button pressed:
-		self.sculpt_menu.bind_all  ( "<Enter><Button><Leave>",  self.buttonHandler)
-
-		self.set_sculpt_type("Sphere") # TODO: retrieve settings from registry		
-
-
+		self.selector = self.map_type
+		self.set_sculpt_type("Sphere") # TODO: retrieve settings from registry
+		
 		# ==========================================
-		# Control section
+		# Control section (bottom right)
 		# ==========================================
 
-		buttonFrame = Frame(controlFrame, bg=hex_colour(theme.neutral))
+		buttonFrame = Frame(controlFrame, bg=hex_colour(theme.menu_back))
 		buttonFrame.pack(side=BOTTOM, anchor=CENTER)
 
 
 		# Cancel/Create buttons need layout tuning.
-		b = Button(buttonFrame, text="Create",
+		createButton = Button(buttonFrame, text="Create",
 				command=self.add,
 				border=1,
+				default=ACTIVE,
 				bg=hex_colour(theme.action),
 				activebackground=hex_colour(theme.action),
-				fg=hex_colour(theme.menu_text),
-				activeforeground=hex_colour(theme.menu_text_hi))
-		b.pack( ipadx=7 , padx=4, pady=5, side=RIGHT, anchor=SE)
+				fg=hex_colour(theme.text),
+				activeforeground=hex_colour(theme.text_hi))
+		createButton.pack( ipadx=7 , padx=8, pady=0, side=RIGHT, anchor=SE)
 		
 		b = Button(buttonFrame, text="Cancel",
 				command=self.master.quit,
 				border=1,
 				bg=hex_colour(theme.action),
 				activebackground=hex_colour(theme.action),
-				fg=hex_colour(theme.menu_text),
-				activeforeground=hex_colour(theme.menu_text_hi))
-		b.pack( ipadx=7, padx=4, pady=5, side=LEFT, anchor=SW)
+				fg=hex_colour(theme.text),
+				activeforeground=hex_colour(theme.text_hi))
+		b.pack( ipadx=7, padx=4, pady=0, side=LEFT, anchor=SW)
 		
 		# ===============================================================
-		# Force all events to be handled by the master window.
-		# This is needed so that we can detect a mouse click outside of 
-		# the self.master. Move <Leave events> to the self.leaveHandler
-		# And preset the focusMovedOutOfApplication to False (the cursor 
-		# is on top of the window right now)
+		# Make master window sticky.
+		# Bind <Leave> and <Enter> events to the top window
+		# And preset "mouse is in app" and  "no selection active"
 		# ===============================================================
-		self.master.grab_set()
-		self.master.bind( "<Leave>",   self.leaveHandler) # track leave main window
-		self.master.bind( "<Enter>",   self.enterHandler) # track enter main window
-		self.focusMovedOutOfApplication=False # remember focus inside/outside of window
-		self.buttonClicked=False			  # remember Button pressed (buttons may be outside of window)
-		
+		self.master.wm_attributes("-topmost", 1)   # Make sure window remains on top of all others
+		self.master.bind( "<Leave>",   self.mouse_leave_handler) # track leave main window
+		self.master.bind( "<Enter>",   self.mouse_enter_handler) # track enter main window
+		self.set_mouse_in_app(True)
+		self.selectorActive = False
+
+		self.master.configure(takefocus=True)
+		createButton.focus_force()		
 
 	def set_map_type(self):
 		t = self.map_type.cget('text').split(os.sep)
@@ -312,10 +319,7 @@ class GuiApp:
 	def set_sculpt_type(self, sculpt_type):
 		self.map_type.configure(text=sculpt_type)
 		self.redraw()
-
-		#Current select operation terminated, reset memory
-		#print "sculpt type changed to [",sculpt_type,"] return to application"
-		self.buttonClicked = False # So no button clicked at the moment
+		self.selectorActive = False
 
 	def redraw(self):
 		self.master.update_idletasks()
@@ -413,46 +417,51 @@ class GuiApp:
 	# is stored in (self.buttonClicked = True) When the user selects a menu option, it
 	# is then possible that a Window Left event happens, although focus will return
 	# instantly to the main menu. In that case the Leave event is ignored.
+	#
+	# self.mouseInApp
+	# self.activeElement
 	# =================================================================================
-	def leaveHandler(self, event):
+	def mouse_leave_handler(self, event):
 		wname  = event.widget.winfo_name()
-		wclass = event.widget.winfo_class()
-		tlw    = event.widget.winfo_toplevel().winfo_name()
-		if (wname == self.master.winfo_name()):
-			if (self.buttonClicked == True):
-				self.focusMovedOutOfApplication == False  
-				#print "Selection active. ["+wclass+":"+wname+"] member of ["+tlw+"]"
-				self.buttonClicked = False
-				self.master.grab_set()
+		if (wname == self.master.winfo_toplevel().winfo_name()):
+			# Mouse clicked outside of the application window
+			if (self.selectorActive == False and self.mouseInApp == False):
+				self.log(event, "quit now..." )
+				self.master.update_idletasks()
+				self.master.quit()
 			else:
-				if (self.focusMovedOutOfApplication == True): # Mouse clicked outside main window
-					#print "quit now...       ["+wclass+":"+wname+"] member of ["+tlw+"]"
-					self.master.grab_set()
-					self.master.quit() # user clicked mouse button outside of application 
+				if (self.selectorActive == False):
+					self.log(event, "Mouse outside app (L)" )
 				else:
-					self.master.grab_set_global()
-					self.focusMovedOutOfApplication=True #Mouse moved outside of the application
-					#print "Mouse outside app ["+wclass+":"+wname+"] member of ["+tlw+"]"
+					self.log(event, "Mouse outside app (L) with Selection active." )
+					if (self.mouseInApp == False):
+						print "disable element (L) [", self.selector.winfo_name(), "]"
+						self.selectorActive = False
+			self.set_mouse_in_app(False)
+			
 		else:
-			self.focusMovedOutOfApplication=False # mouse moved back to application window
-			#print "Mouse inside app (L) ["+wclass+":"+wname+"] member of ["+tlw+"]"
+			if (self.mouseInApp == False):
+				self.set_mouse_in_app(True) # mouse moved back to application window
+				self.log(event, "Mouse inside app (L)") 
 
-	def enterHandler(self, event):
+	def mouse_enter_handler(self, event):
+		if (self.mouseInApp == False):
+			self.log(event, "Mouse inside app (E)" )
+			self.set_mouse_in_app(True) # We enter into the application window
+			self.master.grab_release()
+			
+	def set_mouse_in_app(self, inApp):
+		self.mouseInApp = inApp
+		if (inApp == False):
+			self.master.grab_set_global()
+		self.master.update_idletasks() 
+
+	def log(self, event, label):
 		wname  = event.widget.winfo_name()
 		wclass = event.widget.winfo_class()
 		tlw    = event.widget.winfo_toplevel().winfo_name()
-		#print "Mouse inside app (E) ["+wclass+":"+wname+"] memeber of ["+tlw+"]"
-		self.focusMovedOutOfApplication=False # mouse moved back to application window
-		self.buttonClicked = False # We enter into the application window, so nothing clicked
-		self.master.grab_set()
-
-	def buttonHandler(self, event):
-		wname  = event.widget.winfo_name()
-		wclass = event.widget.winfo_class()
-		tlw    = event.widget.winfo_toplevel().winfo_name()
-		#print "Clicked  button ["+wclass+":"+wname+"] memeber of ["+tlw+"]"
-		self.buttonClicked  = True # We have clicked on one of the buttons, so we are active.
-		self.master.grab_set()
+		print label + " ["+wclass+":"+wname+"] memeber of ["+tlw+"]"
+		
 
 def hex_colour(theme_colour):
 	return "#" + hexlify("".join([chr(i) for i in theme_colour[:-1]]))
@@ -460,10 +469,9 @@ def hex_colour(theme_colour):
 
 def main():
 	root = Tk()
- 	root.overrideredirect(1)
 
 	# ==========================================================================
-	# Calculate the position where the popup appears. Assume the dimension of 
+	# Calculate the position where the menu_back appears. Assume the dimension of 
 	# the window is 256*256 pixel and correct the window position so thet the
 	# mouse is in the center of the window 
 	# ==========================================================================
@@ -471,14 +479,17 @@ def main():
 	root.geometry('+'+str(xPos-128)+'+'+str(yPos-128))
 
 	theme = Blender.Window.Theme.Get()[0].get('ui')
-	root.bg = hex_colour(theme.neutral)
+	root.bg = hex_colour(theme.menu_back)
 	gui = GuiApp(root, theme)
 
 	print ADD_SCULPT_MESH_LABEL + " started." 		
-	root.mainloop()
-	
+	try:
+		root.mainloop()
+	except:
+		print "Application terminated with errors"
+
 	# finalize application
-	root.update_idletasks()
+	root.grab_release()
 	root.destroy()   # If omitted, blender crashes (Threading problems)
 	print ADD_SCULPT_MESH_LABEL + " terminated."
 
