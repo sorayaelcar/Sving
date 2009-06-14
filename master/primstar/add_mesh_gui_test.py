@@ -326,6 +326,8 @@ class GuiApp:
 		name = self.map_type.cget('text')
 		if name[:1] == os.sep:
 			basename = name.split(os.sep)[1]
+			if basename == "Object":
+				basename = name.split(os.sep)[-1]
 			baseimage = Blender.Image.Load(os.path.join(sculpty.lib_dir, name[1:]) + '.png')
 			sculpt_type = sculpty.map_type(baseimage)
 		else:
