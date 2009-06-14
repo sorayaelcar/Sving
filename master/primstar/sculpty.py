@@ -29,13 +29,21 @@ import os
 from math import sin, cos, pi, sqrt, log, ceil, atan2
 
 lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
+DEBUG = Blender.Get('rt')
 
 #***********************************************
 # helper functions
 #***********************************************
 
 def clip(value, minimum=0, maximum=255):
-	return min(maximum, max(minimum, value))
+	result = min(maximum, max(minimum, value))
+	if value != result:
+		debug(90, str(value) + "clipped to" + str(result))
+	return result
+
+def debug(num,msg):
+	if DEBUG >= num:
+		print 'debug:', (' '*num), msg
 
 def obChildren(ob):
     return [ob_child for ob_child in Blender.Object.Get() if ob_child.parent == ob]
