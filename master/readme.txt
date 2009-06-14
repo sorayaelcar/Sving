@@ -1,6 +1,6 @@
 
 Create, Import & Export Sculpties In Blender by Domino Marama
-Copyright 2007-2008 Domino Designs Limited
+Copyright 2007-2009 Domino Designs Limited
 
 **** Introduction ****
 
@@ -8,10 +8,21 @@ These Blender scripts provide "sculptie map" ( https://wiki.secondlife.com/wiki/
 support to Blender. They use the addMultiresLevel feature that was introduced in Blender 2.46 which
 you can get from http://www.blender.org/download/get-blender/
 
-**** Installation ****
+**** Automatic Installation ****
 
-copy the .py files to your Blender scripts directory. The exact directory varies depending on the
-options you selected during the install of Blender.
+Open a command prompt in the extracted directory and run the following:
+
+blender -P install.py
+
+When Blender has finished loading, you should press CTRL-U to save the user defined scripts directory.
+You can skip this step if you had previously set this directory. It is set to a folder called blender_scripts
+in your home directory otherwise and should be saved or the scripts won't appear next time you load
+Blender.
+
+**** Manual Installation ****
+
+copy the primstar directory to your Blender user scripts directory. The exact directory varies depending
+on the options you selected during the install of Blender.
 
 If you go to Help - System - System Information it will create a text document with the correct path in.
 
@@ -36,7 +47,7 @@ User defined dir for scripts:
 
 ------------>8--------------
 
-You can put the scripts in either "Default dir for scripts" or "User defined dir for scripts"
+You must put the primstar folder in "User defined dir for scripts"
 
 http://wiki.blender.org/index.php/Manual/Python_Scripting has more information on the text editor.
 
@@ -70,9 +81,8 @@ Viewer 1.21 and later:
 11 x 23 x 1, 22 x 46 x 0
 11 x 93 x 0
 
-https://jira.secondlife.com/browse/VWR-9384 (maint-viewer-11 branch):
+Viewer 1.23 and later:
 
-4 x 4 x 0
 4 x 16 x 0
 4 x 16 x 1, 8 x 32 x 0
 4 x 16 x 2, 8 x 32 x 1, 16 x 64 x 0
@@ -135,9 +145,7 @@ will work. If you have some mesh parts missing, then selecting
 
 Simply select 'Second Life Sculptie' from the "File - Import" menu and
 choose the sculptie map to import (hint: click filename with middle mouse
-button to open quickly). You will be given an options dialog that will
-let you select the sculptured prim type and the scale (these match the
-sizes in Second Life).
+button to open quickly).
 
 The mesh will be imported with 3 multires levels. You can switch between
 them on the editing panel. These correspond to the 3 highest levels of
