@@ -85,6 +85,14 @@ class GuiApp:
 				text=ADD_SCULPT_MESH_LABEL,
 				labelanchor=NW)
 		frame.pack(anchor=CENTER)
+		self.map_type = Button(frame,
+				text="Type",
+				command=self.set_map_type,
+				border=1,
+				bg=hex_colour(theme.menu_hilite),
+				fg=hex_colour(theme.menu_text_hi),
+				activebackground=hex_colour(theme.setting))
+		self.map_type.pack(padx=4, fill=X, pady=5, side=TOP, anchor=CENTER)
 
 		# ==========================================
 		# Geometry section (top left)
@@ -182,7 +190,7 @@ class GuiApp:
 
  		self.subdivision = IntVar(self.master, 1)
 		r = Frame(fs, bg=hex_colour(theme.menu_back))
-		r.pack(side=LEFT)
+		r.pack(side=RIGHT)
 		Radiobutton(r,
 				text="Catmull",
 				variable=self.subdivision,
@@ -197,7 +205,7 @@ class GuiApp:
 				value=0).pack()
 		self.sub_type = IntVar(self.master, 1)
 		r = Frame(fs, bg=hex_colour(theme.menu_back))
-		r.pack(side=RIGHT)
+		r.pack(side=LEFT)
 		Radiobutton(r,
 				text="Subsurf",
 				variable=self.sub_type,
@@ -235,15 +243,6 @@ class GuiApp:
 		controlFrame = Frame(frame,bg=hex_colour(theme.menu_back))
 		controlFrame.pack(padx=5, pady=6, fill=Y, side=RIGHT, anchor=N)
 
-		self.map_type = Button(controlFrame,
-				text="Type",
-				command=self.set_map_type,
-				border=1,
-				bg=hex_colour(theme.menu_hilite),
-				fg=hex_colour(theme.menu_text_hi),
-				activebackground=hex_colour(theme.setting))
-		self.map_type.pack(padx=4, fill=X, pady=5, side=TOP, anchor=CENTER)
-		
 		self.sculpt_menu = Menu(controlFrame,
 				tearoff=0,
 				background=hex_colour(theme.menu_back),
@@ -272,7 +271,7 @@ class GuiApp:
 
 
 		# Cancel/Create buttons need layout tuning.
-		createButton = Button(buttonFrame, text="Create",
+		createButton = Button(buttonFrame, text="Ok",
 				command=self.add,
 				border=1,
 				default=ACTIVE,
@@ -280,7 +279,7 @@ class GuiApp:
 				activebackground=hex_colour(theme.action),
 				fg=hex_colour(theme.text),
 				activeforeground=hex_colour(theme.text_hi))
-		createButton.pack( ipadx=7 , padx=8, pady=0, side=RIGHT, anchor=SE)
+		createButton.pack( ipadx=7 , padx=4, pady=0, side=LEFT, anchor=SW)
 		
 		b = Button(buttonFrame, text="Cancel",
 				command=self.master.quit,
@@ -289,7 +288,7 @@ class GuiApp:
 				activebackground=hex_colour(theme.action),
 				fg=hex_colour(theme.text),
 				activeforeground=hex_colour(theme.text_hi))
-		b.pack( ipadx=7, padx=4, pady=0, side=LEFT, anchor=SW)
+		b.pack( ipadx=7, padx=8, pady=0, side=RIGHT, anchor=SE)
 		
 		# ===============================================================
 		# Make master window sticky.
@@ -443,7 +442,8 @@ class GuiApp:
 		else:
 			if (self.mouseInApp == False):
 				self.set_mouse_in_app(True) # mouse moved back to application window
-				self.log(event, "Mouse inside app (L)") 
+				self.log(event, "Mouse inside app (L)")
+		self.redraw()
 
 	def mouse_enter_handler(self, event):
 		if (self.mouseInApp == False):
