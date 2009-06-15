@@ -296,7 +296,8 @@ class GuiApp:
 		# Bind <Leave> and <Enter> events to the top window
 		# And preset "mouse is in app" and  "no selection active"
 		# ===============================================================
-		self.master.wm_attributes("-topmost", 1)   # Make sure window remains on top of all others
+		if os.name == "nt":
+			self.master.wm_attributes("-topmost", 1)   # Make sure window remains on top of all others
 		self.master.bind( "<Leave>",   self.mouse_leave_handler) # track leave main window
 		self.master.bind( "<Enter>",   self.mouse_enter_handler) # track enter main window
 		self.set_mouse_in_app(True)
