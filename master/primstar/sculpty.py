@@ -1319,6 +1319,7 @@ def uv_to_rgb(sculpt_type, u, v, radius=0.25):
 		g = 0.5 - cos(a) / 2.0
 		b = v
 	elif sculpt_type == "TORUS":
+		v += 0.25
 		ps = ((1.0 - radius) - sin(2.0 * pi * v) * radius) / 2.0
 		r = 0.5 + sin(a) * ps
 		g = 0.5 - cos(a) * ps
