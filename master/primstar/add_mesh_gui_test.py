@@ -49,6 +49,7 @@ class MenuMap(sculpty.LibFile):
 	def get_command(self, app):
 		def new_command():
 			app.set_sculpt_type(self.local_path)
+			self.selectorActive = False
 		return new_command
 
 class MenuDir(sculpty.LibDir):
@@ -60,8 +61,8 @@ class MenuDir(sculpty.LibDir):
 				background=hex_colour(app.theme.menu_back),
 				foreground=hex_colour(app.theme.menu_text),
 				activebackground=hex_colour(app.theme.menu_hilite),
-				activeforeground=hex_colour(app.theme.menu_text_hi) )
-			d.add_to_menu( app, submenu )
+				activeforeground=hex_colour(app.theme.menu_text_hi))
+			d.add_to_menu(app, submenu)
 			menu.add_cascade(label=d.name, menu=submenu)
 
 class GuiApp:
@@ -188,7 +189,7 @@ class GuiApp:
 				activebackground=hex_colour(theme.setting))
 		s.pack(padx=5, pady=5, side=RIGHT)
 
- 		self.subdivision = IntVar(self.master, 1)
+		self.subdivision = IntVar(self.master, 1)
 		r = Frame(fs, bg=hex_colour(theme.menu_back))
 		r.pack(side=RIGHT)
 		Radiobutton(r,
@@ -253,6 +254,7 @@ class GuiApp:
 			def type_command( sculpt_type ):
 				def new_command():
 					self.set_sculpt_type(sculpt_type)
+					self.selectorActive = False
 				return new_command
 			self.sculpt_menu.add_command(label=sculpt_type,
 					command=type_command(sculpt_type))
@@ -299,6 +301,7 @@ class GuiApp:
 			self.master.wm_attributes("-topmost", 1)   # Make sure window remains on top of all others
 		self.master.bind( "<Leave>",   self.mouse_leave_handler) # track leave main window
 		self.master.bind( "<Enter>",   self.mouse_enter_handler) # track enter main window
+
 		self.set_mouse_in_app(True)
 		self.selectorActive = False
 
@@ -314,12 +317,12 @@ class GuiApp:
 		i = self.sculpt_menu.index( t )
 		y = self.map_type.winfo_rooty() - self.sculpt_menu.yposition( i )
 		x  = self.master.winfo_pointerx() - self.sculpt_menu.winfo_reqwidth() // 2
+		self.selectorActive = True
 		self.sculpt_menu.post(x, y)
 
 	def set_sculpt_type(self, sculpt_type):
 		self.map_type.configure(text=sculpt_type)
 		self.redraw()
-		self.selectorActive = False
 
 	def redraw(self):
 		self.master.update_idletasks()
@@ -341,7 +344,7 @@ class GuiApp:
 		print "Create a [", name, "] of type ", sculpt_type
 		scene = Blender.Scene.GetCurrent()
 		for ob in scene.objects:
- 			ob.sel = False
+			ob.sel = False
 		try:
 			mesh = sculpty.new_mesh( basename,sculpt_type,
 					self.x_faces.get(), self.y_faces.get(),
@@ -422,51 +425,38 @@ class GuiApp:
 	# self.activeElement
 	# =================================================================================
 	def mouse_leave_handler(self, event):
-		wname  = event.widget.winfo_name()
-		if (wname == self.master.winfo_toplevel().winfo_name()):
+		if event.widget == self.master:
 			# Mouse clicked outside of the application window
-			if (self.selectorActive == False and self.mouseInApp == False):
-				self.log(event, "quit now..." )
-				self.master.update_idletasks()
-				self.master.quit()
+			if self.selectorActive == False:
+				if self.mouseInApp == False:
+					self.log(event, "quit now..." )
+					self.master.update_idletasks()
+					self.master.quit()
+				self.log(event, "Mouse outside app (L)" )
+				self.set_mouse_in_app(False)
 			else:
-				if (self.selectorActive == False):
-					self.log(event, "Mouse outside app (L)" )
-				else:
-					self.log(event, "Mouse outside app (L) with Selection active." )
-					if (self.mouseInApp == False):
-						print "disable element (L) [", self.selector.winfo_name(), "]"
-						self.selectorActive = False
-			self.set_mouse_in_app(False)
-			
-		else:
-			if (self.mouseInApp == False):
-				self.set_mouse_in_app(True) # mouse moved back to application window
-				self.log(event, "Mouse inside app (L)")
-		self.redraw()
+				self.log(event, "Mouse outside app (L) with Selection active." )
+				self.selectorActive = False
+				self.redraw()
 
 	def mouse_enter_handler(self, event):
-		if (self.mouseInApp == False):
+		if event.widget == self.master:
 			self.log(event, "Mouse inside app (E)" )
 			self.set_mouse_in_app(True) # We enter into the application window
-			self.master.grab_set()
-			
+
 	def set_mouse_in_app(self, inApp):
 		self.mouseInApp = inApp
-		if (inApp == False):
-			self.master.grab_set_global()
+		self.master.grab_set_global()
 		self.master.update_idletasks() 
 
 	def log(self, event, label):
 		wname  = event.widget.winfo_name()
 		wclass = event.widget.winfo_class()
 		tlw    = event.widget.winfo_toplevel().winfo_name()
-		print label + " ["+wclass+":"+wname+"] memeber of ["+tlw+"]"
-		
+		print label + " ["+wclass+":"+wname+"] member of ["+tlw+"]"
 
 def hex_colour(theme_colour):
 	return "#" + hexlify("".join([chr(i) for i in theme_colour[:-1]]))
-
 
 def main():
 	root = Tk()
@@ -490,7 +480,7 @@ def main():
 		print "Application terminated with errors"
 
 	# finalize application
-	root.grab_set()
+	root.grab_release()
 	root.destroy()   # If omitted, blender crashes (Threading problems)
 	print ADD_SCULPT_MESH_LABEL + " terminated."
 
