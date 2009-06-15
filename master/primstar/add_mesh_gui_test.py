@@ -433,11 +433,11 @@ class GuiApp:
 					self.master.update_idletasks()
 					self.master.quit()
 				self.log(event, "Mouse outside app (L)" )
-				self.set_mouse_in_app(False)
 			else:
 				self.log(event, "Mouse outside app (L) with Selection active." )
 				self.selectorActive = False
-				self.redraw()
+			self.set_mouse_in_app(False)
+			self.redraw()
 
 	def mouse_enter_handler(self, event):
 		if event.widget == self.master:
@@ -445,9 +445,9 @@ class GuiApp:
 			self.set_mouse_in_app(True) # We enter into the application window
 
 	def set_mouse_in_app(self, inApp):
-		self.mouseInApp = inApp
 		self.master.grab_set_global()
-		self.master.update_idletasks() 
+		self.master.update_idletasks()
+		self.mouseInApp = inApp
 
 	def log(self, event, label):
 		wname  = event.widget.winfo_name()
