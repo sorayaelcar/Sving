@@ -449,7 +449,7 @@ class GuiApp:
 		if (self.mouseInApp == False):
 			self.log(event, "Mouse inside app (E)" )
 			self.set_mouse_in_app(True) # We enter into the application window
-			self.master.grab_release()
+			self.master.grab_set()
 			
 	def set_mouse_in_app(self, inApp):
 		self.mouseInApp = inApp
@@ -490,7 +490,7 @@ def main():
 		print "Application terminated with errors"
 
 	# finalize application
-	root.grab_release()
+	root.grab_set()
 	root.destroy()   # If omitted, blender crashes (Threading problems)
 	print ADD_SCULPT_MESH_LABEL + " terminated."
 
