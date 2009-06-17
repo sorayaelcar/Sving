@@ -71,11 +71,9 @@ class Theme:
 				'alpha':float_alpha(ui.textfield_hi)}
 
 class Root(Tkinter.Tk):
-	def __init__(self, title=None, *args,**kw):
-		Tkinter.Tk.__init__(self, *args, **kw)
-		if title is not None:
-			self.title( title )
-		self.bg=theme.menu_back['color']
+	def __init__(self, **kw):
+		Tkinter.Tk.__init__(self, **kw)
+		self.config(bg=theme.menu_back['color'])
 		# OS specific features
 		if OSNAME in ['nt','mac']:
 			self.attributes("-alpha". theme.menu_back['alpha'])
@@ -106,40 +104,76 @@ class ModalRoot(Tkinter.Tk):
 	def __init__(self):
 		Tkinter.Tk.__init__(self)
 		self.overrideredirect(True)
-		self.configure(takefocus=True)
-		if OSNAME == "nt":
-			self.attributes("-topmost", 1)   # Required for Windows
-		self.bg=theme.menu_back['color']
+		self.config(takefocus=True,
+				bg=theme.menu_back['color'])
 		# OS specific features
+		if OSNAME == "nt":
+			self.attributes("-topmost", 1)
 		if OSNAME in ['nt','mac']:
 			self.attributes("-alpha", theme.menu_back['alpha'])
 		# event handling
-		self.focusmodel("active")
-		self.bind('<Escape>', self.destroy_handler)
-		self.bind('<Leave>', self.destroy_handler)
-		self.protocol("WM_DELETE_WINDOW", self.destroy)
 		px, py = self.winfo_pointerxy()
 		self.geometry("+%d+%d"%(px - 100, py - 100))
 		self.update_idletasks()
-		self.focus_set()
-		self.grab_set_global()
+		self.bind('<Escape>', self.destroy_handler)
+		#todo:figure out why this keeps triggering
+		#self.bind('<Leave>', self.destroy_handler)
+		self.bind('<Enter>',self.enter_handler)
+		self.protocol("WM_DELETE_WINDOW", self.destroy)
+		self.focus_force()
 
 	def destroy_handler(self, event):
-		self.destroy()
+		if event.widget == self:
+			self.destroy()
+
+	def enter_handler(self, event):
+		self.grab_set_global()
+		self.update_idletasks()
 
 class Frame(Tkinter.Frame):
-	def __init__(self, *args, **kw):
-		Tkinter.Frame.__init__(self, *args,**kw)
-		self.bg=theme.neutral['color']
-		self.highlightcolor=theme.menu_hilite['color']
+	def __init__(self, parent, **kw):
+		Tkinter.Frame.__init__(self, parent, **kw)
+		self.config(bg=theme.menu_back['color'],
+				highlightcolor=theme.outline['color'],
+				highlightbackground=theme.menu_back['color'])
 		# OS specific features
 		if OSNAME in ['nt','mac']:
-			self.attributes("-alpha", theme.neutral['alpha'])
+			self.attributes("-alpha", theme.menu_back['alpha'])
+
+class LabelFrame(Tkinter.LabelFrame):
+	def __init__(self, parent, **kw):
+		Tkinter.LabelFrame.__init__(self, parent, **kw)
+		self.config(bg=theme.menu_back['color'],
+				fg=theme.menu_text['color'],
+				highlightcolor=theme.outline['color'],
+				highlightbackground=theme.menu_back['color'])
+		# OS specific features
+		if OSNAME in ['nt','mac']:
+			self.attributes("-alpha", theme.menu_back['alpha'])
+
+class Button(Tkinter.Button):
+	def __init__(self, parent, **kw):
+		Tkinter.Button.__init__(self, parent, **kw)
+		self.config(bg=theme.action['color'],
+				activebackground=theme.action['color'],
+				fg=theme.menu_text['color'],
+				activeforeground=theme.text_hi['color'],
+				highlightbackground=theme.menu_back['color'],
+				highlightcolor=theme.outline['color'],
+				disabledforeground=theme.menu_back['color'])
 
 def main():
-	root = ModalRoot()
-	f = Frame(root)
-	root.mainloop()
+	try:
+		root = ModalRoot()
+		f = Frame(root)
+		f.pack()
+		Lf = LabelFrame(f, text="Label Frame")
+		Lf.pack()
+		Button(Lf, text="Panic", command=root.destroy).pack()
+		root.mainloop()
+	except:
+		root.destroy()
+		raise
 
 theme = Theme()
 
