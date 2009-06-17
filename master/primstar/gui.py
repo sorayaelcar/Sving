@@ -71,8 +71,10 @@ class Theme:
 				'alpha':float_alpha(ui.textfield_hi)}
 
 class Root(Tkinter.Tk):
-	def __init__(self, *args,**kw):
+	def __init__(self, title=None, *args,**kw):
 		Tkinter.Tk.__init__(self, *args, **kw)
+		if title is not None:
+			self.title( title )
 		self.bg=theme.neutral['colour']
 		# OS specific features
 		if OSNAME in ['nt','mac']:
