@@ -24,6 +24,10 @@ from os import name as OSNAME
 import Tkinter
 from binascii import hexlify
 
+def debug(num,msg):
+	if Blender.Get('rt') >= num:
+		print 'debug:', (' '*num), msg
+
 def hex_color(theme_color):
 	return "#" + hexlify("".join([chr(i) for i in theme_color[:-1]]))
 
@@ -104,6 +108,7 @@ class Root(Tkinter.Tk):
 
 class ModalRoot(Tkinter.Tk):
 	def __init__(self, **kw):
+		self._init=False
 		Tkinter.Tk.__init__(self)
 		self.overrideredirect(True)
 		self.config(takefocus=True,
@@ -120,17 +125,27 @@ class ModalRoot(Tkinter.Tk):
 		self.geometry("+%d+%d"%(px - 100, py - 100))
 		self.update_idletasks()
 		self.bind('<Escape>', self.destroy_handler)
-		#todo:figure out why this keeps triggering
-		#self.bind('<Leave>', self.destroy_handler)
+		self.bind('<Leave>', self.leave_handler)
 		self.bind('<Enter>',self.enter_handler)
 		self.protocol("WM_DELETE_WINDOW", self.destroy)
 		self.focus_force()
 
 	def destroy_handler(self, event):
-		if event.widget == self:
-			self.destroy()
+		self.destroy()
+
+	def leave_handler(self, event):
+		debug(60,"Leave: %s"%str(event.widget))
+		if self._init:
+			if event.widget == self:
+				px, py = self.winfo_pointerxy()
+				if self.winfo_containing(px, py) == None:
+					self.destroy()
+		else:
+			self._init = True
+			# skip first leave event (in case not under mouse on creation)
 
 	def enter_handler(self, event):
+		debug(60,"Enter: %s"%str(event.widget))
 		self.grab_set_global()
 		self.update_idletasks()
 
@@ -267,6 +282,7 @@ def main():
 		Lf = LabelFrame(f, text="Label Frame")
 		Lf.pack()
 		Button(Lf, text="Panic", command=root.destroy).pack()
+		Button(Lf, text="Disabled", state=Tkinter.DISABLED).pack()
 		root.mainloop()
 	except:
 		root.destroy()
