@@ -72,11 +72,13 @@ class Theme:
 
 class Root(Tkinter.Tk):
 	def __init__(self, **kw):
-		Tkinter.Tk.__init__(self, **kw)
+		Tkinter.Tk.__init__(self)
 		self.config(bg=theme.menu_back['color'])
 		# OS specific features
 		if OSNAME in ['nt','mac']:
 			self.attributes("-alpha". theme.menu_back['alpha'])
+		# apply keywords last to override defaults
+		self.config(**kw)
 		# event handling
 		self.focusmodel("passive")
 		self.bind('<FocusOut>', self.focus_out_handler)
@@ -101,7 +103,7 @@ class Root(Tkinter.Tk):
 		self.destroy()
 
 class ModalRoot(Tkinter.Tk):
-	def __init__(self):
+	def __init__(self, **kw):
 		Tkinter.Tk.__init__(self)
 		self.overrideredirect(True)
 		self.config(takefocus=True,
@@ -111,6 +113,8 @@ class ModalRoot(Tkinter.Tk):
 			self.attributes("-topmost", 1)
 		if OSNAME in ['nt','mac']:
 			self.attributes("-alpha", theme.menu_back['alpha'])
+		# apply keywords last to override defaults
+		self.config(**kw)
 		# event handling
 		px, py = self.winfo_pointerxy()
 		self.geometry("+%d+%d"%(px - 100, py - 100))
@@ -168,10 +172,10 @@ class Frame(Tkinter.Frame):
 		self.config(bg=theme.menu_back['color'],
 				highlightcolor=theme.outline['color'],
 				highlightbackground=theme.menu_back['color'])
-		self.config( **kw )
 		# OS specific features
 		if OSNAME in ['nt','mac']:
 			self.attributes("-alpha", theme.menu_back['alpha'])
+		self.config( **kw )
 
 class Label(Tkinter.Label):
 	def __init__(self, parent, **kw):
@@ -185,10 +189,10 @@ class LabelFrame(Tkinter.LabelFrame):
 				fg=theme.menu_text['color'],
 				highlightcolor=theme.outline['color'],
 				highlightbackground=theme.menu_back['color'])
-		self.config( **kw )
 		# OS specific features
 		if OSNAME in ['nt','mac']:
 			self.attributes("-alpha", theme.menu_back['alpha'])
+		self.config( **kw )
 
 class Listbox(Tkinter.Listbox):
 	def __init__(self, parent, **kw):
@@ -225,9 +229,9 @@ class PhotoImage(Tkinter.PhotoImage):
 		Tkinter.PhotoImage(self, parent)
 		self.config(**kw)
 
-class RadioButton(Tkinter.RadioButton):
+class Radiobutton(Tkinter.Radiobutton):
 	def __init__(self, parent, **kw):
-		Tkinter.RadioButton(self, parent)
+		Tkinter.Radiobutton(self, parent)
 		self.config(**kw)
 
 class Scale(Tkinter.Scale):
@@ -250,9 +254,9 @@ class Text(Tkinter.Text):
 		Tkinter.Text(self, parent)
 		self.config(**kw)
 
-class TopLevel(Tkinter.TopLevel):
+class Toplevel(Tkinter.Toplevel):
 	def __init__(self, parent, **kw):
-		Tkinter.TopLevel(self, parent)
+		Tkinter.Toplevel(self, parent)
 		self.config(**kw)
 
 def main():
