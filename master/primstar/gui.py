@@ -20,6 +20,7 @@
 # --------------------------------------------------------------------------
 
 import Blender
+from os import name as OSNAME
 import Tkinter
 from binascii import hexlify
 
@@ -72,7 +73,7 @@ class Root(Tkinter.Tk):
 		Blender.Window.RedrawAll()
 		self.grab_set()
 
-	def destroy_handler(self, event=None):
+	def destroy_handler(self, event):
 		self.destroy()
 
 class ModalRoot(Tkinter.Tk):
@@ -80,6 +81,8 @@ class ModalRoot(Tkinter.Tk):
 		Tkinter.Tk.__init__(self, *args, **kw)
 		self.overrideredirect(True)
 		self.configure(takefocus=True)
+		if OSNAME == "nt":
+			self.master.wm_attributes("-topmost", 1)   # Make sure window remains on top of all others
 		self.bg=theme.neutral
 		self.focusmodel("active")
 		self.bind('<Escape>', self.destroy_handler)
@@ -88,9 +91,10 @@ class ModalRoot(Tkinter.Tk):
 		px, py = self.winfo_pointerxy()
 		self.geometry("+%d+%d"%(px - 100, py - 100))
 		self.update_idletasks()
+		self.focus_set()
 		self.grab_set_global()
 
-	def destroy_handler(self, event=None):
+	def destroy_handler(self, event):
 		self.destroy()
 
 class Frame(Tkinter.Frame):
