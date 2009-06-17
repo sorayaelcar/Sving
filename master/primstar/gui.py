@@ -130,30 +130,14 @@ class ModalRoot(Tkinter.Tk):
 		self.grab_set_global()
 		self.update_idletasks()
 
-class Frame(Tkinter.Frame):
+class BitmapImage(Tkinter.BitmapImage):
 	def __init__(self, parent, **kw):
-		Tkinter.Frame.__init__(self, parent, **kw)
-		self.config(bg=theme.menu_back['color'],
-				highlightcolor=theme.outline['color'],
-				highlightbackground=theme.menu_back['color'])
-		# OS specific features
-		if OSNAME in ['nt','mac']:
-			self.attributes("-alpha", theme.menu_back['alpha'])
-
-class LabelFrame(Tkinter.LabelFrame):
-	def __init__(self, parent, **kw):
-		Tkinter.LabelFrame.__init__(self, parent, **kw)
-		self.config(bg=theme.menu_back['color'],
-				fg=theme.menu_text['color'],
-				highlightcolor=theme.outline['color'],
-				highlightbackground=theme.menu_back['color'])
-		# OS specific features
-		if OSNAME in ['nt','mac']:
-			self.attributes("-alpha", theme.menu_back['alpha'])
+		Tkinter.BitmapImage(self, parent)
+		self.config(**kw)
 
 class Button(Tkinter.Button):
 	def __init__(self, parent, **kw):
-		Tkinter.Button.__init__(self, parent, **kw)
+		Tkinter.Button.__init__(self, parent)
 		self.config(bg=theme.action['color'],
 				activebackground=theme.action['color'],
 				fg=theme.menu_text['color'],
@@ -161,6 +145,115 @@ class Button(Tkinter.Button):
 				highlightbackground=theme.menu_back['color'],
 				highlightcolor=theme.outline['color'],
 				disabledforeground=theme.menu_back['color'])
+		self.config( **kw )
+
+class Canvas(Tkinter.Canvas):
+	def __init__(self, parent, **kw):
+		Tkinter.Canvas(self, parent)
+		self.config(**kw)
+
+class Checkbutton(Tkinter.Checkbutton):
+	def __init__(self, parent, **kw):
+		Tkinter.Checkbutton(self, parent)
+		self.config(**kw)
+
+class Entry(Tkinter.Entry):
+	def __init__(self, parent, **kw):
+		Tkinter.Entry(self, parent)
+		self.config(**kw)
+
+class Frame(Tkinter.Frame):
+	def __init__(self, parent, **kw):
+		Tkinter.Frame.__init__(self, parent)
+		self.config(bg=theme.menu_back['color'],
+				highlightcolor=theme.outline['color'],
+				highlightbackground=theme.menu_back['color'])
+		self.config( **kw )
+		# OS specific features
+		if OSNAME in ['nt','mac']:
+			self.attributes("-alpha", theme.menu_back['alpha'])
+
+class Label(Tkinter.Label):
+	def __init__(self, parent, **kw):
+		Tkinter.Label(self, parent)
+		self.config(**kw)
+
+class LabelFrame(Tkinter.LabelFrame):
+	def __init__(self, parent, **kw):
+		Tkinter.LabelFrame.__init__(self, parent)
+		self.config(bg=theme.menu_back['color'],
+				fg=theme.menu_text['color'],
+				highlightcolor=theme.outline['color'],
+				highlightbackground=theme.menu_back['color'])
+		self.config( **kw )
+		# OS specific features
+		if OSNAME in ['nt','mac']:
+			self.attributes("-alpha", theme.menu_back['alpha'])
+
+class Listbox(Tkinter.Listbox):
+	def __init__(self, parent, **kw):
+		Tkinter.Listbox(self, parent)
+		self.config(**kw)
+
+class Menu(Tkinter.Menu):
+	def __init__(self, parent, **kw):
+		Tkinter.Menu(self, parent)
+		self.config(**kw)
+
+class Menubutton(Tkinter.Menubutton):
+	def __init__(self, parent, **kw):
+		Tkinter.Menubutton(self, parent)
+		self.config(**kw)
+
+class Message(Tkinter.Message):
+	def __init__(self, parent, **kw):
+		Tkinter.Message(self, parent)
+		self.config(**kw)
+
+class OptionMenu(Tkinter.OptionMenu):
+	def __init__(self, parent, **kw):
+		Tkinter.OptionMenu(self, parent)
+		self.config(**kw)
+
+class PanedWindow(Tkinter.PanedWindow):
+	def __init__(self, parent, **kw):
+		Tkinter.PanedWindow(self, parent)
+		self.config(**kw)
+
+class PhotoImage(Tkinter.PhotoImage):
+	def __init__(self, parent, **kw):
+		Tkinter.PhotoImage(self, parent)
+		self.config(**kw)
+
+class RadioButton(Tkinter.RadioButton):
+	def __init__(self, parent, **kw):
+		Tkinter.RadioButton(self, parent)
+		self.config(**kw)
+
+class Scale(Tkinter.Scale):
+	def __init__(self, parent, **kw):
+		Tkinter.Scale(self, parent)
+		self.config(**kw)
+
+class Scrollbar(Tkinter.Scrollbar):
+	def __init__(self, parent, **kw):
+		Tkinter.Scrollbar(self, parent)
+		self.config(**kw)
+
+class Spinbox(Tkinter.Spinbox):
+	def __init__(self, parent, **kw):
+		Tkinter.Spinbox(self, parent)
+		self.config(**kw)
+
+class Text(Tkinter.Text):
+	def __init__(self, parent, **kw):
+		Tkinter.Text(self, parent)
+		self.config(**kw)
+
+class TopLevel(Tkinter.TopLevel):
+	def __init__(self, parent, **kw):
+		Tkinter.TopLevel(self, parent)
+		self.config(**kw)
 
 def main():
 	try:
