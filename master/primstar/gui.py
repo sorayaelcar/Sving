@@ -51,6 +51,11 @@ def add_only(kw, item, value):
 def focus_force(event):
 	event.widget.focus_force()
 
+def redraw(event=None):
+	if event:
+		event.widget.master.update_idletasks()
+	Blender.Window.RedrawAll()
+
 class Theme:
 	def __init__(self):
 		self.ui = Blender.Window.Theme.Get()[0].get('ui')
@@ -97,8 +102,6 @@ class Theme:
 
 		if Tkinter.Spinbox in widget.__class__.__bases__:
 			add_only(kw, 'background', hex_color(self.ui.textfield))
-			add_only(kw,'highlightthickness', 2 )
-			add_only(kw, 'highlightbackground', self.others['panel'])
 
 		if Tkinter.Tk in widget.__class__.__bases__:
 			add_only(kw,'highlightthickness', 0)
@@ -112,9 +115,9 @@ class Theme:
 class Root(Tkinter.Tk):
 	def __init__(self, **kw):
 		Tkinter.Tk.__init__(self)
+		add_only(kw, 'focusmodel', 'passive')
 		theme.config(self, kw)
 		# event handling
-		self.focusmodel("passive")
 		self.bind('<FocusOut>', self.focus_out_handler)
 		self.bind('<FocusIn>', self.focus_in_handler)
 		self.bind('<Configure>', self.configure_handler)
@@ -134,7 +137,7 @@ class Root(Tkinter.Tk):
 		self.grab_set()
 
 	def destroy_handler(self, event):
-		self.destroy()
+		self.quit()
 
 class ModalRoot(Tkinter.Tk):
 	def __init__(self, **kw):
@@ -160,19 +163,17 @@ class ModalRoot(Tkinter.Tk):
 
 	def leave_handler(self, event):
 		debug(60,"Leave: %s"%str(event.widget))
-		if self._init:
-			if event.widget == self:
-				px, py = self.winfo_pointerxy()
-				if self.winfo_containing(px, py) == None:
-					self.quit()
-		else:
-			self._init = True
-			# skip first leave event (in case not under mouse on creation)
+		if event.widget == self:
+			px, py = self.winfo_pointerxy()
+			if self.winfo_containing(px, py) == None:
+				self.quit()
 
 	def enter_handler(self, event):
 		debug(60,"Enter: %s"%str(event.widget))
-		if self.grab_status() == None:
-			self.grab_set_global()
+		if event.widget == self:
+			if self.grab_status() == None:
+				self.grab_set_global()
+			self.focus_set()
 		self.update_idletasks()
 
 class BitmapImage(Tkinter.BitmapImage):
@@ -225,6 +226,7 @@ class Menu(Tkinter.Menu):
 	def __init__(self, parent, **kw):
 		Tkinter.Menu.__init__(self, parent)
 		theme.config(self, kw)
+		self.bind('<Button-1>', redraw)
 
 class Menubutton(Tkinter.Menubutton):
 	def __init__(self, parent, **kw):
