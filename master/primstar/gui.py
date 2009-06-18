@@ -20,7 +20,7 @@
 # --------------------------------------------------------------------------
 
 import Blender
-from os import name as OSNAME
+from sys import platform
 import Tkinter
 from binascii import hexlify
 
@@ -34,55 +34,64 @@ def hex_color(theme_color):
 def float_alpha(theme_color):
 	return float(theme_color[3]) / 255.0
 
+def mix_color(color1, color2, reverse=False):
+	if reverse:
+		a = float_alpha(color1)
+	else:
+		a = float_alpha(color2)
+	r = color1[0] * (1.0 - a) + color2[0] * a
+	g = color1[1] * (1.0 - a) + color2[1] * a
+	b = color1[2] * (1.0 - a) + color2[2] * a
+	return hex_color( [r, g, b, 255] )
+
+def add_only(kw, item, value):
+	if item not in kw.keys():
+		kw[item] = value
+
 class Theme:
 	def __init__(self):
-		ui = Blender.Window.Theme.Get()[0].get('ui')
-		self.action = {'color':hex_color(ui.action),
-				'alpha':float_alpha(ui.action)}
-		self.draw_type = ui.drawType
-		self.icon_theme = ui.iconTheme
-		self.menu_back = {'color':hex_color(ui.menu_back),
-				'alpha':float_alpha(ui.menu_back)}
-		self.menu_hilite = {'color':hex_color(ui.menu_hilite),
-				'alpha':float_alpha(ui.menu_hilite)}
-		self.menu_item = {'color':hex_color(ui.menu_item),
-				'alpha':float_alpha(ui.menu_item)}
-		self.menu_text = {'color':hex_color(ui.menu_text),
-				'alpha':float_alpha(ui.menu_text)}
-		self.menu_text_hi = {'color':hex_color(ui.menu_text_hi),
-				'alpha':float_alpha(ui.menu_text_hi)}
-		self.neutral = {'color':hex_color(ui.neutral),
-				'alpha':float_alpha(ui.neutral)}
-		self.num = {'color':hex_color(ui.num),
-				'alpha':float_alpha(ui.num)}
-		self.outline = {'color':hex_color(ui.outline),
-				'alpha':float_alpha(ui.outline)}
-		self.popup = {'color':hex_color(ui.popup),
-				'alpha':float_alpha(ui.popup)}
-		self.setting = {'color':hex_color(ui.setting),
-				'alpha':float_alpha(ui.setting)}
-		self.setting1 = {'color':hex_color(ui.setting1),
-				'alpha':float_alpha(ui.setting1)}
-		self.setting2 = {'color':hex_color(ui.setting2),
-				'alpha':float_alpha(ui.setting2)}
-		self.text = {'color':hex_color(ui.text),
-				'alpha':float_alpha(ui.text)}
-		self.text_hi = {'color':hex_color(ui.text_hi),
-				'alpha':float_alpha(ui.text_hi)}
-		self.textfield = {'color':hex_color(ui.textfield),
-				'alpha':float_alpha(ui.textfield)}
-		self.textfield_hi = {'color':hex_color(ui.textfield_hi),
-				'alpha':float_alpha(ui.textfield_hi)}
+		self.ui = Blender.Window.Theme.Get()[0].get('ui')
+		self.buts = Blender.Window.Theme.Get()[0].get(
+				Blender.Window.Types.BUTS)
+		self.others = {
+				'panel':mix_color(self.buts.back, self.buts.panel)}
+		self.defaults = {
+				'activebackground':hex_color(self.ui.action),
+				'activeforeground':hex_color(self.ui.text_hi),
+				'background':hex_color(self.buts.back),
+				'disabledforeground':hex_color(self.ui.neutral),
+				'foreground':hex_color(self.ui.menu_text),
+				'highlightbackground':hex_color(self.ui.menu_back),
+				'highlightcolor':hex_color(self.ui.outline),
+				'selectcolor':hex_color(self.ui.setting2),
+				'selectforeground':hex_color(self.ui.text_hi),
+				'selectbackground':hex_color(self.ui.textfield_hi),
+				'highlightthickness':0}
+
+	def config(self, widget, kw={}):
+		# don't override user supplied kw, only add missing entries
+		if Tkinter.Entry in widget.__class__.__bases__:
+			add_only(kw,'background', hex_color(self.ui.menu_back))
+
+		if Tkinter.Frame in widget.__class__.__bases__:
+			add_only(kw,'background', self.others['panel'])
+
+		if Tkinter.LabelFrame in widget.__class__.__bases__:
+			add_only(kw,'background', self.others['panel'])
+
+		if Tkinter.Checkbutton in widget.__class__.__bases__:
+			add_only(kw,'background', self.others['panel'])
+
+		# add default settings
+		for item in widget.config():
+			if item in self.defaults.keys():
+				add_only(kw, item, self.defaults[item])
+		widget.config(**kw)
 
 class Root(Tkinter.Tk):
 	def __init__(self, **kw):
 		Tkinter.Tk.__init__(self)
-		self.config(bg=theme.menu_back['color'])
-		# OS specific features
-		if OSNAME in ['nt','mac']:
-			self.attributes("-alpha". theme.menu_back['alpha'])
-		# apply keywords last to override defaults
-		self.config(**kw)
+		theme.config(self, kw)
 		# event handling
 		self.focusmodel("passive")
 		self.bind('<FocusOut>', self.focus_out_handler)
@@ -111,15 +120,11 @@ class ModalRoot(Tkinter.Tk):
 		self._init=False
 		Tkinter.Tk.__init__(self)
 		self.overrideredirect(True)
-		self.config(takefocus=True,
-				bg=theme.menu_back['color'])
+		kw['takefocus']=True
+		theme.config(self, kw)
 		# OS specific features
-		if OSNAME == "nt":
+		if platform == "win32":
 			self.attributes("-topmost", 1)
-		if OSNAME in ['nt','mac']:
-			self.attributes("-alpha", theme.menu_back['alpha'])
-		# apply keywords last to override defaults
-		self.config(**kw)
 		# event handling
 		px, py = self.winfo_pointerxy()
 		self.geometry("+%d+%d"%(px - 100, py - 100))
@@ -151,130 +156,111 @@ class ModalRoot(Tkinter.Tk):
 
 class BitmapImage(Tkinter.BitmapImage):
 	def __init__(self, parent, **kw):
-		Tkinter.BitmapImage(self, parent)
-		self.config(**kw)
+		Tkinter.BitmapImage.__init__(self, parent)
+		theme.config(self, kw)
 
 class Button(Tkinter.Button):
 	def __init__(self, parent, **kw):
 		Tkinter.Button.__init__(self, parent)
-		self.config(bg=theme.action['color'],
-				activebackground=theme.action['color'],
-				fg=theme.menu_text['color'],
-				activeforeground=theme.text_hi['color'],
-				highlightbackground=theme.menu_back['color'],
-				highlightcolor=theme.outline['color'],
-				disabledforeground=theme.menu_back['color'])
-		self.config( **kw )
+		theme.config(self,kw)
 
 class Canvas(Tkinter.Canvas):
 	def __init__(self, parent, **kw):
-		Tkinter.Canvas(self, parent)
-		self.config(**kw)
+		Tkinter.Canvas.__init__(self, parent)
+		theme.config(self, kw)
 
 class Checkbutton(Tkinter.Checkbutton):
 	def __init__(self, parent, **kw):
-		Tkinter.Checkbutton(self, parent)
-		self.config(**kw)
+		Tkinter.Checkbutton.__init__(self, parent)
+		theme.config(self, kw)
 
 class Entry(Tkinter.Entry):
 	def __init__(self, parent, **kw):
-		Tkinter.Entry(self, parent)
-		self.config(**kw)
+		Tkinter.Entry.__init__(self, parent)
+		theme.config(self, kw)
 
 class Frame(Tkinter.Frame):
 	def __init__(self, parent, **kw):
 		Tkinter.Frame.__init__(self, parent)
-		self.config(bg=theme.menu_back['color'],
-				highlightcolor=theme.outline['color'],
-				highlightbackground=theme.menu_back['color'])
-		# OS specific features
-		if OSNAME in ['nt','mac']:
-			self.attributes("-alpha", theme.menu_back['alpha'])
-		self.config( **kw )
+		theme.config(self, kw)
 
 class Label(Tkinter.Label):
 	def __init__(self, parent, **kw):
 		Tkinter.Label(self, parent)
-		self.config(**kw)
+		theme.config(self, kw)
 
 class LabelFrame(Tkinter.LabelFrame):
 	def __init__(self, parent, **kw):
 		Tkinter.LabelFrame.__init__(self, parent)
-		self.config(bg=theme.menu_back['color'],
-				fg=theme.menu_text['color'],
-				highlightcolor=theme.outline['color'],
-				highlightbackground=theme.menu_back['color'])
-		# OS specific features
-		if OSNAME in ['nt','mac']:
-			self.attributes("-alpha", theme.menu_back['alpha'])
-		self.config( **kw )
+		theme.config(self, kw)
 
 class Listbox(Tkinter.Listbox):
 	def __init__(self, parent, **kw):
-		Tkinter.Listbox(self, parent)
-		self.config(**kw)
+		Tkinter.Listbox.__init__(self, parent)
+		theme.config(self, kw)
 
 class Menu(Tkinter.Menu):
 	def __init__(self, parent, **kw):
-		Tkinter.Menu(self, parent)
-		self.config(**kw)
+		Tkinter.Menu.__init__(self, parent)
+		theme.config(self, kw)
 
 class Menubutton(Tkinter.Menubutton):
 	def __init__(self, parent, **kw):
-		Tkinter.Menubutton(self, parent)
-		self.config(**kw)
+		Tkinter.Menubutton.__init__(self, parent)
+		theme.config(self, kw)
 
 class Message(Tkinter.Message):
 	def __init__(self, parent, **kw):
-		Tkinter.Message(self, parent)
-		self.config(**kw)
+		Tkinter.Message.__init__(self, parent)
+		theme.config(self, kw)
 
 class OptionMenu(Tkinter.OptionMenu):
 	def __init__(self, parent, **kw):
-		Tkinter.OptionMenu(self, parent)
-		self.config(**kw)
+		Tkinter.OptionMenu.__init__(self, parent)
+		theme.config(self, kw)
 
 class PanedWindow(Tkinter.PanedWindow):
 	def __init__(self, parent, **kw):
-		Tkinter.PanedWindow(self, parent)
-		self.config(**kw)
+		Tkinter.PanedWindow.__init__(self, parent)
+		theme.config(self, kw)
 
 class PhotoImage(Tkinter.PhotoImage):
 	def __init__(self, parent, **kw):
-		Tkinter.PhotoImage(self, parent)
-		self.config(**kw)
+		Tkinter.PhotoImage.__init__(self, parent)
+		theme.config(self, kw)
 
 class Radiobutton(Tkinter.Radiobutton):
 	def __init__(self, parent, **kw):
-		Tkinter.Radiobutton(self, parent)
-		self.config(**kw)
+		Tkinter.Radiobutton.__init__(self, parent)
+		theme.config(self, kw)
 
 class Scale(Tkinter.Scale):
 	def __init__(self, parent, **kw):
-		Tkinter.Scale(self, parent)
-		self.config(**kw)
+		Tkinter.Scale.__init__(self, parent)
+		theme.config(self, kw)
 
 class Scrollbar(Tkinter.Scrollbar):
 	def __init__(self, parent, **kw):
-		Tkinter.Scrollbar(self, parent)
-		self.config(**kw)
+		Tkinter.Scrollbar.__init__(self, parent)
+		theme.config(self, kw)
 
 class Spinbox(Tkinter.Spinbox):
 	def __init__(self, parent, **kw):
-		Tkinter.Spinbox(self, parent)
-		self.config(**kw)
+		Tkinter.Spinbox.__init__(self, parent)
+		theme.config(self, kw)
 
 class Text(Tkinter.Text):
 	def __init__(self, parent, **kw):
-		Tkinter.Text(self, parent)
-		self.config(**kw)
+		Tkinter.Text.__init__(self, parent)
+		theme.config(self, kw)
 
 class Toplevel(Tkinter.Toplevel):
 	def __init__(self, parent, **kw):
-		Tkinter.Toplevel(self, parent)
-		self.config(**kw)
+		Tkinter.Toplevel.__init__(self, parent)
+		theme.config(self, kw)
 
 def main():
+	root=None
 	try:
 		root = ModalRoot()
 		f = Frame(root)
@@ -283,9 +269,12 @@ def main():
 		Lf.pack()
 		Button(Lf, text="Panic", command=root.destroy).pack()
 		Button(Lf, text="Disabled", state=Tkinter.DISABLED).pack()
+		Checkbutton(Lf, text="Checkbutton").pack()
+		Entry(Lf, text="Entry").pack()
 		root.mainloop()
 	except:
-		root.destroy()
+		if root:
+			root.destroy()
 		raise
 
 theme = Theme()
