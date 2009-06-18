@@ -42,6 +42,7 @@ from primstar import sculpty
 import os
 from Tkinter import *
 from binascii import hexlify
+from primstar import gui
 
 ADD_SCULPT_MESH_LABEL = "Primstar - Add sculpt mesh"
 
@@ -57,105 +58,77 @@ class MenuDir(sculpty.LibDir):
 		for f in self.files:
 			menu.add_command(label=f.name, command=f.get_command(app))
 		for d in self.dirs:
-			submenu = Menu(menu, tearoff=0,
-				background=hex_colour(app.theme.menu_back),
-				foreground=hex_colour(app.theme.menu_text),
-				activebackground=hex_colour(app.theme.menu_hilite),
-				activeforeground=hex_colour(app.theme.menu_text_hi))
+			submenu = gui.Menu(menu, tearoff=0)
 			d.add_to_menu(app, submenu)
 			menu.add_cascade(label=d.name, menu=submenu)
 
 class GuiApp:
-	def __init__(self, master, theme):
+	def __init__(self, master):
 		w,h = 32, 256
-
-		self.theme  = theme
 		self.master = master
 		self.master.overrideredirect(True)
 		
 		# ==========================================
 		# Main window frame		
 		# ==========================================
-		topFrame = Frame(master, border=4, bg=hex_colour(theme.popup))
+		topFrame = Frame(master, border=4)
 		topFrame.pack()
 
-		frame = LabelFrame(topFrame,
+		frame = gui.LabelFrame(topFrame,
 				border=3, relief=FLAT,
-				fg=hex_colour(theme.text),
-				bg=hex_colour(theme.menu_back),
 				text=ADD_SCULPT_MESH_LABEL,
 				labelanchor=NW)
 		frame.pack(anchor=CENTER)
-		self.map_type = Button(frame,
+		self.map_type = gui.Button(frame,
 				text="Type",
 				command=self.set_map_type,
-				border=1,
-				bg=hex_colour(theme.menu_hilite),
-				fg=hex_colour(theme.menu_text_hi),
-				activebackground=hex_colour(theme.setting))
+				border=1)
 		self.map_type.pack(padx=4, fill=X, pady=5, side=TOP, anchor=CENTER)
 
 		# ==========================================
 		# Geometry section (top left)
 		# ==========================================
 
-		upperFrame = Frame(frame, bg=hex_colour(theme.menu_back))
+		upperFrame = gui.Frame(frame)
 		upperFrame.pack()
 		
-		f = LabelFrame(upperFrame,
-				text="Geometry",
-				bg= hex_colour(theme.menu_back),
-				fg=hex_colour(theme.text))
+		f = gui.LabelFrame(upperFrame,
+				text="Geometry")
 		f.pack(padx=5, pady=5, fill=BOTH, side=LEFT, anchor=CENTER ) 
 		
-		ff = Frame(f, bg=hex_colour(theme.menu_back))
+		ff = gui.Frame(f)
 		ff.pack()
-		fx = Frame(ff, bg=hex_colour(theme.menu_back))
+		fx = gui.Frame(ff)
 		fx.pack()
-		t = Label(fx,
+		t = gui.Label(fx,
 			text="X Faces",
-			justify=RIGHT,
-			bg=hex_colour(theme.menu_back),
-			fg=hex_colour(theme.text))
+			justify=RIGHT)
 		t.pack(padx=5, pady=5, side=LEFT)
 		self.x_faces = IntVar(self.master, 8)
-		s = Spinbox(fx,
+		s = gui.Spinbox(fx,
 				textvariable=self.x_faces,
 				from_=1,
 				to=256,
-				width=3,
-				bg=hex_colour(theme.num),
-				fg=hex_colour(theme.text),
-				activebackground=hex_colour(theme.setting))
+				width=3)
 		s.pack(padx=5, pady=5, side=RIGHT)
-		fy = Frame(ff, bg=hex_colour(theme.menu_back))
+		fy = gui.Frame(ff)
 		fy.pack()
-		t = Label(fy,
+		t = gui.Label(fy,
 				text="Y Faces",
-				justify=RIGHT,
-				bg=hex_colour(theme.menu_back),
-				fg=hex_colour(theme.text))
+				justify=RIGHT)
 		t.pack(padx=5, pady=5, side=LEFT)
 		self.y_faces = IntVar(self.master, 8)
-		s = Spinbox(fy,
+		s = gui.Spinbox(fy,
 				textvariable=self.y_faces,
 				from_=1,
 				to=256,
-				width=3,
-				bg=hex_colour(theme.num),
-				fg=hex_colour(theme.text),
-				activebackground=hex_colour(theme.setting))
+				width=3)
 		s.pack(padx=5, pady=5, side=RIGHT)
 
 		self.clean_lods = BooleanVar( self.master, True )
-		c = Checkbutton(f,
+		c = gui.Checkbutton(f,
 				text="Clean LODs",
-				variable=self.clean_lods,
-				bg=hex_colour(theme.menu_back),
-				fg=hex_colour(theme.text),
-				activebackground=hex_colour(theme.setting),
-				border=2,
-				highlightthickness=0)
+				variable=self.clean_lods)
 		c.pack(padx=0, pady=5, side=LEFT)
 
 
@@ -163,93 +136,71 @@ class GuiApp:
 		# Subdivision section (top right)
 		# ==========================================
 
-		fs = LabelFrame(upperFrame,
-				text="Subdivision",
-				bg= hex_colour(theme.menu_back),
-				fg=hex_colour(theme.text))
+		fs = gui.LabelFrame(upperFrame,
+				text="Subdivision")
 		fs.pack(padx=5, pady=5, fill=BOTH, side=RIGHT, anchor=CENTER )
 		
 		self.levels = IntVar(self.master, 2)
-		fl = Frame(fs, bg=hex_colour(theme.menu_back))
+		fl = gui.Frame(fs)
 		fl.pack()
 
-		t = Label(fl,
+		t = gui.Label(fl,
 				text="Levels",
-				justify=RIGHT,
-				bg=hex_colour(theme.menu_back),
-				fg=hex_colour(theme.text))
+				justify=RIGHT)
 		t.pack(padx=5, pady=5, side=LEFT)
-		s = Spinbox(fl,
+		s = gui.Spinbox(fl,
 				textvariable=self.levels,
 				from_=0,
 				to=6,
-				width=3,
-				bg=hex_colour(theme.num),
-				fg=hex_colour(theme.text),
-				activebackground=hex_colour(theme.setting))
+				width=3)
 		s.pack(padx=5, pady=5, side=RIGHT)
 
-		self.subdivision = IntVar(self.master, 1)
-		r = Frame(fs, bg=hex_colour(theme.menu_back))
-		r.pack(side=RIGHT)
-		Radiobutton(r,
-				text="Catmull",
-				variable=self.subdivision,
-				highlightthickness=0,
-				bg=hex_colour(theme.menu_back),
-				value=1).pack()
-		Radiobutton(r,
-				text="Simple",
-				variable=self.subdivision,
-				highlightthickness=0,
-				bg=hex_colour(theme.menu_back),
-				value=0).pack()
 		self.sub_type = IntVar(self.master, 1)
-		r = Frame(fs, bg=hex_colour(theme.menu_back))
+		r = gui.Frame(fs)
 		r.pack(side=LEFT)
-		Radiobutton(r,
+		gui.Radiobutton(r,
 				text="Subsurf",
 				variable=self.sub_type,
-				highlightthickness=0,
-				bg=hex_colour(theme.menu_back),
 				value=1).pack()
-		Radiobutton(r,
+
+		gui.Radiobutton(r,
 				text="Multires",
 				variable=self.sub_type,
-				highlightthickness=0,
-				bg=hex_colour(theme.menu_back),
+				value=0).pack()
+		self.subdivision = IntVar(self.master, 1)
+		r = gui.Frame(fs)
+		r.pack(side=RIGHT)
+		gui.Radiobutton(r,
+				text="Catmull",
+				variable=self.subdivision,
+				value=1).pack()
+		gui.Radiobutton(r,
+				text="Simple",
+				variable=self.subdivision,
 				value=0).pack()
 
 		# ==========================================
 		# LOD display (bottom left)
 		# ==========================================				
 				
-		f = LabelFrame(frame,
-				text="Map Image",
-				bg=hex_colour(theme.menu_back),
-				fg=hex_colour(theme.text))
+		f = gui.LabelFrame(frame,
+				text="Map Image")
 		f.pack(padx=6, ipadx=3, pady=3, fill=BOTH, side=LEFT, anchor=CENTER)
 
-		self.lod_display = Label(f,
+		self.lod_display = gui.Label(f,
 				text=sculpty.lod_info(w, h)[:-1],
-				justify=LEFT,
-				bg=hex_colour(theme.menu_back),
-				fg=hex_colour(theme.text))
+				justify=LEFT)
 		self.lod_display.pack(padx=5, pady=5, ipadx=3, ipady=3, side=LEFT)
 
 		# ==========================================
 		# Sculpty type selection (bottom right)
 		# ==========================================
 
-		controlFrame = Frame(frame,bg=hex_colour(theme.menu_back))
+		controlFrame = gui.Frame(frame)
 		controlFrame.pack(padx=5, pady=6, fill=Y, side=RIGHT, anchor=N)
 
-		self.sculpt_menu = Menu(controlFrame,
-				tearoff=0,
-				background=hex_colour(theme.menu_back),
-				foreground=hex_colour(theme.menu_text),
-				activebackground=hex_colour(theme.menu_hilite),
-				activeforeground=hex_colour(theme.menu_text_hi) )
+		self.sculpt_menu = gui.Menu(controlFrame,
+				tearoff=0)
 		for sculpt_type in [ "Sphere", "Torus", "Plane", "Cylinder", "Hemi"]:
 			def type_command( sculpt_type ):
 				def new_command():
@@ -268,28 +219,18 @@ class GuiApp:
 		# Control section (bottom right)
 		# ==========================================
 
-		buttonFrame = Frame(controlFrame, bg=hex_colour(theme.menu_back))
+		buttonFrame = gui.Frame(controlFrame)
 		buttonFrame.pack(side=BOTTOM, anchor=CENTER)
 
 
 		# Cancel/Create buttons need layout tuning.
-		createButton = Button(buttonFrame, text="Ok",
+		createButton = gui.Button(buttonFrame, text="Ok",
 				command=self.add,
-				border=1,
-				default=ACTIVE,
-				bg=hex_colour(theme.action),
-				activebackground=hex_colour(theme.action),
-				fg=hex_colour(theme.text),
-				activeforeground=hex_colour(theme.text_hi))
+				default=ACTIVE)
 		createButton.pack( ipadx=7 , padx=4, pady=0, side=LEFT, anchor=SW)
 		
-		b = Button(buttonFrame, text="Cancel",
-				command=self.master.quit,
-				border=1,
-				bg=hex_colour(theme.action),
-				activebackground=hex_colour(theme.action),
-				fg=hex_colour(theme.text),
-				activeforeground=hex_colour(theme.text_hi))
+		b = gui.Button(buttonFrame, text="Cancel",
+				command=self.master.quit)
 		b.pack( ipadx=7, padx=8, pady=0, side=RIGHT, anchor=SE)
 		
 		# ===============================================================
@@ -455,9 +396,6 @@ class GuiApp:
 		tlw    = event.widget.winfo_toplevel().winfo_name()
 		print label + " ["+wclass+":"+wname+"] member of ["+tlw+"]"
 
-def hex_colour(theme_colour):
-	return "#" + hexlify("".join([chr(i) for i in theme_colour[:-1]]))
-
 def main():
 	root = Tk()
 
@@ -469,9 +407,7 @@ def main():
 	xPos, yPos      = root.winfo_pointerxy()
 	root.geometry('+'+str(xPos-128)+'+'+str(yPos-128))
 
-	theme = Blender.Window.Theme.Get()[0].get('ui')
-	root.bg = hex_colour(theme.menu_back)
-	gui = GuiApp(root, theme)
+	gui = GuiApp(root)
 
 	print ADD_SCULPT_MESH_LABEL + " started." 		
 	try:

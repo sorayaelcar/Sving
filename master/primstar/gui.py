@@ -80,11 +80,17 @@ class Theme:
 			add_only(kw,'background', self.others['panel'])
 			add_only(kw,'highlightthickness', 0)
 
+		if Tkinter.Label in widget.__class__.__bases__:
+			add_only(kw, 'background', self.others['panel'])
+
 		if Tkinter.LabelFrame in widget.__class__.__bases__:
 			add_only(kw,'background', self.others['panel'])
 			add_only(kw,'padx', 5)
 			add_only(kw,'pady', 5)
 			add_only(kw,'highlightthickness', 0)
+
+		if Tkinter.Radiobutton in widget.__class__.__bases__:
+			add_only(kw, 'background', self.others['panel'])
 
 		if Tkinter.Spinbox in widget.__class__.__bases__:
 			add_only(kw, 'background', hex_color(self.ui.textfield))
@@ -199,7 +205,7 @@ class Frame(Tkinter.Frame):
 
 class Label(Tkinter.Label):
 	def __init__(self, parent, **kw):
-		Tkinter.Label(self, parent)
+		Tkinter.Label.__init__(self, parent)
 		theme.config(self, kw)
 
 class LabelFrame(Tkinter.LabelFrame):
