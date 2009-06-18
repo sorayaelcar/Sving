@@ -42,7 +42,7 @@ def mix_color(color1, color2, reverse=False):
 	r = color1[0] * (1.0 - a) + color2[0] * a
 	g = color1[1] * (1.0 - a) + color2[1] * a
 	b = color1[2] * (1.0 - a) + color2[2] * a
-	return hex_color( [r, g, b, 255] )
+	return hex_color( [int(r), int(g), int(b), 255] )
 
 def add_only(kw, item, value):
 	if item not in kw.keys():
@@ -78,6 +78,8 @@ class Theme:
 
 		if Tkinter.LabelFrame in widget.__class__.__bases__:
 			add_only(kw,'background', self.others['panel'])
+			add_only(kw,'padx', 5)
+			add_only(kw,'pady', 5)
 
 		if Tkinter.Checkbutton in widget.__class__.__bases__:
 			add_only(kw,'background', self.others['panel'])
@@ -151,7 +153,8 @@ class ModalRoot(Tkinter.Tk):
 
 	def enter_handler(self, event):
 		debug(60,"Enter: %s"%str(event.widget))
-		self.grab_set_global()
+		if self.grab_status() == None:
+			self.grab_set_global()
 		self.update_idletasks()
 
 class BitmapImage(Tkinter.BitmapImage):
@@ -266,11 +269,11 @@ def main():
 		f = Frame(root)
 		f.pack()
 		Lf = LabelFrame(f, text="Label Frame")
-		Lf.pack()
+		Lf.pack(padx=5, pady=5)
 		Button(Lf, text="Panic", command=root.destroy).pack()
 		Button(Lf, text="Disabled", state=Tkinter.DISABLED).pack()
 		Checkbutton(Lf, text="Checkbutton").pack()
-		Entry(Lf, text="Entry").pack()
+		Entry(Lf, text="Entry").pack(padx=2, pady=2)
 		root.mainloop()
 	except:
 		if root:
