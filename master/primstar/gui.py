@@ -42,7 +42,7 @@ def mix_color(color1, color2, reverse=False):
 	r = color1[0] * (1.0 - a) + color2[0] * a
 	g = color1[1] * (1.0 - a) + color2[1] * a
 	b = color1[2] * (1.0 - a) + color2[2] * a
-	return hex_color( [int(r), int(g), int(b), 255] )
+	return hex_color([int(r), int(g), int(b), 255])
 
 def add_only(kw, item, value):
 	if item not in kw.keys():
@@ -70,8 +70,13 @@ class Theme:
 
 	def config(self, widget, kw={}):
 		# don't override user supplied kw, only add missing entries
+		if Tkinter.Checkbutton in widget.__class__.__bases__:
+			add_only(kw,'background', self.others['panel'])
+
 		if Tkinter.Entry in widget.__class__.__bases__:
-			add_only(kw,'background', hex_color(self.ui.menu_back))
+			add_only(kw,'background', hex_color(self.ui.textfield))
+			add_only(kw,'highlightthickness', 2 )
+			add_only(kw, 'highlightbackground', self.others['panel'])
 
 		if Tkinter.Frame in widget.__class__.__bases__:
 			add_only(kw,'background', self.others['panel'])
@@ -81,8 +86,10 @@ class Theme:
 			add_only(kw,'padx', 5)
 			add_only(kw,'pady', 5)
 
-		if Tkinter.Checkbutton in widget.__class__.__bases__:
-			add_only(kw,'background', self.others['panel'])
+		if Tkinter.Spinbox in widget.__class__.__bases__:
+			add_only(kw, 'background', hex_color(self.ui.textfield))
+			add_only(kw,'highlightthickness', 2 )
+			add_only(kw, 'highlightbackground', self.others['panel'])
 
 		# add default settings
 		for item in widget.config():
@@ -273,7 +280,8 @@ def main():
 		Button(Lf, text="Panic", command=root.destroy).pack()
 		Button(Lf, text="Disabled", state=Tkinter.DISABLED).pack()
 		Checkbutton(Lf, text="Checkbutton").pack()
-		Entry(Lf, text="Entry").pack(padx=2, pady=2)
+		Entry(Lf, text="Entry").pack()
+		Spinbox(Lf).pack()
 		root.mainloop()
 	except:
 		if root:
