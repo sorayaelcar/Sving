@@ -60,13 +60,13 @@ class Theme:
 				'activeforeground':hex_color(self.ui.text_hi),
 				'background':hex_color(self.buts.back),
 				'disabledforeground':hex_color(self.ui.neutral),
-				'foreground':hex_color(self.ui.menu_text),
-				'highlightbackground':hex_color(self.ui.menu_back),
+				'foreground':hex_color(self.ui.text),
+				'highlightbackground':self.others['panel'],
 				'highlightcolor':hex_color(self.ui.outline),
 				'selectcolor':hex_color(self.ui.setting2),
 				'selectforeground':hex_color(self.ui.text_hi),
 				'selectbackground':hex_color(self.ui.textfield_hi),
-				'highlightthickness':0}
+				'highlightthickness':2}
 
 	def config(self, widget, kw={}):
 		# don't override user supplied kw, only add missing entries
@@ -75,21 +75,24 @@ class Theme:
 
 		if Tkinter.Entry in widget.__class__.__bases__:
 			add_only(kw,'background', hex_color(self.ui.textfield))
-			add_only(kw,'highlightthickness', 2 )
-			add_only(kw, 'highlightbackground', self.others['panel'])
 
 		if Tkinter.Frame in widget.__class__.__bases__:
 			add_only(kw,'background', self.others['panel'])
+			add_only(kw,'highlightthickness', 0)
 
 		if Tkinter.LabelFrame in widget.__class__.__bases__:
 			add_only(kw,'background', self.others['panel'])
 			add_only(kw,'padx', 5)
 			add_only(kw,'pady', 5)
+			add_only(kw,'highlightthickness', 0)
 
 		if Tkinter.Spinbox in widget.__class__.__bases__:
 			add_only(kw, 'background', hex_color(self.ui.textfield))
 			add_only(kw,'highlightthickness', 2 )
 			add_only(kw, 'highlightbackground', self.others['panel'])
+
+		if Tkinter.Tk in widget.__class__.__bases__:
+			add_only(kw,'highlightthickness', 0)
 
 		# add default settings
 		for item in widget.config():
