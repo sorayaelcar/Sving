@@ -66,12 +66,11 @@ class GuiApp:
 	def __init__(self, master):
 		w,h = 32, 256
 		self.master = master
-		self.master.overrideredirect(True)
 		
 		# ==========================================
 		# Main window frame		
 		# ==========================================
-		topFrame = Frame(master, border=4)
+		topFrame = gui.Frame(master, border=4)
 		topFrame.pack()
 
 		frame = gui.LabelFrame(topFrame,
@@ -222,7 +221,6 @@ class GuiApp:
 		buttonFrame = gui.Frame(controlFrame)
 		buttonFrame.pack(side=BOTTOM, anchor=CENTER)
 
-
 		# Cancel/Create buttons need layout tuning.
 		createButton = gui.Button(buttonFrame, text="Ok",
 				command=self.add,
@@ -233,22 +231,6 @@ class GuiApp:
 				command=self.master.quit)
 		b.pack( ipadx=7, padx=8, pady=0, side=RIGHT, anchor=SE)
 		
-		# ===============================================================
-		# Make master window sticky.
-		# Bind <Leave> and <Enter> events to the top window
-		# And preset "mouse is in app" and  "no selection active"
-		# ===============================================================
-		if os.name == "nt":
-			self.master.wm_attributes("-topmost", 1)   # Make sure window remains on top of all others
-		self.master.bind( "<Leave>",   self.mouse_leave_handler) # track leave main window
-		self.master.bind( "<Enter>",   self.mouse_enter_handler) # track enter main window
-
-		self.set_mouse_in_app(True)
-		self.selectorActive = False
-
-		self.master.configure(takefocus=True)
-		createButton.focus_force()		
-
 	def set_map_type(self):
 		t = self.map_type.cget('text').split(os.sep)
 		if t[0]:
@@ -273,9 +255,7 @@ class GuiApp:
 		Blender.Window.WaitCursor(1)
 		name = self.map_type.cget('text')
 		if name[:1] == os.sep:
-			basename = name.split(os.sep)[1]
-			if basename == "Object":
-				basename = name.split(os.sep)[-1]
+			basename = name.split(os.sep)[-1]
 			baseimage = Blender.Image.Load(os.path.join(sculpty.lib_dir, name[1:]) + '.png')
 			sculpt_type = sculpty.map_type(baseimage)
 		else:
@@ -365,31 +345,6 @@ class GuiApp:
 	# self.mouseInApp
 	# self.activeElement
 	# =================================================================================
-	def mouse_leave_handler(self, event):
-		if event.widget == self.master:
-			# Mouse clicked outside of the application window
-			if self.selectorActive == False:
-				if self.mouseInApp == False:
-					self.log(event, "quit now..." )
-					self.master.update_idletasks()
-					self.master.quit()
-				self.log(event, "Mouse outside app (L)" )
-			else:
-				self.log(event, "Mouse outside app (L) with Selection active." )
-				self.selectorActive = False
-			self.set_mouse_in_app(False)
-			self.redraw()
-
-	def mouse_enter_handler(self, event):
-		if event.widget == self.master:
-			self.log(event, "Mouse inside app (E)" )
-			self.set_mouse_in_app(True) # We enter into the application window
-
-	def set_mouse_in_app(self, inApp):
-		self.master.grab_set_global()
-		self.master.update_idletasks()
-		self.mouseInApp = inApp
-
 	def log(self, event, label):
 		wname  = event.widget.winfo_name()
 		wclass = event.widget.winfo_class()
@@ -397,7 +352,7 @@ class GuiApp:
 		print label + " ["+wclass+":"+wname+"] member of ["+tlw+"]"
 
 def main():
-	root = Tk()
+	root = gui.ModalRoot()
 
 	# ==========================================================================
 	# Calculate the position where the menu_back appears. Assume the dimension of 
@@ -407,18 +362,16 @@ def main():
 	xPos, yPos      = root.winfo_pointerxy()
 	root.geometry('+'+str(xPos-128)+'+'+str(yPos-128))
 
-	gui = GuiApp(root)
+	app = GuiApp(root)
 
 	print ADD_SCULPT_MESH_LABEL + " started." 		
 	try:
 		root.mainloop()
 	except:
-		print "Application terminated with errors"
-
-	# finalize application
-	root.grab_release()
-	root.destroy()   # If omitted, blender crashes (Threading problems)
+		root.destroy()
+		raise
 	print ADD_SCULPT_MESH_LABEL + " terminated."
+	root.destroy()
 
 if __name__ == '__main__':
 	main()

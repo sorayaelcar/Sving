@@ -48,6 +48,9 @@ def add_only(kw, item, value):
 	if item not in kw.keys():
 		kw[item] = value
 
+def focus_force(event):
+	event.widget.focus_force()
+
 class Theme:
 	def __init__(self):
 		self.ui = Blender.Window.Theme.Get()[0].get('ui')
@@ -151,10 +154,9 @@ class ModalRoot(Tkinter.Tk):
 		self.bind('<Leave>', self.leave_handler)
 		self.bind('<Enter>',self.enter_handler)
 		self.protocol("WM_DELETE_WINDOW", self.destroy)
-		self.focus_force()
 
 	def destroy_handler(self, event):
-		self.destroy()
+		self.quit()
 
 	def leave_handler(self, event):
 		debug(60,"Leave: %s"%str(event.widget))
@@ -162,7 +164,7 @@ class ModalRoot(Tkinter.Tk):
 			if event.widget == self:
 				px, py = self.winfo_pointerxy()
 				if self.winfo_containing(px, py) == None:
-					self.destroy()
+					self.quit()
 		else:
 			self._init = True
 			# skip first leave event (in case not under mouse on creation)
@@ -197,6 +199,7 @@ class Entry(Tkinter.Entry):
 	def __init__(self, parent, **kw):
 		Tkinter.Entry.__init__(self, parent)
 		theme.config(self, kw)
+		self.bind('<Button-1>', focus_force)
 
 class Frame(Tkinter.Frame):
 	def __init__(self, parent, **kw):
@@ -257,6 +260,7 @@ class Scale(Tkinter.Scale):
 	def __init__(self, parent, **kw):
 		Tkinter.Scale.__init__(self, parent)
 		theme.config(self, kw)
+		self.bind('<Button-1>', focus_force)
 
 class Scrollbar(Tkinter.Scrollbar):
 	def __init__(self, parent, **kw):
@@ -267,6 +271,7 @@ class Spinbox(Tkinter.Spinbox):
 	def __init__(self, parent, **kw):
 		Tkinter.Spinbox.__init__(self, parent)
 		theme.config(self, kw)
+		self.bind('<Button-1>', focus_force)
 
 class Text(Tkinter.Text):
 	def __init__(self, parent, **kw):
@@ -292,6 +297,7 @@ def main():
 		Entry(Lf, text="Entry").pack()
 		Spinbox(Lf).pack()
 		root.mainloop()
+		root.destroy()
 	except:
 		if root:
 			root.destroy()
