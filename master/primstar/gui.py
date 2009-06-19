@@ -74,7 +74,8 @@ class Theme:
 				'selectcolor':hex_color(self.ui.setting2),
 				'selectforeground':hex_color(self.ui.text_hi),
 				'selectbackground':hex_color(self.ui.textfield_hi),
-				'highlightthickness':2}
+				'highlightthickness':2,
+				'font':('Helvetica',9)}
 
 	def config(self, widget, kw={}):
 		# don't override user supplied kw, only add missing entries
@@ -96,6 +97,7 @@ class Theme:
 			add_only(kw,'padx', 5)
 			add_only(kw,'pady', 5)
 			add_only(kw,'highlightthickness', 0)
+			add_only(kw,'font',('Helvetica',9,'bold'))
 
 		if Tkinter.Menu in widget.__class__.__bases__:
 			add_only(kw,'background', hex_color(self.buts.header))
