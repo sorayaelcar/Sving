@@ -97,6 +97,18 @@ class Theme:
 			add_only(kw,'pady', 5)
 			add_only(kw,'highlightthickness', 0)
 
+		if Tkinter.Menu in widget.__class__.__bases__:
+			add_only(kw,'background', hex_color(self.buts.header))
+			add_only(kw,'foreground', hex_color(self.ui.menu_text))
+			add_only(kw,'activebackground', hex_color(self.ui.menu_hilite))
+			add_only(kw,'activeforeground', hex_color(self.ui.menu_text_hi))
+
+		if Tkinter.Menubutton in widget.__class__.__bases__:
+			add_only(kw,'background', hex_color(self.ui.menu_item))
+			add_only(kw,'foreground', hex_color(self.ui.menu_text))
+			add_only(kw,'activebackground', hex_color(self.ui.menu_hilite))
+			add_only(kw,'activeforeground', hex_color(self.ui.menu_text_hi))
+
 		if Tkinter.Radiobutton in widget.__class__.__bases__:
 			add_only(kw, 'background', self.others['panel'])
 
