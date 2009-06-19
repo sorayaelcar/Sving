@@ -51,6 +51,9 @@ def add_only(kw, item, value):
 def focus_force(event):
 	event.widget.focus_force()
 
+def ignore(event):
+	return "break"
+
 def redraw(event=None):
 	if event:
 		event.widget.master.update_idletasks()
@@ -67,14 +70,16 @@ class Theme:
 				'activebackground':hex_color(self.ui.action),
 				'activeforeground':hex_color(self.ui.text_hi),
 				'background':hex_color(self.buts.back),
+				'buttonbackground':hex_color(self.ui.popup),
 				'disabledforeground':hex_color(self.ui.neutral),
 				'foreground':hex_color(self.ui.text),
 				'highlightbackground':self.others['panel'],
 				'highlightcolor':hex_color(self.ui.outline),
+				'highlightthickness':2,
 				'selectcolor':hex_color(self.ui.setting2),
 				'selectforeground':hex_color(self.ui.text_hi),
 				'selectbackground':hex_color(self.ui.textfield_hi),
-				'highlightthickness':2,
+				'troughcolor':hex_color(self.ui.num),
 				'font':('Helvetica',9)}
 
 	def config(self, widget, kw={}):
@@ -111,8 +116,17 @@ class Theme:
 			add_only(kw,'activebackground', hex_color(self.ui.menu_hilite))
 			add_only(kw,'activeforeground', hex_color(self.ui.menu_text_hi))
 
+		if Tkinter.OptionMenu in widget.__class__.__bases__:
+			add_only(kw,'background', hex_color(self.ui.menu_item))
+			add_only(kw,'foreground', hex_color(self.ui.menu_text))
+			add_only(kw,'activebackground', hex_color(self.ui.menu_hilite))
+			add_only(kw,'activeforeground', hex_color(self.ui.menu_text_hi))
+
 		if Tkinter.Radiobutton in widget.__class__.__bases__:
 			add_only(kw, 'background', self.others['panel'])
+
+		if Tkinter.Scale in widget.__class__.__bases__:
+			add_only(kw,'background', self.others['panel'])
 
 		if Tkinter.Spinbox in widget.__class__.__bases__:
 			add_only(kw, 'background', hex_color(self.ui.textfield))
@@ -158,7 +172,6 @@ class ModalRoot(Tkinter.Tk):
 		self._init=False
 		Tkinter.Tk.__init__(self)
 		self.overrideredirect(True)
-		kw['takefocus']=True
 		theme.config(self, kw)
 		# OS specific features
 		if platform == "win32":
@@ -178,8 +191,7 @@ class ModalRoot(Tkinter.Tk):
 	def leave_handler(self, event):
 		debug(60,"Leave: %s"%str(event.widget))
 		if event.widget == self:
-			px, py = self.winfo_pointerxy()
-			if self.winfo_containing(px, py) == None:
+			if self.winfo_containing(event.x_root, event.y_root) == None:
 				self.quit()
 
 	def enter_handler(self, event):
@@ -314,6 +326,7 @@ def main():
 		Checkbutton(Lf, text="Checkbutton").pack()
 		Entry(Lf, text="Entry").pack()
 		Spinbox(Lf).pack()
+		Scale(Lf).pack()
 		root.mainloop()
 		root.destroy()
 	except:
