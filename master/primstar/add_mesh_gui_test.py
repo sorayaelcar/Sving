@@ -81,7 +81,8 @@ class GuiApp:
 		self.map_type = gui.Button(frame,
 				text="Type",
 				command=self.set_map_type,
-				border=1)
+				border=1,
+				cursor='based_arrow_down')
 		self.map_type.pack(padx=4, fill=X, pady=5, side=TOP, anchor=CENTER)
 
 		# ==========================================
@@ -238,7 +239,7 @@ class GuiApp:
 		else:
 			t = t[1]
 		i = self.sculpt_menu.index( t )
-		y = self.map_type.winfo_rooty() - self.sculpt_menu.yposition( i )
+		y = self.map_type.winfo_rooty() - self.sculpt_menu.yposition( i ) + 8
 		x  = self.master.winfo_pointerx() - self.sculpt_menu.winfo_reqwidth() // 2
 		self.selectorActive = True
 		self.sculpt_menu.post(x, y)
