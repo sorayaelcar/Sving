@@ -100,13 +100,13 @@ class Theme:
 			add_only(kw,'font',('Helvetica',9,'bold'))
 
 		if Tkinter.Menu in widget.__class__.__bases__:
-			add_only(kw,'background', hex_color(self.buts.header))
+			add_only(kw,'background', hex_color(self.ui.menu_item))
 			add_only(kw,'foreground', hex_color(self.ui.menu_text))
 			add_only(kw,'activebackground', hex_color(self.ui.menu_hilite))
 			add_only(kw,'activeforeground', hex_color(self.ui.menu_text_hi))
 
 		if Tkinter.Menubutton in widget.__class__.__bases__:
-			add_only(kw,'background', hex_color(self.ui.menu_item))
+			add_only(kw,'background', hex_color(self.buts.header))
 			add_only(kw,'foreground', hex_color(self.ui.menu_text))
 			add_only(kw,'activebackground', hex_color(self.ui.menu_hilite))
 			add_only(kw,'activeforeground', hex_color(self.ui.menu_text_hi))
@@ -303,8 +303,10 @@ def main():
 	root=None
 	try:
 		root = ModalRoot()
-		f = Frame(root)
+		f = Frame(root, relief=Tkinter.RAISED, borderwidth=1)
 		f.pack()
+		mb = Menubutton(f, text="About")
+		mb.pack()
 		Lf = LabelFrame(f, text="Label Frame")
 		Lf.pack(padx=5, pady=5)
 		Button(Lf, text="Panic", command=root.destroy).pack()
