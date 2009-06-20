@@ -118,6 +118,7 @@ class Theme:
 			add_only(kw,'foreground', hex_color(self.ui.menu_text))
 			add_only(kw,'activebackground', hex_color(self.ui.menu_hilite))
 			add_only(kw,'activeforeground', hex_color(self.ui.menu_text_hi))
+			add_only(kw,'highlightthickness',0)
 
 		if Tkinter.OptionMenu in widget.__class__.__bases__:
 			add_only(kw,'background', hex_color(self.ui.menu_item))

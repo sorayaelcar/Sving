@@ -57,6 +57,8 @@ class MenuDir(sculpty.LibDir):
 	def add_to_menu(self, app, menu):
 		for f in self.files:
 			menu.add_command(label=f.name, command=f.get_command(app))
+		if self.dirs and self.files:
+			menu.add_separator()
 		for d in self.dirs:
 			submenu = gui.Menu(menu, tearoff=0)
 			d.add_to_menu(app, submenu)
@@ -79,12 +81,19 @@ static unsigned char cube_bits[] = {
 		# ==========================================
 		topFrame = gui.Frame(master, border=4)
 		topFrame.pack()
-
 		frame = gui.LabelFrame(topFrame,
 				border=3, relief=FLAT,
 				text=ADD_SCULPT_MESH_LABEL,
 				labelanchor=NW)
 		frame.pack(anchor=CENTER)
+		header = gui.Frame(frame, background=gui.hex_color(gui.theme.buts.header))
+		header.pack(fill=X)
+		gui.Menubutton(header, text="File").pack(side=LEFT)
+		gui.Menubutton(header, text="Math",
+				background=gui.hex_color(gui.theme.ui.setting),
+				relief=GROOVE).pack(side=LEFT)
+		gui.Menubutton(header, text="Library").pack(side=LEFT)
+		gui.Menubutton(header, text="About").pack(side=LEFT)
 		self.map_type = gui.Button(frame,
 				text="Type",
 				command=self.set_map_type,
@@ -216,6 +225,7 @@ static unsigned char cube_bits[] = {
 				return new_command
 			self.sculpt_menu.add_command(label=sculpt_type,
 					command=type_command(sculpt_type))
+		self.sculpt_menu.add_separator()
 		library = sculpty.build_lib(LibDir=MenuDir, LibFile=MenuMap)
 		library.add_to_menu(self, self.sculpt_menu)
 
