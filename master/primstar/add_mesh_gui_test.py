@@ -66,6 +66,13 @@ class GuiApp:
 	def __init__(self, master):
 		w,h = 32, 256
 		self.master = master
+		self.cube = gui.BitmapImage(data="""#define cube_width 16
+#define cube_height 16
+static unsigned char cube_bits[] = {
+   0x00, 0x00, 0x80, 0x03, 0x70, 0x1c, 0x8c, 0x62, 0x94, 0x53, 0x64, 0x4c,
+   0xa4, 0x4b, 0x2c, 0x69, 0x34, 0x59, 0x64, 0x4d, 0xa4, 0x4b, 0x2c, 0x69,
+   0x30, 0x19, 0x40, 0x05, 0x80, 0x03, 0x00, 0x00 };
+""")
 		
 		# ==========================================
 		# Main window frame		
@@ -223,7 +230,10 @@ class GuiApp:
 		buttonFrame.pack(side=BOTTOM, anchor=CENTER)
 
 		# Cancel/Create buttons need layout tuning.
-		createButton = gui.Button(buttonFrame, text="Ok",
+		createButton = gui.Button(buttonFrame,
+				text="Build",
+				image=self.cube,
+				compound=LEFT,
 				command=self.add,
 				default=ACTIVE)
 		createButton.pack( ipadx=7 , padx=4, pady=0, side=LEFT, anchor=SW)

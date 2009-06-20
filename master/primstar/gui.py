@@ -84,6 +84,9 @@ class Theme:
 
 	def config(self, widget, kw={}):
 		# don't override user supplied kw, only add missing entries
+		if Tkinter.BitmapImage in widget.__class__.__bases__:
+			add_only(kw, 'background', hex_color(self.ui.menu_item))
+
 		if Tkinter.Checkbutton in widget.__class__.__bases__:
 			add_only(kw,'background', self.others['panel'])
 
@@ -203,9 +206,9 @@ class ModalRoot(Tkinter.Tk):
 		self.update_idletasks()
 
 class BitmapImage(Tkinter.BitmapImage):
-	def __init__(self, parent, **kw):
-		Tkinter.BitmapImage.__init__(self, parent)
-		theme.config(self, kw)
+	def __init__(self, data=None, **kw):
+		Tkinter.BitmapImage.__init__(self, data=data)
+		#theme.config(self, kw)
 
 class Button(Tkinter.Button):
 	def __init__(self, parent, **kw):
@@ -275,8 +278,8 @@ class PanedWindow(Tkinter.PanedWindow):
 		theme.config(self, kw)
 
 class PhotoImage(Tkinter.PhotoImage):
-	def __init__(self, parent, **kw):
-		Tkinter.PhotoImage.__init__(self, parent)
+	def __init__(self, **kw):
+		Tkinter.PhotoImage.__init__(self)
 		theme.config(self, kw)
 
 class Radiobutton(Tkinter.Radiobutton):
