@@ -282,24 +282,16 @@ def obChildren(ob):
 def mesh2Prim( ob, rootprim = None ):
 	mesh = ob.getData( False, True )
 	images = sculpty.map_images( mesh )
-	if images != []:
-		newprim = prim( images[0].name )
+	for image in images:
+		newprim = prim( image.name )
 		newprim.fromOb( ob )
-		newprim.sculptimage = texture( images[0].name , images[0] )
-		newprim.scale = ( newprim.scale[0] / images[0].properties['ps_scale_x'],
-						newprim.scale[1] / images[0].properties['ps_scale_y'],
-						newprim.scale[2] / images[0].properties['ps_scale_z'] )
+		newprim.sculptimage = texture( image.name , image )
+		newprim.scale = ( newprim.scale[0] / image.properties['ps_scale_x'],
+					newprim.scale[1] / image.properties['ps_scale_y'],
+					newprim.scale[2] / image.properties['ps_scale_z'] )
 		if rootprim == None:
 			rootprim = newprim
 		else:
-			rootprim.children.append( newprim )
-		for image in images[1:]:
-			newprim = prim( image.name )
-			newprim.fromOb( ob )
-			newprim.sculptimage = texture( image.name , image )
-			newprim.scale = ( newprim.scale[0] / images[0].properties['ps_scale_x'],
-						newprim.scale[1] / images[0].properties['ps_scale_y'],
-						newprim.scale[2] / images[0].properties['ps_scale_z'] )
 			rootprim.children.append( newprim )
 	return rootprim
 
