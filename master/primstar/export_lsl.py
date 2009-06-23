@@ -193,7 +193,6 @@ class prim:
 		self.textures = []
 		self.primtype = 0
 		self.sculptimage = None
-		self.meshscale = ( 1.0, 1.0, 1.0 )
 		self.scale = ( 1.0, 1.0, 1.0 )
 		self.rotation = ( 0.0, 0.0, 0.0, 1.0 )
 		self.location = ( 0.0, 0.0, 0.0 )
@@ -286,9 +285,10 @@ def mesh2Prim( ob, rootprim = None ):
 		newprim = prim( image.name )
 		newprim.fromOb( ob )
 		newprim.sculptimage = texture( image.name , image )
-		newprim.scale = ( newprim.scale[0] / image.properties['ps_scale_x'],
-					newprim.scale[1] / image.properties['ps_scale_y'],
-					newprim.scale[2] / image.properties['ps_scale_z'] )
+		newprim.scale = (
+				image.properties['ps_scale_x'] * newprim.scale[0] / image.properties['ps_size_x'],
+				image.properties['ps_scale_y'] * newprim.scale[1] / image.properties['ps_size_y'],
+				image.properties['ps_scale_z'] * newprim.scale[2] / image.properties['ps_size_z'] )
 		if rootprim == None:
 			rootprim = newprim
 		else:
