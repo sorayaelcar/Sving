@@ -596,7 +596,7 @@ def bake_object(ob, bb, clear = True):
 				for i in range(len(uvmap) - 1):
 					maps[f.image.name].draw_line(f.image, uvmap[ i ], uvmap[ i + 1 ])
 	for image in images:
-		maps[f.image.name].bake_float(image)
+		maps[image.name].bake_float(image)
 	mesh.activeUVLayer = currentUV
 	return True
 
