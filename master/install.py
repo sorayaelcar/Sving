@@ -24,6 +24,7 @@
 import Blender
 import bpy
 import os
+from distutils import dir_util
 
 remove_files = [
 		'add_mesh_sculpt_mesh.py',
@@ -35,27 +36,21 @@ remove_files = [
 		'mesh_update_sculptie.py',
 		'render_sculptie.py',
 		'sculpty.py',
-		'uvcalc_eac.py']
+		'uvcalc_eac.py',
+		'add_mesh_sculpt_mesh.pyc',
+		'add_mesh_gui_test.pyc',
+		'export_lsl.pyc',
+		'image_sculptie_finalise.pyc',
+		'image_sculptie_lod.pyc',
+		'import_sculptie.pyc',
+		'mesh_update_sculptie.pyc',
+		'render_sculptie.pyc',
+		'sculpty.pyc',
+		'uvcalc_eac.pyc']
 
 script_path = bpy.config.userScriptsDir
 
 message = ["Primstar has been", "successfully installed."]
-
-def copy_path(source, dest):
-	if os.path.isdir(source):
-		try:
-			os.mkdirs(dest)
-		except:
-			pass
-		for p in os.listdir(source):
-			s = os.path.join(source,p)
-			d = os.path.join(dest,p)
-			if os.path.isdir(s):
-				copy_path(s, d)
-	else:
-		if os.path.exists(d):
-			os.remove(d)
-			os.copy(s,d)
 
 if not script_path:
 	bpy.config.userScriptsDir = os.path.expanduser(os.path.join('~','blender_scripts'))
@@ -71,4 +66,5 @@ else:
 		if os.path.exists(t):
 			os.remove(f)
 
-copy_path('./primstar', os.path.join(script_path, 'primstar'))
+dir_util.copy_tree('primstar', os.path.join(script_path, 'primstar'), update=1)
+Blender.Draw.PupBlock( "Installation Complete", message )
