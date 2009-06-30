@@ -80,9 +80,9 @@ def import_collada_sculptie(filename):
 			for f in mesh.faces:
 				f.sel = True
 				for v in f.uv:
-					if v[0] == 0.0:
-						x_verts += 1
 					if v[1] == 0.0:
+						x_verts += 1
+					if v[0] == 0.0:
 						y_verts += 1
 			s,t,w,h,cs,ct = sculpty.map_size(x_verts / 2, y_verts / 2, 0)
 			image = Blender.Image.New(mesh.name, w, h, 32)
