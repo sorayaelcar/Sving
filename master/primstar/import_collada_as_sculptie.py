@@ -76,15 +76,22 @@ def import_collada_sculptie(filename):
 				mesh.activeUVLayer = "sculptie"
 			mesh.update()
 			x_verts = 0
+			x_verts2 = 0
 			y_verts = 0
+			y_verts2 = 0
 			for f in mesh.faces:
 				f.sel = True
 				for v in f.uv:
 					if v[1] == 0.0:
 						x_verts += 1
+					elif v[1] == 1.0:
+						x_verts2 +=1
 					if v[0] == 0.0:
 						y_verts += 1
-			s,t,w,h,cs,ct = sculpty.map_size(x_verts / 2, y_verts / 2, 0)
+					elif v[0] == 1.0:
+						y_verts2 += 1
+			s,t,w,h,cs,ct = sculpty.map_size(max(x_verts, x_verts2) / 2,
+					max(y_verts, y_verts2) / 2, 0)
 			image = Blender.Image.New(mesh.name, w, h, 32)
 			sculpty.set_map(mesh, image)
 
