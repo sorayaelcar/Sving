@@ -90,10 +90,13 @@ def import_collada_sculptie(filename):
 						y_verts += 1
 					elif v[0] == 1.0:
 						y_verts2 += 1
-			s,t,w,h,cs,ct = sculpty.map_size(max(x_verts, x_verts2) / 2,
-					max(y_verts, y_verts2) / 2, 0)
-			image = Blender.Image.New(mesh.name, w, h, 32)
-			sculpty.set_map(mesh, image)
+			if min(max(x_verts, x_verts2) ,	max(y_verts, y_verts2)) < 4:
+				Blender.Draw.PupBlock( "Sculptie Import Error", ["Unable to determine map size", "Please check your UVs"] )
+			else:
+				s,t,w,h,cs,ct = sculpty.map_size(max(x_verts, x_verts2) / 2,
+						max(y_verts, y_verts2) / 2, 0)
+				image = Blender.Image.New(mesh.name, w, h, 32)
+				sculpty.set_map(mesh, image)
 
 	if in_editmode:
 		Blender.Window.EditMode(1)
