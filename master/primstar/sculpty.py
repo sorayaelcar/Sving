@@ -26,7 +26,7 @@
 import Blender
 import bpy
 import os
-from math import sin, cos, pi, sqrt, log, ceil, atan2
+from math import sin, cos, pi, sqrt, log, ceil, atan2, radians
 
 lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
 
@@ -1043,7 +1043,7 @@ def new_from_map(image):
 	scene = Blender.Scene.GetCurrent()
 	for ob in scene.objects:
 		ob.sel = False
-	mesh = new_mesh(image.name, sculpt_type, x_faces, y_faces)
+	mesh = new_mesh(image.name, sculpt_type, x_faces, y_faces, clean_lods=False)
 	ob = scene.objects.new(mesh, image.name)
 	ob.setLocation(Blender.Window.GetCursorPos())
 	ob.sel = True
@@ -1208,25 +1208,23 @@ def set_center(ob, offset=XYZ(0.0, 0.0, 0.0)):
 	offset - (x, y, z) offset for mesh center
 	'''
 	debug(30, "sculpty.set_center(%s, %s)"%(ob.name, str(offset)))
-	loc = ob.getLocation()
 	bb = BoundingBox(ob)
 	offset += bb.center
-	offset.x += loc[0]
-	offset.y += loc[1]
-	offset.z += loc[2]
-	mesh=ob.getData()
+	mesh = ob.getData()
 	mat = ob.getMatrix()
-	tran = Blender.Mathutils.TranslationMatrix(Blender.Mathutils.Vector(loc))
-	mesh.transform(tran)
+	rot_euler = mat.toEuler()
+	rot_quat = mat.toQuat()
+	rot_euler = (radians(rot_euler[0]), radians(rot_euler[1]), radians(rot_euler[2]))
+	rot = rot_quat.toMatrix().resize4x4().invert()
+	trans_mat = Blender.Mathutils.TranslationMatrix(
+			Blender.Mathutils.Vector(offset.x, offset.y, offset.z) * -1.0) * rot
+	mesh.transform(trans_mat)
+	trans = trans_mat.translationPart()
+	#trans_mat = Blender.Mathutils.TranslationMatrix(trans)
+	#mesh.transform(trans_mat)
+	ob.loc = (ob.loc[0] - trans[0], ob.loc[1] - trans[1], ob.loc[2] - trans[2])
+	ob.rot = rot_euler
 	mesh.update()
-	mat[3] = [0.0, 0.0, 0.0, 1.0]
-	ob.setMatrix(mat)
-	tran = Blender.Mathutils.TranslationMatrix(
-			Blender.Mathutils.Vector(offset.x, offset.y, offset.z) * -1.0)
-	mesh.transform(tran)
-	mesh.update()
-	mat[3] = [offset.x, offset.y, offset.z , 1.0]
-	ob.setMatrix(mat)
 
 def set_map(mesh, image):
 	'''Assigns the image to the selected 'sculptie' uv layer faces.'''
