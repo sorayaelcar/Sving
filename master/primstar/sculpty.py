@@ -1207,24 +1207,27 @@ def set_center(ob, offset=XYZ(0.0, 0.0, 0.0)):
 	ob - object to update
 	offset - (x, y, z) offset for mesh center
 	'''
+	#todo - support parented objects
 	debug(30, "sculpty.set_center(%s, %s)"%(ob.name, str(offset)))
 	bb = BoundingBox(ob)
 	offset += bb.center
 	mesh = ob.getData()
 	mat = ob.getMatrix()
-	rot_euler = mat.toEuler()
 	rot_quat = mat.toQuat()
-	rot_euler = (radians(rot_euler[0]), radians(rot_euler[1]), radians(rot_euler[2]))
 	rot = rot_quat.toMatrix().resize4x4().invert()
 	trans_mat = Blender.Mathutils.TranslationMatrix(
 			Blender.Mathutils.Vector(offset.x, offset.y, offset.z) * -1.0) * rot
 	mesh.transform(trans_mat)
-	trans = trans_mat.translationPart()
-	#trans_mat = Blender.Mathutils.TranslationMatrix(trans)
-	#mesh.transform(trans_mat)
-	ob.loc = (ob.loc[0] - trans[0], ob.loc[1] - trans[1], ob.loc[2] - trans[2])
-	ob.rot = rot_euler
+	rot.invert()
+	mesh.transform(rot)
 	mesh.update()
+	loc_mat = Blender.Mathutils.TranslationMatrix(
+			Blender.Mathutils.Vector(offset.x, offset.y, offset.z)) * rot
+	moved = loc_mat.translationPart()
+	scale = mat.scalePart()
+	ob.loc = (ob.loc[0] + moved[0] * scale[0],
+			ob.loc[1] + moved[1] * scale[1],
+			ob.loc[2] + moved[2] * scale[2])
 
 def set_map(mesh, image):
 	'''Assigns the image to the selected 'sculptie' uv layer faces.'''
