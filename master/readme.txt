@@ -8,6 +8,9 @@ These Blender scripts provide "sculptie map" ( https://wiki.secondlife.com/wiki/
 support to Blender. They use the addMultiresLevel feature that was introduced in Blender 2.46 which
 you can get from http://www.blender.org/download/get-blender/
 
+If you enjoy or find the scripts useful please make a donation either in Linden dollars to
+Domino Marama or via donate link on http://dominodesigns.info/second_life/blender_scripts.html
+
 **** Automatic Installation ****
 
 Open a command prompt in the extracted directory and run the following:
