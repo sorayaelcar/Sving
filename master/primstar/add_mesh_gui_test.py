@@ -342,7 +342,8 @@ static unsigned char cube_bits[] = {
 				pass
 		except RuntimeError:
 			#todo tkinter this
-			Blender.Draw.PupBlock("Unable to create sculptie", ["Please decrease face counts","or subdivision levels"])
+			#Blender.Draw.PupBlock("Unable to create sculptie", ["Please decrease face counts","or subdivision levels"])
+			pass
 		Blender.Window.WaitCursor(0)
 		self.master.quit() # self.master.destroy() makes blender crash occasionally (thread problems)
 
