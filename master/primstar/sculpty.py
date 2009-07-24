@@ -564,11 +564,12 @@ def bake_object(ob, bb, clear = True):
 	mesh.getFromObject(ob, 0, 1)
 	images = map_images(mesh)
 	maps = {}
+	obb = BoundingBox(ob)
 	for i in images:
 		maps[i.name] = BakeMap(i.size[0], i.size[1])
-		i.properties['ps_scale_x'] = bb.scale.x
-		i.properties['ps_scale_y'] = bb.scale.y
-		i.properties['ps_scale_z'] = bb.scale.z
+		i.properties['ps_scale_x'] = bb.scale.x / obb.scale.x
+		i.properties['ps_scale_y'] = bb.scale.y / obb.scale.y
+		i.properties['ps_scale_z'] = bb.scale.z / obb.scale.z
 		i.properties['ps_size_x'] = bb.scale.x * ob.size[0]
 		i.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
 		i.properties['ps_size_z'] = bb.scale.z * ob.size[2]

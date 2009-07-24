@@ -286,9 +286,9 @@ def mesh2Prim( ob, rootprim = None ):
 		newprim.fromOb( ob )
 		newprim.sculptimage = texture( image.name , image )
 		newprim.scale = (
-				image.properties['ps_scale_x'] * newprim.scale[0] / image.properties['ps_size_x'],
-				image.properties['ps_scale_y'] * newprim.scale[1] / image.properties['ps_size_y'],
-				image.properties['ps_scale_z'] * newprim.scale[2] / image.properties['ps_size_z'] )
+				image.properties['ps_scale_x'] * newprim.scale[0],
+				image.properties['ps_scale_y'] * newprim.scale[1],
+				image.properties['ps_scale_z'] * newprim.scale[2])
 		if rootprim == None:
 			rootprim = newprim
 		else:
