@@ -41,6 +41,7 @@ import Blender
 from primstar import sculpty
 import os
 from Tkinter import *
+import tkFileDialog
 from binascii import hexlify
 from primstar import gui
 
@@ -92,13 +93,15 @@ static unsigned char cube_bits[] = {
 
 		shape_frame = gui.Frame(frame)
 		shape_frame.pack(fill=X)
-		t = gui.Label(shape_frame,
+		f = gui.Frame(shape_frame)
+		f.pack(fill=X, side=LEFT)
+		t = gui.Label(f,
 			text="Shape",
 			justify=RIGHT)
 		t.pack(side=LEFT)
 		self.shape_name = StringVar()
 		self.shape_file = None
-		self.map_type = gui.Button(shape_frame,
+		self.map_type = gui.Button(f,
 				textvariable= self.shape_name,
 				command=self.set_map_type,
 				cursor='based_arrow_down',
@@ -107,6 +110,12 @@ static unsigned char cube_bits[] = {
 				pady=1,
 				)
 		self.map_type.pack(fill=X)
+		file_button = gui.Button(shape_frame,
+				image=self.cube,
+				compound=LEFT,
+				command=self.set_file,
+				default=ACTIVE)
+		file_button.pack(side=RIGHT)
 
 		# ==========================================
 		# Geometry section (top left)
@@ -215,8 +224,9 @@ static unsigned char cube_bits[] = {
 				value=0).pack()
 
 		# ==========================================
-		# LOD display (bottom left)
-		# ==========================================				
+		# LOD display and Create button
+		# ==========================================
+
 		build_frame = gui.Frame(frame)
 		build_frame.pack(fill=Y, side=LEFT)
 
@@ -230,17 +240,17 @@ static unsigned char cube_bits[] = {
 		self.lod_display.pack()
 		self.update_info()
 
-		# ==========================================
-		# Sculpty type selection (bottom right)
-		# ==========================================
-
-		createButton = gui.Button(build_frame,
+		create_button = gui.Button(build_frame,
 				text="Build",
 				image=self.cube,
 				compound=LEFT,
 				command=self.add,
 				default=ACTIVE)
-		createButton.pack()
+		create_button.pack()
+
+		# ==========================================
+		# Popup menu for base mesh shape
+		# ==========================================
 
 		self.sculpt_menu = gui.Menu(self.master, tearoff=0)
 		for sculpt_type in [ "Sphere", "Torus", "Plane", "Cylinder", "Hemi"]:
@@ -255,6 +265,38 @@ static unsigned char cube_bits[] = {
 		library.add_to_menu(self, self.sculpt_menu)
 
 		self.set_shape("Sphere") # TODO: retrieve settings from registry
+
+	def set_file(self):
+		filename = tkFileDialog.askopenfilename(
+				initialdir='~',
+				title='Select a sculpt map',
+				parent=self.master,
+				filetypes=[
+						('targa', '*.tga'),
+						('bmp','*.bmp'),
+						('png','*.png'),
+						('all files', '.*')])
+		if filename:
+			self.set_shape(filename, filename)
+			i = Blender.Image.Load(filename)
+			sculpt_type = sculpty.map_type(i)
+			if sculpt_type == "TORUS":
+				self.radius_input.config(state=NORMAL)
+			else:
+				self.radius_input.config(state=DISABLED)
+			x_faces, y_faces = i.size
+			x_faces, y_faces = sculpty.face_count(x_faces, y_faces, 32, 32)
+			multires = 0
+			while multires < 2 and x_faces >= 8 and y_faces >= 8 and not ((x_faces & 1) or (y_faces & 1)):
+				x_faces = x_faces >> 1
+				y_faces = y_faces >> 1
+				multires += 1
+			self.x_faces_input.config(to=i.size[0] / 2)
+			self.y_faces_input.config(to=i.size[1] / 2)
+			self.x_faces.set(x_faces)
+			self.y_faces.set(y_faces)
+			self.levels.set(multires)
+			self.sub_type.set(0)
 
 	def set_map_type(self):
 		t = self.shape_name.get().split(os.sep)
@@ -286,8 +328,8 @@ static unsigned char cube_bits[] = {
 				self.radius_input.config(state=NORMAL)
 			else:
 				self.radius_input.config(state=DISABLED)
-			#self.x_faces_input.config(to=256)
-			#self.y_faces_input.config(to=256)
+		self.x_faces_input.config(to=256)
+		self.y_faces_input.config(to=256)
 
 	def redraw(self):
 		self.master.update_idletasks()
