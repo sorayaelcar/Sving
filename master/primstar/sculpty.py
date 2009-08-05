@@ -887,7 +887,7 @@ def get_bounding_box(obj):
 def lod_info(width, height, format = "LOD%(lod)d: %(x_faces)d x %(y_faces)d\n"):
 	'''Returns a string with the lod info for a map size of width * height'''
 	debug(40, "sculpty.lod_info(%d, %d, %s)"%(width, height, format))
-	info = "SIZE: %d x %d\n"%( width, height )
+	info = ""
 	for i in [3,2,1,0]:
 		faces = float([ 6, 8, 16, 32 ][i])
 		x_faces, y_faces = lod_size(width, height, i)

@@ -45,12 +45,12 @@ from binascii import hexlify
 from primstar import gui
 
 ADD_SCULPT_MESH_LABEL = "Primstar - Add sculpt mesh"
+SCRIPT="add_mesh_gui_test"
 
 class MenuMap(sculpty.LibFile):
 	def get_command(self, app):
 		def new_command():
-			app.set_sculpt_type(self.local_path)
-			self.selectorActive = False
+			app.set_shape(self.local_path, self.path)
 		return new_command
 
 class MenuDir(sculpty.LibDir):
@@ -66,7 +66,6 @@ class MenuDir(sculpty.LibDir):
 
 class GuiApp:
 	def __init__(self, master):
-		w,h = 32, 256
 		self.master = master
 		self.cube = gui.BitmapImage(data="""#define cube_width 16
 #define cube_height 16
@@ -75,43 +74,47 @@ static unsigned char cube_bits[] = {
    0xa4, 0x4b, 0x2c, 0x69, 0x34, 0x59, 0x64, 0x4d, 0xa4, 0x4b, 0x2c, 0x69,
    0x30, 0x19, 0x40, 0x05, 0x80, 0x03, 0x00, 0x00 };
 """)
-		
+
 		# ==========================================
-		# Main window frame		
+		# Main window frame
 		# ==========================================
-		topFrame = gui.Frame(master, border=4)
-		topFrame.pack()
-		frame = gui.LabelFrame(topFrame,
-				border=3, relief=FLAT,
+
+		top_frame = gui.Frame(master, border=4)
+		top_frame.pack()
+		frame = gui.LabelFrame(top_frame,
 				text=ADD_SCULPT_MESH_LABEL,
 				labelanchor=NW)
-		frame.pack(anchor=CENTER)
-		header = gui.Frame(frame, background=gui.hex_color(gui.theme.buts.header))
-		header.pack(fill=X)
-		gui.Menubutton(header, text="File").pack(side=LEFT)
-		gui.Menubutton(header, text="Math",
-				background=gui.hex_color(gui.theme.ui.setting),
-				relief=GROOVE).pack(side=LEFT)
-		gui.Menubutton(header, text="Library").pack(side=LEFT)
-		gui.Menubutton(header, text="About").pack(side=LEFT)
-		self.map_type = gui.Button(frame,
-				text="Type",
+		frame.pack()
+
+		# ==========================================
+		# Settings frame
+		# ==========================================
+
+		shape_frame = gui.Frame(frame)
+		shape_frame.pack(fill=X)
+		t = gui.Label(shape_frame,
+			text="Shape",
+			justify=RIGHT)
+		t.pack(side=LEFT)
+		self.shape_name = StringVar()
+		self.shape_file = None
+		self.map_type = gui.Button(shape_frame,
+				textvariable= self.shape_name,
 				command=self.set_map_type,
-				border=1,
-				cursor='based_arrow_down')
-		self.map_type.pack(padx=4, fill=X, pady=5, side=TOP, anchor=CENTER)
+				cursor='based_arrow_down',
+				background=gui.hex_color(gui.theme.ui.textfield),
+				relief=SUNKEN,
+				pady=1,
+				)
+		self.map_type.pack(fill=X)
 
 		# ==========================================
 		# Geometry section (top left)
 		# ==========================================
 
-		upperFrame = gui.Frame(frame)
-		upperFrame.pack()
-		
-		f = gui.LabelFrame(upperFrame,
+		f = gui.LabelFrame(frame,
 				text="Geometry")
-		f.pack(padx=5, pady=5, fill=BOTH, side=LEFT, anchor=CENTER ) 
-		
+		f.pack(side=LEFT, fill=Y)
 		ff = gui.Frame(f)
 		ff.pack()
 		fx = gui.Frame(ff)
@@ -119,42 +122,57 @@ static unsigned char cube_bits[] = {
 		t = gui.Label(fx,
 			text="X Faces",
 			justify=RIGHT)
-		t.pack(padx=5, pady=5, side=LEFT)
+		t.pack(side=LEFT)
 		self.x_faces = IntVar(self.master, 8)
-		s = gui.Spinbox(fx,
+		self.x_faces_input = gui.Spinbox(fx,
 				textvariable=self.x_faces,
 				from_=1,
 				to=256,
-				width=3)
-		s.pack(padx=5, pady=5, side=RIGHT)
+				width=3,
+				command=self.update_info)
+		self.x_faces_input.pack(side=RIGHT)
 		fy = gui.Frame(ff)
 		fy.pack()
 		t = gui.Label(fy,
 				text="Y Faces",
 				justify=RIGHT)
-		t.pack(padx=5, pady=5, side=LEFT)
+		t.pack(side=LEFT)
 		self.y_faces = IntVar(self.master, 8)
-		s = gui.Spinbox(fy,
+		self.y_faces_input = gui.Spinbox(fy,
 				textvariable=self.y_faces,
 				from_=1,
 				to=256,
-				width=3)
-		s.pack(padx=5, pady=5, side=RIGHT)
+				width=3,
+				command=self.update_info)
+		self.y_faces_input.pack(side=RIGHT)
+		fr = gui.Frame(ff)
+		fr.pack()
+		t = gui.Label(fr,
+				text="Radius",
+				justify=RIGHT)
+		t.pack(side=LEFT)
+		self.radius = DoubleVar(self.master, 0.25)
+		self.radius_input = gui.Spinbox(fr,
+				textvariable=self.radius,
+				from_=0.05,
+				to=0.5,
+				width=6)
+		self.radius_input.pack(side=RIGHT)
 
 		self.clean_lods = BooleanVar( self.master, True )
 		c = gui.Checkbutton(f,
 				text="Clean LODs",
 				variable=self.clean_lods)
-		c.pack(padx=0, pady=5, side=LEFT)
+		c.pack(side=LEFT)
 
 
 		# ==========================================
 		# Subdivision section (top right)
 		# ==========================================
 
-		fs = gui.LabelFrame(upperFrame,
+		fs = gui.LabelFrame(frame,
 				text="Subdivision")
-		fs.pack(padx=5, pady=5, fill=BOTH, side=RIGHT, anchor=CENTER )
+		fs.pack(side=LEFT, padx=4, fill=Y)
 		
 		self.levels = IntVar(self.master, 2)
 		fl = gui.Frame(fs)
@@ -163,13 +181,14 @@ static unsigned char cube_bits[] = {
 		t = gui.Label(fl,
 				text="Levels",
 				justify=RIGHT)
-		t.pack(padx=5, pady=5, side=LEFT)
-		s = gui.Spinbox(fl,
+		t.pack(side=LEFT)
+		self.levels_input = gui.Spinbox(fl,
 				textvariable=self.levels,
 				from_=0,
 				to=6,
-				width=3)
-		s.pack(padx=5, pady=5, side=RIGHT)
+				width=3,
+				command=self.update_info)
+		self.levels_input.pack(side=RIGHT)
 
 		self.sub_type = IntVar(self.master, 1)
 		r = gui.Frame(fs)
@@ -198,30 +217,36 @@ static unsigned char cube_bits[] = {
 		# ==========================================
 		# LOD display (bottom left)
 		# ==========================================				
-				
-		f = gui.LabelFrame(frame,
-				text="Map Image")
-		f.pack(padx=6, ipadx=3, pady=3, fill=BOTH, side=LEFT, anchor=CENTER)
+		build_frame = gui.Frame(frame)
+		build_frame.pack(fill=Y, side=LEFT)
 
-		self.lod_display = gui.Label(f,
-				text=sculpty.lod_info(w, h)[:-1],
+		self.info_text = StringVar(self.master)
+		self.info_frame = gui.LabelFrame(build_frame)
+		self.info_frame.pack()
+
+		self.lod_display = gui.Label(self.info_frame,
+				textvariable=self.info_text,
 				justify=LEFT)
-		self.lod_display.pack(padx=5, pady=5, ipadx=3, ipady=3, side=LEFT)
+		self.lod_display.pack()
+		self.update_info()
 
 		# ==========================================
 		# Sculpty type selection (bottom right)
 		# ==========================================
 
-		controlFrame = gui.Frame(frame)
-		controlFrame.pack(padx=5, pady=6, fill=Y, side=RIGHT, anchor=N)
+		createButton = gui.Button(build_frame,
+				text="Build",
+				image=self.cube,
+				compound=LEFT,
+				command=self.add,
+				default=ACTIVE)
+		createButton.pack()
 
-		self.sculpt_menu = gui.Menu(controlFrame,
-				tearoff=0)
+		self.sculpt_menu = gui.Menu(self.master, tearoff=0)
 		for sculpt_type in [ "Sphere", "Torus", "Plane", "Cylinder", "Hemi"]:
 			def type_command( sculpt_type ):
 				def new_command():
-					self.set_sculpt_type(sculpt_type)
-					self.selectorActive = False
+					self.set_shape(sculpt_type)
 				return new_command
 			self.sculpt_menu.add_command(label=sculpt_type,
 					command=type_command(sculpt_type))
@@ -229,31 +254,10 @@ static unsigned char cube_bits[] = {
 		library = sculpty.build_lib(LibDir=MenuDir, LibFile=MenuMap)
 		library.add_to_menu(self, self.sculpt_menu)
 
-		self.selector = self.map_type
-		self.set_sculpt_type("Sphere") # TODO: retrieve settings from registry
-		
-		# ==========================================
-		# Control section (bottom right)
-		# ==========================================
+		self.set_shape("Sphere") # TODO: retrieve settings from registry
 
-		buttonFrame = gui.Frame(controlFrame)
-		buttonFrame.pack(side=BOTTOM, anchor=CENTER)
-
-		# Cancel/Create buttons need layout tuning.
-		createButton = gui.Button(buttonFrame,
-				text="Build",
-				image=self.cube,
-				compound=LEFT,
-				command=self.add,
-				default=ACTIVE)
-		createButton.pack( ipadx=7 , padx=4, pady=0, side=LEFT, anchor=SW)
-		
-		b = gui.Button(buttonFrame, text="Cancel",
-				command=self.master.quit)
-		b.pack( ipadx=7, padx=8, pady=0, side=RIGHT, anchor=SE)
-		
 	def set_map_type(self):
-		t = self.map_type.cget('text').split(os.sep)
+		t = self.shape_name.get().split(os.sep)
 		if t[0]:
 			t = t[0]
 		else:
@@ -261,36 +265,77 @@ static unsigned char cube_bits[] = {
 		i = self.sculpt_menu.index( t )
 		y = self.map_type.winfo_rooty() - self.sculpt_menu.yposition( i ) + 8
 		x  = self.master.winfo_pointerx() - self.sculpt_menu.winfo_reqwidth() // 2
-		self.selectorActive = True
 		self.sculpt_menu.post(x, y)
 
-	def set_sculpt_type(self, sculpt_type):
-		self.map_type.configure(text=sculpt_type)
-		self.redraw()
+	def set_shape(self, name, filename=None):
+		self.shape_name.set(name)
+		self.shape_file = filename
+		if filename:
+			# reading the image file leaves it in the blend
+			# can uncomment this when able to remove the temporary image
+			#i = Blender.Image.Load(filename)
+			#sculpt_type = sculpty.map_type(i)
+			#if sculpt_type == "TORUS":
+			self.radius_input.config(state=NORMAL)
+			#else:
+			#	self.radius_input.config(state=DISABLED)
+			#self.x_faces_input.config(to=i.size[0] / 2)
+			#self.y_faces_input.config(to=i.size[1] / 2)
+		else:
+			if name == "Torus":
+				self.radius_input.config(state=NORMAL)
+			else:
+				self.radius_input.config(state=DISABLED)
+			#self.x_faces_input.config(to=256)
+			#self.y_faces_input.config(to=256)
 
 	def redraw(self):
 		self.master.update_idletasks()
 		Blender.Redraw()
 
+	def update_info(self, event=None):
+		s, t, w, h, clean_s, clean_t = sculpty.map_size(self.x_faces.get(), self.y_faces.get(), self.levels.get())
+		self.info_frame.config(text="Map Size - %d x %d"%(w, h))
+		self.info_text.set(sculpty.lod_info(w, h)[:-1])
+		if not (clean_s and clean_t):
+			self.levels_input.configure(
+					background=gui.hex_color(gui.theme.ui.textfield_hi))
+		else:
+			self.levels_input.configure(
+					background=gui.hex_color(gui.theme.ui.textfield))
+			if clean_s:
+				self.x_faces_input.configure(
+						background=gui.hex_color(gui.theme.ui.textfield))
+			else:
+				self.x_faces_input.configure(
+						background=gui.hex_color(gui.theme.ui.textfield_hi))
+			if clean_t:
+				self.y_faces_input.configure(
+						background=gui.hex_color(gui.theme.ui.textfield))
+			else:
+				self.y_faces_input.configure(
+						background=gui.hex_color(gui.theme.ui.textfield_hi))
+
 	def add(self):
 		Blender.Window.WaitCursor(1)
-		name = self.map_type.cget('text')
-		if name[:1] == os.sep:
-			basename = name.split(os.sep)[-1]
-			baseimage = Blender.Image.Load(os.path.join(sculpty.lib_dir, name[1:]) + '.png')
+		name = self.shape_name.get()
+		basename = name.split(os.sep)[-1]
+		if self.shape_file:
+			baseimage = Blender.Image.Load(self.shape_file)
 			sculpt_type = sculpty.map_type(baseimage)
 		else:
-			basename = name
 			sculpt_type = name.upper()
 			baseimage = None
-		print "Create a [", name, "] of type ", sculpt_type
+		gui.debug(11,
+				"Add sculptie (%s) of type %s"%(name, sculpt_type),
+				"add_mesh_sculpt_mesh")
 		scene = Blender.Scene.GetCurrent()
 		for ob in scene.objects:
 			ob.sel = False
 		try:
 			mesh = sculpty.new_mesh( basename,sculpt_type,
 					self.x_faces.get(), self.y_faces.get(),
-					self.levels.get(), self.clean_lods.get(), 0.25) #todo: 0.25 radius needs gui add..
+					self.levels.get(), self.clean_lods.get(), self.radius.get())
 			s, t, w, h, clean_s, clean_t = sculpty.map_size(self.x_faces.get(), self.y_faces.get(), self.levels.get())
 			image = Blender.Image.New(basename, w, h, 32)
 			sculpty.bake_lod(image)
@@ -323,7 +368,7 @@ static unsigned char cube_bits[] = {
 			except:
 				z = 0.0
 			if sculpt_type == "TORUS":
-				z = 0.25 * z #todo: radius again
+				z = self.radius.get() * z
 			elif sculpt_type == "HEMI":
 				z = 0.5 * z
 			tran = Blender.Mathutils.Matrix([ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z]).resize4x4()
@@ -367,33 +412,21 @@ static unsigned char cube_bits[] = {
 	# self.mouseInApp
 	# self.activeElement
 	# =================================================================================
-	def log(self, event, label):
-		wname  = event.widget.winfo_name()
-		wclass = event.widget.winfo_class()
-		tlw    = event.widget.winfo_toplevel().winfo_name()
-		print label + " ["+wclass+":"+wname+"] member of ["+tlw+"]"
 
 def main():
-	root = gui.ModalRoot()
-
-	# ==========================================================================
-	# Calculate the position where the menu_back appears. Assume the dimension of 
-	# the window is 256*256 pixel and correct the window position so thet the
-	# mouse is in the center of the window 
-	# ==========================================================================
-	xPos, yPos      = root.winfo_pointerxy()
-	root.geometry('+'+str(xPos-128)+'+'+str(yPos-128))
-
-	app = GuiApp(root)
-
-	print ADD_SCULPT_MESH_LABEL + " started." 		
+	root = None
+	start_time = Blender.sys.time()
+	gui.debug(1, "started", SCRIPT)
 	try:
+		root = gui.ModalRoot()
+		app = GuiApp(root)
 		root.mainloop()
-	except:
 		root.destroy()
+	except:
+		if root:
+			root.destroy()
 		raise
-	print ADD_SCULPT_MESH_LABEL + " terminated."
-	root.destroy()
+	gui.debug(1, "ended in %.4f sec."%(Blender.sys.time() - start_time), SCRIPT)
 
 if __name__ == '__main__':
 	main()

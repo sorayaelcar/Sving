@@ -24,9 +24,9 @@ from sys import platform
 import Tkinter
 from binascii import hexlify
 
-def debug(num,msg):
+def debug(num, msg, script="gui"):
 	if Blender.Get('rt') >= num:
-		print 'debug:', (' '*num), msg
+		print "debug %s %03d -"%(script, num), msg
 
 def hex_color(theme_color):
 	return "#" + hexlify("".join([chr(i) for i in theme_color[:-1]]))
@@ -203,7 +203,7 @@ class ModalRoot(Tkinter.Tk):
 		if event.widget == self:
 			if self.grab_status() == None:
 				self.grab_set_global()
-			self.focus_set()
+				self.focus_set()
 		self.update_idletasks()
 
 class BitmapImage(Tkinter.BitmapImage):
