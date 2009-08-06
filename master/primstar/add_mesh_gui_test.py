@@ -253,6 +253,7 @@ static unsigned char cube_bits[] = {
 		self.set_shape("Sphere") # TODO: retrieve settings from registry
 
 	def set_file(self):
+		self.master.withdraw()
 		filename = tkFileDialog.askopenfilename(
 				initialdir='~',
 				title='Select a sculpt map',
@@ -262,6 +263,8 @@ static unsigned char cube_bits[] = {
 						('bmp','*.bmp'),
 						('png','*.png'),
 						('all files', '.*')])
+		self.master.deiconify()
+		self.redraw()
 		if filename:
 			self.set_shape(filename, filename)
 			i = Blender.Image.Load(filename)

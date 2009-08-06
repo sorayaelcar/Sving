@@ -188,13 +188,14 @@ class ModalRoot(Tkinter.Tk):
 		self.bind('<Leave>', self.leave_handler)
 		self.bind('<Enter>',self.enter_handler)
 		self.protocol("WM_DELETE_WINDOW", self.destroy)
+		self.mouse_exit = True
 
 	def destroy_handler(self, event):
 		self.quit()
 
 	def leave_handler(self, event):
 		debug(60,"Leave: %s"%str(event.widget))
-		if event.widget == self:
+		if event.widget == self and self.mouse_exit:
 			if self.winfo_containing(event.x_root, event.y_root) == None:
 				self.quit()
 
@@ -204,7 +205,12 @@ class ModalRoot(Tkinter.Tk):
 			if self.grab_status() == None:
 				self.grab_set_global()
 				self.focus_set()
+			self.mouse_exit = True
 		self.update_idletasks()
+
+	def withdraw(self):
+		self.mouse_exit = False
+		Tkinter.Tk.withdraw(self)
 
 class BitmapImage(Tkinter.BitmapImage):
 	def __init__(self, data=None, **kw):
