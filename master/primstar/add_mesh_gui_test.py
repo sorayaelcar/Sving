@@ -100,7 +100,10 @@ static unsigned char file_open_bits[] = {
 
 		shape_frame = gui.Frame(frame)
 		shape_frame.pack(fill=X)
-		t = gui.Label(shape_frame, text="Shape", justify=RIGHT)
+		t = gui.Label(shape_frame,
+				text="Shape",
+				justify=RIGHT,
+				font=('Helvetica',9,'bold'))
 		t.pack(side=LEFT)
 		self.shape_name = StringVar()
 		self.shape_file = None
@@ -121,7 +124,7 @@ static unsigned char file_open_bits[] = {
 		file_button.pack(side=RIGHT)
 
 		# ==========================================
-		# Geometry section (top left)
+		# Geometry section
 		# ==========================================
 
 		f = gui.LabelFrame(frame,
@@ -168,7 +171,9 @@ static unsigned char file_open_bits[] = {
 				textvariable=self.radius,
 				from_=0.05,
 				to=0.5,
-				width=6)
+				increment=0.025,
+				format = "%4.3f",
+				width=5)
 		self.radius_input.pack(side=RIGHT)
 		self.clean_lods = BooleanVar( self.master, True )
 		c = gui.Checkbutton(f,
@@ -177,12 +182,14 @@ static unsigned char file_open_bits[] = {
 		c.pack(side=LEFT)
 
 		# ==========================================
-		# Subdivision section (top right)
+		# Subdivision section
 		# ==========================================
 
-		fs = gui.LabelFrame(frame,
+		middle_frame = gui.Frame(frame)
+		middle_frame.pack(side=LEFT, padx=4, fill=Y)
+		fs = gui.LabelFrame(middle_frame,
 				text="Subdivision")
-		fs.pack(side=LEFT, padx=4, fill=Y)
+		fs.pack(fill=X)
 		self.levels = IntVar(self.master, 2)
 		fl = gui.Frame(fs)
 		fl.pack()
@@ -221,6 +228,23 @@ static unsigned char file_open_bits[] = {
 				value=0).pack()
 
 		# ==========================================
+		# Mesh Type Selection
+		# ==========================================
+
+		mesh_frame = gui.LabelFrame(middle_frame, text="Mesh Type")
+		mesh_frame.pack(fill=X)
+		self.quads = IntVar(self.master, 1)
+		gui.Radiobutton(mesh_frame,
+				text="Quads",
+				variable=self.quads,
+				value=1).pack(side=LEFT)
+		gui.Radiobutton(mesh_frame,
+				state=DISABLED,
+				text="Triangles",
+				variable=self.quads,
+				value=0).pack(side=LEFT)
+
+		# ==========================================
 		# LOD display and Create button
 		# ==========================================
 
@@ -240,7 +264,7 @@ static unsigned char file_open_bits[] = {
 				compound=LEFT,
 				command=self.add,
 				default=ACTIVE)
-		create_button.pack()
+		create_button.pack(fill=BOTH, expand=True, anchor=SE, pady=5)
 
 		# ==========================================
 		# Popup menu for base mesh shape
