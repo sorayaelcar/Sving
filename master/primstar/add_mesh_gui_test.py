@@ -389,7 +389,8 @@ static unsigned char file_open_bits[] = {
 		try:
 			mesh = sculpty.new_mesh( basename,sculpt_type,
 					self.x_faces.get(), self.y_faces.get(),
-					self.levels.get(), self.clean_lods.get(), self.radius.get())
+					self.levels.get(), self.clean_lods.get(),
+					min(0.5,max(self.radius.get(),0.05)))
 			s, t, w, h, clean_s, clean_t = sculpty.map_size(self.x_faces.get(), self.y_faces.get(), self.levels.get())
 			image = Blender.Image.New(basename, w, h, 32)
 			sculpty.bake_lod(image)
@@ -422,7 +423,7 @@ static unsigned char file_open_bits[] = {
 			except:
 				z = 0.0
 			if sculpt_type == "TORUS":
-				z = self.radius.get() * z
+				z = min(0.5,max(self.radius.get(),0.05)) * z
 			elif sculpt_type == "HEMI":
 				z = 0.5 * z
 			tran = Blender.Mathutils.Matrix([ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z]).resize4x4()
