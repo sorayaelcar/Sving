@@ -130,10 +130,8 @@ static unsigned char file_open_bits[] = {
 		f = gui.LabelFrame(frame,
 				text="Geometry")
 		f.pack(side=LEFT, fill=Y)
-		ff = gui.Frame(f)
-		ff.pack()
-		fx = gui.Frame(ff)
-		fx.pack()
+		fx = gui.Frame(f)
+		fx.pack(expand=True)
 		t = gui.Label(fx,
 			text="X Faces",
 			justify=RIGHT)
@@ -146,8 +144,8 @@ static unsigned char file_open_bits[] = {
 				width=3,
 				command=self.update_info)
 		self.x_faces_input.pack(side=RIGHT)
-		fy = gui.Frame(ff)
-		fy.pack()
+		fy = gui.Frame(f)
+		fy.pack(expand=True)
 		t = gui.Label(fy,
 				text="Y Faces",
 				justify=RIGHT)
@@ -160,8 +158,8 @@ static unsigned char file_open_bits[] = {
 				width=3,
 				command=self.update_info)
 		self.y_faces_input.pack(side=RIGHT)
-		fr = gui.Frame(ff)
-		fr.pack()
+		fr = gui.Frame(f)
+		fr.pack(expand=True)
 		t = gui.Label(fr,
 				text="Radius",
 				justify=RIGHT)
@@ -179,7 +177,7 @@ static unsigned char file_open_bits[] = {
 		c = gui.Checkbutton(f,
 				text="Clean LODs",
 				variable=self.clean_lods)
-		c.pack(side=LEFT)
+		c.pack(expand=True)
 
 		# ==========================================
 		# Subdivision section
