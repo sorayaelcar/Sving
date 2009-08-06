@@ -68,12 +68,19 @@ class MenuDir(sculpty.LibDir):
 class GuiApp:
 	def __init__(self, master):
 		self.master = master
-		self.cube = gui.BitmapImage(data="""#define cube_width 16
+		self.cube_icon = gui.BitmapImage(data="""#define cube_width 16
 #define cube_height 16
 static unsigned char cube_bits[] = {
    0x00, 0x00, 0x80, 0x03, 0x70, 0x1c, 0x8c, 0x62, 0x94, 0x53, 0x64, 0x4c,
    0xa4, 0x4b, 0x2c, 0x69, 0x34, 0x59, 0x64, 0x4d, 0xa4, 0x4b, 0x2c, 0x69,
    0x30, 0x19, 0x40, 0x05, 0x80, 0x03, 0x00, 0x00 };
+""")
+		self.file_icon = gui.BitmapImage(data="""#define file_open_width 16
+#define file_open_height 16
+static unsigned char file_open_bits[] = {
+   0x00, 0x00, 0x08, 0x00, 0x0c, 0x00, 0xfe, 0x01, 0x0c, 0x02, 0x08, 0x04,
+   0x00, 0x04, 0xf0, 0x00, 0x08, 0x7f, 0xf8, 0x40, 0x08, 0x40, 0x08, 0x40,
+   0x08, 0x40, 0x08, 0x40, 0xf8, 0x7f, 0x00, 0x00 };
 """)
 
 		# ==========================================
@@ -107,7 +114,7 @@ static unsigned char cube_bits[] = {
 				anchor=NW)
 		self.map_type.pack(expand=True, fill=X, side=LEFT)
 		file_button = gui.Button(shape_frame,
-				image=self.cube,
+				image=self.file_icon,
 				compound=LEFT,
 				command=self.set_file,
 				default=ACTIVE)
@@ -229,7 +236,7 @@ static unsigned char cube_bits[] = {
 		self.update_info()
 		create_button = gui.Button(build_frame,
 				text="Build",
-				image=self.cube,
+				image=self.cube_icon,
 				compound=LEFT,
 				command=self.add,
 				default=ACTIVE)
@@ -275,17 +282,11 @@ static unsigned char cube_bits[] = {
 				self.radius_input.config(state=DISABLED)
 			x_faces, y_faces = i.size
 			x_faces, y_faces = sculpty.face_count(x_faces, y_faces, 32, 32)
-			multires = 0
-			while multires < 2 and x_faces >= 8 and y_faces >= 8 and not ((x_faces & 1) or (y_faces & 1)):
-				x_faces = x_faces >> 1
-				y_faces = y_faces >> 1
-				multires += 1
 			self.x_faces_input.config(to=i.size[0] / 2)
 			self.y_faces_input.config(to=i.size[1] / 2)
 			self.x_faces.set(x_faces)
 			self.y_faces.set(y_faces)
-			self.levels.set(multires)
-			self.sub_type.set(0)
+			self.levels.set(0)
 
 	def set_map_type(self):
 		t = self.shape_name.get().split(os.sep)
