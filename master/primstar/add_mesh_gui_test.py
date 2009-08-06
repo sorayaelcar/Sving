@@ -356,6 +356,11 @@ static unsigned char file_open_bits[] = {
 				clean_s = False
 			if self.y_faces.get() < 4:
 				clean_t = False
+		if self.levels.get() == 1:
+			if self.x_faces.get() < 2:
+				clean_s = False
+			if self.y_faces.get() < 2:
+				clean_t = False
 		if clean_s and clean_t:
 			self.levels_input.configure(
 					background=gui.hex_color(gui.theme.ui.textfield),
