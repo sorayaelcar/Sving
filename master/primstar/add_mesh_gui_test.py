@@ -273,7 +273,7 @@ static unsigned char file_open_bits[] = {
 		self.master.deiconify()
 		self.redraw()
 		if filename:
-			self.set_shape(filename, filename)
+			self.set_shape(Blender.sys.makename(filename), filename)
 			i = Blender.Image.Load(filename)
 			sculpt_type = sculpty.map_type(i)
 			if sculpt_type == "TORUS":
