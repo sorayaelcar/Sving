@@ -93,23 +93,19 @@ static unsigned char cube_bits[] = {
 
 		shape_frame = gui.Frame(frame)
 		shape_frame.pack(fill=X)
-		f = gui.Frame(shape_frame)
-		f.pack(fill=X, side=LEFT)
-		t = gui.Label(f,
-			text="Shape",
-			justify=RIGHT)
+		t = gui.Label(shape_frame, text="Shape", justify=RIGHT)
 		t.pack(side=LEFT)
 		self.shape_name = StringVar()
 		self.shape_file = None
-		self.map_type = gui.Button(f,
+		self.map_type = gui.Button(shape_frame,
 				textvariable= self.shape_name,
 				command=self.set_map_type,
 				cursor='based_arrow_down',
 				background=gui.hex_color(gui.theme.ui.textfield),
 				relief=SUNKEN,
 				pady=1,
-				)
-		self.map_type.pack(fill=X)
+				anchor=NW)
+		self.map_type.pack(expand=True, fill=X, side=LEFT)
 		file_button = gui.Button(shape_frame,
 				image=self.cube,
 				compound=LEFT,
@@ -167,13 +163,11 @@ static unsigned char cube_bits[] = {
 				to=0.5,
 				width=6)
 		self.radius_input.pack(side=RIGHT)
-
 		self.clean_lods = BooleanVar( self.master, True )
 		c = gui.Checkbutton(f,
 				text="Clean LODs",
 				variable=self.clean_lods)
 		c.pack(side=LEFT)
-
 
 		# ==========================================
 		# Subdivision section (top right)
@@ -182,11 +176,9 @@ static unsigned char cube_bits[] = {
 		fs = gui.LabelFrame(frame,
 				text="Subdivision")
 		fs.pack(side=LEFT, padx=4, fill=Y)
-		
 		self.levels = IntVar(self.master, 2)
 		fl = gui.Frame(fs)
 		fl.pack()
-
 		t = gui.Label(fl,
 				text="Levels",
 				justify=RIGHT)
@@ -198,7 +190,6 @@ static unsigned char cube_bits[] = {
 				width=3,
 				command=self.update_info)
 		self.levels_input.pack(side=RIGHT)
-
 		self.sub_type = IntVar(self.master, 1)
 		r = gui.Frame(fs)
 		r.pack(side=LEFT)
@@ -206,7 +197,6 @@ static unsigned char cube_bits[] = {
 				text="Subsurf",
 				variable=self.sub_type,
 				value=1).pack()
-
 		gui.Radiobutton(r,
 				text="Multires",
 				variable=self.sub_type,
@@ -229,17 +219,14 @@ static unsigned char cube_bits[] = {
 
 		build_frame = gui.Frame(frame)
 		build_frame.pack(fill=Y, side=LEFT)
-
 		self.info_text = StringVar(self.master)
 		self.info_frame = gui.LabelFrame(build_frame)
 		self.info_frame.pack()
-
 		self.lod_display = gui.Label(self.info_frame,
 				textvariable=self.info_text,
 				justify=LEFT)
 		self.lod_display.pack()
 		self.update_info()
-
 		create_button = gui.Button(build_frame,
 				text="Build",
 				image=self.cube,
@@ -263,7 +250,6 @@ static unsigned char cube_bits[] = {
 		self.sculpt_menu.add_separator()
 		library = sculpty.build_lib(LibDir=MenuDir, LibFile=MenuMap)
 		library.add_to_menu(self, self.sculpt_menu)
-
 		self.set_shape("Sphere") # TODO: retrieve settings from registry
 
 	def set_file(self):
