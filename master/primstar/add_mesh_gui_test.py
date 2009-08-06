@@ -351,24 +351,35 @@ static unsigned char file_open_bits[] = {
 		s, t, w, h, clean_s, clean_t = sculpty.map_size(self.x_faces.get(), self.y_faces.get(), self.levels.get())
 		self.info_frame.config(text="Map Size - %d x %d"%(w, h))
 		self.info_text.set(sculpty.lod_info(w, h)[:-1])
-		if not (clean_s and clean_t):
+		if self.levels.get() == 0:
+			if self.x_faces.get() < 4:
+				clean_s = False
+			if self.y_faces.get() < 4:
+				clean_t = False
+		if clean_s and clean_t:
 			self.levels_input.configure(
-					background=gui.hex_color(gui.theme.ui.textfield_hi))
+					background=gui.hex_color(gui.theme.ui.textfield),
+					highlightcolor=gui.theme.defaults['highlightcolor'])
 		else:
 			self.levels_input.configure(
-					background=gui.hex_color(gui.theme.ui.textfield))
-			if clean_s:
-				self.x_faces_input.configure(
-						background=gui.hex_color(gui.theme.ui.textfield))
-			else:
-				self.x_faces_input.configure(
-						background=gui.hex_color(gui.theme.ui.textfield_hi))
-			if clean_t:
-				self.y_faces_input.configure(
-						background=gui.hex_color(gui.theme.ui.textfield))
-			else:
-				self.y_faces_input.configure(
-						background=gui.hex_color(gui.theme.ui.textfield_hi))
+					background=gui.theme.defaults['highlightcolor'],
+					highlightcolor=gui.theme.defaults['selectbackground'])
+		if clean_s:
+			self.x_faces_input.configure(
+					background=gui.hex_color(gui.theme.ui.textfield),
+					highlightcolor=gui.theme.defaults['highlightcolor'])
+		else:
+			self.x_faces_input.configure(
+					background=gui.theme.defaults['highlightcolor'],
+					highlightcolor=gui.theme.defaults['selectbackground'])
+		if clean_t:
+			self.y_faces_input.configure(
+					background=gui.hex_color(gui.theme.ui.textfield),
+					highlightcolor=gui.theme.defaults['highlightcolor'])
+		else:
+			self.y_faces_input.configure(
+					background=gui.theme.defaults['highlightcolor'],
+					highlightcolor=gui.theme.defaults['selectbackground'])
 
 	def add(self):
 		Blender.Window.WaitCursor(1)
