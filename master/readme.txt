@@ -11,6 +11,13 @@ you can get from http://www.blender.org/download/get-blender/
 If you enjoy or find the scripts useful please make a donation either in Linden dollars to
 Domino Marama or via donate link on http://dominodesigns.info/second_life/blender_scripts.html
 
+**** System Requirements ****
+
+Blender 2.49  http://www.blender.org/download/get-blender/
+Python (check your Blender install for required version) http://python.org/download/
+Python tkInter (this is normally included with Python but some Linux distributions have it
+as a separate package)
+
 **** Automatic Installation ****
 
 Open a command prompt in the extracted directory and run the following:
@@ -60,7 +67,8 @@ Run Blender and in the "File - Import" menu you should see a new option
 for 'Second Life Sculptie'
 	
 If the option is missing, select the scripts window and use
-"Scripts - Update Menus" to refresh the menus.
+"Scripts - Update Menus" to refresh the menus. If this doesn't work, make sure there is
+a folder "bpydata" in your user scripts directory.
 
 **** Creating a new Sculptie ****
 
