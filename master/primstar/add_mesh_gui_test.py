@@ -269,7 +269,7 @@ static unsigned char file_open_bits[] = {
 		# ==========================================
 
 		self.sculpt_menu = gui.Menu(self.master, tearoff=0)
-		for sculpt_type in [ "Sphere", "Torus", "Plane", "Cylinder", "Hemi"]:
+		for sculpt_type in [ "Sphere", "Torus Z", "Torus X", "Plane", "Cylinder", "Hemi"]:
 			def type_command( sculpt_type ):
 				def new_command():
 					self.set_shape(sculpt_type)
@@ -298,7 +298,7 @@ static unsigned char file_open_bits[] = {
 			self.set_shape(Blender.sys.makename(filename), filename)
 			i = Blender.Image.Load(filename)
 			sculpt_type = sculpty.map_type(i)
-			if sculpt_type == "TORUS":
+			if sculpt_type[:5] == "TORUS":
 				self.radius_input.config(state=NORMAL)
 			else:
 				self.radius_input.config(state=DISABLED)
@@ -336,7 +336,7 @@ static unsigned char file_open_bits[] = {
 			#self.x_faces_input.config(to=i.size[0] / 2)
 			#self.y_faces_input.config(to=i.size[1] / 2)
 		else:
-			if name == "Torus":
+			if name[:5] == "Torus":
 				self.radius_input.config(state=NORMAL)
 			else:
 				self.radius_input.config(state=DISABLED)
@@ -438,8 +438,10 @@ static unsigned char file_open_bits[] = {
 				z = 1.0 / (maximum.z - minimum.z)
 			except:
 				z = 0.0
-			if sculpt_type == "TORUS":
+			if sculpt_type == "TORUS Z":
 				z = min(0.5,max(self.radius.get(),0.05)) * z
+			elif sculpt_type == "TORUS X":
+				x = min(0.5,max(self.radius.get(),0.05)) * x
 			elif sculpt_type == "HEMI":
 				z = 0.5 * z
 			tran = Blender.Mathutils.Matrix([ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z]).resize4x4()

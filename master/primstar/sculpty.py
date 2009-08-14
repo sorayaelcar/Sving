@@ -513,7 +513,7 @@ def active(ob):
 def bake_default(image, sculpt_type, radius = 0.25):
 	'''Bakes a mathematical sculpt map to image
 
-	sculpt_type - one of "SPHERE", "TORUS", "CYLINDER", "PLANE" or "HEMI"
+	sculpt_type - one of "SPHERE", "TORUS Z", "TORUS X", "CYLINDER", "PLANE" or "HEMI"
 	radius - inner radius value for torus
 	'''
 	debug(30, "sculpty.bake_default(%s, %s, %f)"%(image.name, sculpt_type, radius))
@@ -1083,7 +1083,7 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True,
 	'''Returns a sculptie mesh created from the input
 
 	name - the mesh name
-	sculpt_type - one of "SPHERE", "TORUS", "CYLINDER", "PLANE" or "HEMI"
+	sculpt_type - one of "SPHERE", "TORUS Z", "TORUS X", "CYLINDER", "PLANE" or "HEMI"
 	x_faces - x face count
 	y_faces - y face count
 	levels - LOD levels
@@ -1103,7 +1103,7 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True,
 	seams = []
 	faces = []
 	wrap_x = (sculpt_type != "PLANE") and (sculpt_type != "HEMI")
-	wrap_y = (sculpt_type == "TORUS")
+	wrap_y = (sculpt_type[:5] == "TORUS")
 	verts_x = x_faces + 1
 	verts_y = y_faces + 1
 	actual_x = verts_x - wrap_x
@@ -1327,12 +1327,19 @@ def uv_to_rgb(sculpt_type, u, v, radius=0.25):
 		r = 0.5 + sin(a) / 2.0
 		g = 0.5 - cos(a) / 2.0
 		b = v
-	elif sculpt_type == "TORUS":
+	elif sculpt_type == "TORUS Z":
 		v += 0.25
 		ps = ((1.0 - radius) - sin(2.0 * pi * v) * radius) / 2.0
 		r = 0.5 + sin(a) * ps
 		g = 0.5 - cos(a) * ps
 		b = 0.5 + cos(2 * pi * v) / 2.0
+	elif sculpt_type == "TORUS X":
+		a = pi + 2 * pi * v
+		u += 0.25
+		ps = ((1.0 - radius) - sin(2.0 * pi * u) * radius) / 2.0
+		r = 0.5 + cos(2 * pi * u) / 2.0
+		g = 0.5 - cos(a) * ps
+		b = 0.5 + sin(a) * ps
 	elif sculpt_type == "HEMI":
 		z = -cos(2 * pi * min(u, v, 1.0 - u, 1.0 - v)) / 2.0
 		pa = u - 0.5
