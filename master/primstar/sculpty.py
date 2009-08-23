@@ -275,17 +275,16 @@ class BakeMap:
 		mix = c2 - c1
 		deltax = x2 - x1
 		deltay = abs(y2 - y1)
-		deltac = sqrt(deltax**2 + deltay**2)
-		error = deltax / 2.0
+		error = deltax / 2
 		y = y1
 		if y1 < y2:
 			ystep = 1
 		else:
 			ystep = -1
 		for x in range(x1, x2 + 1):
-			d = sqrt((x - x1)**2 + (y - y1)**2)
+			d = x - x1
 			if d:
-				colour = c1 + (mix * (float(d) / deltac))
+				colour = c1 + (mix * (float(d) / deltax))
 			else:
 				colour = c1
 			if steep:
@@ -600,54 +599,6 @@ def bake_object(ob, bb, clear=True):
 	mesh.activeUVLayer = currentUV
 	return True
 
-def bake_object_old(ob, bb, clear = True):
-	'''Bakes the object's mesh to the specified bounding box.
-	Returns False if object is not an active sculptie.
-	'''
-	debug(20, "sculpty.bake_object(%s, %s, %d)"%(ob.name, str(bb), clear))
-	if not active(ob):
-		return False
-	mesh = Blender.Mesh.New()
-	mesh.getFromObject(ob, 0, 1)
-	images = map_images(mesh)
-	maps = {}
-	obb = BoundingBox(ob)
-	for i in images:
-		maps[i.name] = BakeMap(i.size[0], i.size[1])
-		i.properties['ps_scale_x'] = bb.scale.x / obb.scale.x
-		i.properties['ps_scale_y'] = bb.scale.y / obb.scale.y
-		i.properties['ps_scale_z'] = bb.scale.z / obb.scale.z
-		i.properties['ps_size_x'] = bb.scale.x * ob.size[0]
-		i.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
-		i.properties['ps_size_z'] = bb.scale.z * ob.size[2]
-		if clear:
-			clear_image(i)
-	currentUV = mesh.activeUVLayer
-	mesh.activeUVLayer = "sculptie"
-	for f in mesh.faces:
-		if f.image != None:
-			uvmap = []
-			for i in range(len(f.verts)):
-				u = min(int(round(f.uv[ i ][0] * f.image.size[0])), f.image.size[0] - 1)
-				v = min(int(round(f.uv[ i ][1] * f.image.size[1])), f.image.size[1] - 1)
-				rgb = bb.xyz_to_float(f.verts[i].co)
-				uvmap.append(Pixel(u, v, rgb))
-			uvmap.sort() # custom sort does ascending x, ascending y
-			if len(uvmap) == 4:
-				maps[f.image.name].draw_line(uvmap[0], uvmap[1]) # left
-				maps[f.image.name].draw_line(uvmap[1], uvmap[3], False) # top
-				maps[f.image.name].draw_line(uvmap[2], uvmap[3]) # right
-				maps[f.image.name].draw_line(uvmap[0], uvmap[2], False) # bottom
-				maps[f.image.name].draw_line(uvmap[0], uvmap[3], False) # bottom left to top right
-				maps[f.image.name].draw_line(uvmap[1], uvmap[2], False) # top left to bottom right
-			else:
-				for i in range(len(uvmap) - 1):
-					maps[f.image.name].draw_line(uvmap[ i ], uvmap[ i + 1 ])
-	for image in images:
-		maps[image.name].bake_float(image)
-	mesh.activeUVLayer = currentUV
-	return True
-
 def bake_preview(image):
 	'''Bakes a pseudo 3D representation of the sculpt map image to it's alpha channel'''
 	debug(30, "sculpty.bake_preview(%s)"%(image.name))
@@ -712,7 +663,6 @@ def draw_line(image, v1, v2, c1, c2):
 	mix = c2 - c1
 	deltax = x2 - x1
 	deltay = abs(y2 - y1)
-	deltac = sqrt(deltax**2 + deltay**2)
 	error = deltax / 2
 	y = y1
 	if y1 < y2:
@@ -720,9 +670,9 @@ def draw_line(image, v1, v2, c1, c2):
 	else:
 		ystep = -1
 	for x in range(x1, x2 + 1):
-		d = sqrt((x - x1)**2 + (y - y1)**2)
+		d = x - x1
 		if d:
-			colour = c1 + (mix * (float(d) / deltac))
+			colour = c1 + (mix * (float(d) / deltax))
 		else:
 			colour = c1
 		if steep:
