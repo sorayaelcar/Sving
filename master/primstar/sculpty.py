@@ -52,19 +52,22 @@ def obChildren(ob):
 #***********************************************
 
 class XYZ:
-	def __init__(self, x, y, z):
+	def __init__(self, x=0.0, y=0.0, z=0.0):
 		self.x = x
 		self.y = y
 		self.z = z
 
 	def __cmp__(self, other):
-		if self.x == other.x:
-			if self.y == other.y:
-				return cmp(self.z, other.z)
+		try:
+			if self.x == other.x:
+				if self.y == other.y:
+					return cmp(self.z, other.z)
+				else:
+					return cmp(self.y, other.y)
 			else:
-				return cmp(self.y, other.y)
-		else:
-			return cmp(self.x, other.x)
+				return cmp(self.x, other.x)
+		except:
+			return False
 
 	def __sub__(self, other):
 		return XYZ(
@@ -224,131 +227,135 @@ class BoundingBox:
 		z = (loc.z - self.min.z) / self.scale.z
 		return XYZ(x, y ,z)
 
+class PlotPoint:
+	def __init__(self):
+		self.seam = False
+		self.values = []
+
+	def add(self, value, seam):
+		if self.seam:
+			return
+		if seam:
+			self.seam = seam
+			self.values = [value]
+		else:
+			self.values.append(value)
+
+	def __repr__(self):
+		return "(%s, %s)"%(repr(self.values), repr(self.seam))
+
 class BakeMap:
-	def __init__(self, u, v):
+	adjust = 1.0 / 510
+
+	def __init__(self, image):
 		self.map = []
-		self.u = u
-		self.v = v
-		for x in range(u):
-			self.map.append( [] )
-			for y in range(v):
-				self.map[x].append([ [],[],[] ])
+		self.image = image
+		self.bb_min = None
+		self.bb_max = None
+		self.range = None
+		self.center = None
+		self.edges = {}
+		self.map = [[PlotPoint() for x in range(image.size[0])] for y in range(image.size[1])]
 
-	def add(self, u, v, colour):
-		self.map[u][v][0].append(colour.x)
-		self.map[u][v][1].append(colour.y)
-		self.map[u][v][2].append(colour.z)
-
-	def bake(self, image):
-		for x in range(self.u):
-			for y in range(self.v):
-				if self.map[x][y][0]:
-					r = clip(int(sum(self.map[x][y][0]) / len(self.map[x][y][0])))
-					g = clip(int(sum(self.map[x][y][1]) / len(self.map[x][y][1])))
-					b = clip(int(sum(self.map[x][y][2]) / len(self.map[x][y][2])))
-					image.setPixelI(x, y, (r, g, b, 255))
-
-	def bake_float(self, image):
-		for x in range(self.u):
-			for y in range(self.v):
-				if self.map[x][y][0]:
-					r = clip(sum(self.map[x][y][0]) / len(self.map[x][y][0]), 0.0, 1.0)
-					g = clip(sum(self.map[x][y][1]) / len(self.map[x][y][1]), 0.0, 1.0)
-					b = clip(sum(self.map[x][y][2]) / len(self.map[x][y][2]), 0.0, 1.0)
-					image.setPixelF(x, y, (r, g, b, 1.0))
-
-	def draw_line(self, start, end, ends=True):
-		diff = end - start
-		if diff.u == 0:
-			# vertical
-			self._drawVLine(start.u, start.v, end.v, start.rgb, end.rgb)
-		elif diff.v == 0:
-			# horizontal
-			self._drawHLine(start.v, start.u, end.u, start.rgb, end.rgb)
-		elif (diff.u + diff.v == 0 or diff.u == diff.v):
-			# diagonal
-			if diff.u < 0:
-				diff = start
-				start = end
-				end = diff
-				diff = end - start
-			if diff.u == 1 and ends:
-				self.add(start.u, start.v, start.rgb)
-				self.add(end.u, end.v, end.rgb)
+	def plot_line(self, v1, v2, col1, col2, seam):
+		c1 = XYZ(col1.co.x, col1.co.y, col1.co.z)
+		c2 = XYZ(col2.co.x, col2.co.y, col2.co.z)
+		x1 = int(v1.x * self.image.size[0])
+		y1 = int(v1.y * self.image.size[1])
+		x2 = int(v2.x * self.image.size[0])
+		y2 = int(v2.y * self.image.size[1])
+		steep = abs(y2 - y1) > abs(x2 - x1)
+		if steep:
+			x1, y1 = y1, x1
+			x2, y2 = y2, x2
+		if x1 > x2:
+			x1, x2 = x2, x1
+			y1, y2 = y2, y1
+			c1, c2 = c2, c1
+		mix = c2 - c1
+		deltax = x2 - x1
+		deltay = abs(y2 - y1)
+		deltac = sqrt(deltax**2 + deltay**2)
+		error = deltax / 2.0
+		y = y1
+		if y1 < y2:
+			ystep = 1
+		else:
+			ystep = -1
+		for x in range(x1, x2 + 1):
+			d = sqrt((x - x1)**2 + (y - y1)**2)
+			if d:
+				colour = c1 + (mix * (float(d) / deltac))
 			else:
-				delta = diff.rgb / diff.u
-				c = start.rgb
-				if ends:
-					s = 0
-					e = 1
-				else:
-					c+= delta
-					s = 1
-					e = 0
-				if diff.v < 0:
-					v = -1
-				else:
-					v = 1
-				for i in range(s, diff.u + e):
-					self.add(start.u + i, start.v + i * v, c)
-					c += delta
-		# other lines not currently drawn
+				colour = c1
+			if steep:
+				self.plot_point(y, x, colour, seam)
+			else:
+				self.plot_point(x, y, colour, seam)
+			error = error - deltay
+			if error < 0:
+				y = y + ystep
+				error = error + deltax
 
-	def _drawHLine(self, y, s, e, start_rgb, end_rgb, ends=True):
-		'''Draws a horizontal line on the image on row y, from column s to e.
+	def plot_point(self, x, y, colour, seam):
+		if x == self.image.size[0] - 1:
+			seam = False
+		if y == self.image.size[1] - 1:
+			seam = False
+		if x == self.image.size[0]:
+			x = self.image.size[0] - 1
+		if y == self.image.size[1]:
+			y = self.image.size[1] - 1
+		self.map[x][y].add(colour, seam)
 
-		image - where to draw
-		y - v co-ordinate
-		s - start u co-ordinate
-		e - end u co-ordinate
-		start_rgb - start colour
-		end_rgb - end_colour
-		'''
-		if s > e:
-			c = s
-			s = e
-			e = c
-		if s - e == 0 and ends:
-			self.add(e, y, end_rgb)
-			return
-		delta = (end_rgb - start_rgb) / (e - s)
-		c = start_rgb
-		if ends:
-			e += 1
-		else:
-			c+= delta
-			s += 1
-		for u in range(s, e):
-			self.add(u, y, c)
-			c += delta
+	def update(self):
+		for key, line in self.edges.iteritems():
+			seam = line['seam'] or line['count'] == 1
+			self.plot_line(line['uv1'][0], line['uv2'][0], line['v1'], line['v2'], seam)
+			if line['count'] == 2:
+				if (line['uv1'][0] != line['uv1'][1]) or (line['uv2'][0] != line['uv2'][1]):
+					self.plot_line(line['uv1'][1], line['uv2'][1], line['v1'], line['v2'], seam)
+			if line['count'] >= 3:
+				print "Skipping extra edges: %d not drawn"%(line['count'] - 2)
+		for u in range(self.image.size[0]):
+			for v in range(self.image.size[1]):
+				if len(self.map[u][v].values) > 1:
+					value = XYZ()
+					for val in self.map[u][v].values:
+						value += val
+					self.map[u][v].values = [value / len(self.map[u][v].values)]
+				if self.map[u][v].values != []:
+					if self.bb_min:
+						self.bb_min.x = min(self.bb_min.x, self.map[u][v].values[0].x)
+						self.bb_min.y = min(self.bb_min.y, self.map[u][v].values[0].y)
+						self.bb_min.z = min(self.bb_min.z, self.map[u][v].values[0].z)
+						self.bb_max.x = max(self.bb_max.x, self.map[u][v].values[0].x)
+						self.bb_max.y = max(self.bb_max.y, self.map[u][v].values[0].y)
+						self.bb_max.z = max(self.bb_max.z, self.map[u][v].values[0].z)
+					else:
+						self.bb_min = XYZ() + self.map[u][v].values[0]
+						self.bb_max = XYZ() + self.map[u][v].values[0]
+		self.range = self.bb_max - self.bb_min
+		self.center = self.bb_min + self.range * 0.5
 
-	def _drawVLine(self, x, s, e, start_rgb, end_rgb, ends=True):
-		'''Draws a vertical line on the image on column x, from row s to e.
-
-		image - where to draw
-		x - u co-ordinate
-		s - start v co-ordinate
-		e - end v co-ordinate
-		start_rgb - start colour
-		end_rgb - end_colour
-		'''
-		if s > e:
-			c = s
-			s = e
-			e = c
-		if s - e == 0 and ends:
-			self.add(x, e, end_rgb)
-			return
-		delta = (end_rgb - start_rgb) / (e - s)
-		c = start_rgb
-		if ends:
-			e += 1
-		else:
-			c += delta
-			s += 1
-		for v in range(s , e):
-			self.add( x, v, c)
-			c += delta
+	def bake(self):
+		for u in range(self.image.size[0]):
+			for v in range(self.image.size[1]):
+				if self.map[u][v].values:
+					c = self.map[u][v].values[0] - self.bb_min
+					if self.range.x:
+						r = int((c.x / self.range.x + self.adjust) * 255)
+					else:
+						r = 127
+					if self.range.y:
+						g = int((c.y / self.range.y + self.adjust) * 255)
+					else:
+						g = 127
+					if self.range.z:
+						b = int((c.z / self.range.z + self.adjust) * 255)
+					else:
+						b = 127
+					self.image.setPixelI(u, v, (r, g, b, 255))
 
 class LibPath:
 	def __init__(self, path, root=None):
@@ -553,7 +560,47 @@ def bake_lod(image):
 				c[2] += 0.25
 				image.setPixelF(s, t, c)
 
-def bake_object(ob, bb, clear = True):
+def bake_object(ob, bb, clear=True):
+	'''Bakes the object's mesh to the specified bounding box.
+	Returns False if object is not an active sculptie.
+	'''
+	debug(20, "sculpty.bake_object(%s, %d)"%(ob.name, clear))
+	if not active(ob):
+		return False
+	mesh = Blender.Mesh.New()
+	mesh.getFromObject(ob, 0, 1)
+	images = map_images(mesh)
+	maps = {}
+	for i in images:
+		maps[i.name] = BakeMap(i)
+		if clear:
+			clear_image(i)
+	currentUV = mesh.activeUVLayer
+	mesh.activeUVLayer = "sculptie"
+	edges = dict([(ed.key, {'count':0,
+		'seam':bool(ed.flag & Blender.Mesh.EdgeFlags.SEAM),
+		'v1':ed.v1,
+		'v2':ed.v2
+		}) for ed in mesh.edges])
+	for f in mesh.faces:
+		if f.image:
+			for key in f.edge_keys:
+				if key not in maps[f.image.name].edges:
+					maps[f.image.name].edges[key] = edges[key].copy()
+					maps[f.image.name].edges[key]['uv1'] = []
+					maps[f.image.name].edges[key]['uv2'] = []
+				maps[f.image.name].edges[key]['count'] += 1
+				i = f.v.index(edges[key]['v1'])
+				maps[f.image.name].edges[key]['uv1'].append(XYZ(f.uv[i].x, f.uv[i].y, 0.0))
+				i = f.v.index(edges[key]['v2'])
+				maps[f.image.name].edges[key]['uv2'].append(XYZ(f.uv[i].x, f.uv[i].y, 0.0))
+	for m in maps:
+		maps[m].update()
+		maps[m].bake()
+	mesh.activeUVLayer = currentUV
+	return True
+
+def bake_object_old(ob, bb, clear = True):
 	'''Bakes the object's mesh to the specified bounding box.
 	Returns False if object is not an active sculptie.
 	'''
@@ -625,9 +672,7 @@ def check(ob):
 	return False
 
 def clear_image(image):
-	'''
-	Clears the image to black with alpha 0
-	'''
+	'''Clears the image to black with alpha 0'''
 	debug(30, "sculpty.clear_image(%s)"%(image.name))
 	for x in xrange(image.size[0]):
 		for y in xrange(image.size[1]):
@@ -642,99 +687,64 @@ def clear_alpha(image):
 			c1[3] = 0
 			image.setPixelI(x, y, c1)
 
-def draw_line(image, start, end, ends=True):
-	'''Draws a line on the image from start pixel to end pixel.'''
-	diff = end - start
-	if diff.u == 0:
-		# vertical
-		_drawVLine(image, start.u, start.v, end.v, start.rgb, end.rgb)
-	elif diff.v == 0:
-		# horizontal
-		_drawHLine(image, start.v, start.u, end.u, start.rgb, end.rgb)
-	elif (diff.u + diff.v == 0 or diff.u == diff.v):
-		# diagonal
-		if diff.u < 0:
-			diff = start
-			start = end
-			end = diff
-			diff = end - start
-		if diff.u == 1 and ends:
-			image.setPixelI(start.u, start.v, (start.rgb.x, start.rgb.y, start.rgb.z, 255))
-			image.setPixelI(end.u, end.v, (end.rgb.x, end.rgb.y, end.rgb.z, 255))
+def draw_line(image, v1, v2, c1, c2):
+	'''Draws a gradient line on a sculpt map image'''
+	x1 = v1.x
+	if x1 == image.size[0] - 1:
+		x1 = image.size[0]
+	x2 = v2.x
+	if x2 == image.size[0] - 1:
+		x2 = image.size[0]
+	y1 = v1.y
+	if y1 == image.size[1] - 1:
+		y1 = image.size[1]
+	y2 = v2.y
+	if y2 == image.size[1] - 1:
+		y2 = image.size[1]
+	steep = abs(y2 - y1) > abs(x2 - x1)
+	if steep:
+		x1, y1 = y1, x1
+		x2, y2 = y2, x2
+	if x1 > x2:
+		x1, x2 = x2, x1
+		y1, y2 = y2, y1
+		c1, c2 = c2, c1
+	mix = c2 - c1
+	deltax = x2 - x1
+	deltay = abs(y2 - y1)
+	deltac = sqrt(deltax**2 + deltay**2)
+	error = deltax / 2
+	y = y1
+	if y1 < y2:
+		ystep = 1
+	else:
+		ystep = -1
+	for x in range(x1, x2 + 1):
+		d = sqrt((x - x1)**2 + (y - y1)**2)
+		if d:
+			colour = c1 + (mix * (float(d) / deltac))
 		else:
-			delta = diff.rgb / diff.u
-			c = start.rgb
-			if ends:
-				s = 0
-				e = 1
-			else:
-				c+= delta
-				s = 1
-				e = 0
-			if diff.v < 0:
-				v = -1
-			else:
-				v = 1
-			for i in range(s, diff.u + e):
-				image.setPixelI(start.u + i, start.v + i * v, (clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255))
-				c += delta
-	# other lines not currently drawn
+			colour = c1
+		if steep:
+			draw_point(image, y, x, colour)
+		else:
+			draw_point(image, x, y, colour)
+		error = error - deltay
+		if error < 0:
+			y = y + ystep
+			error = error + deltax
 
-def _drawHLine(image, y, s, e, start_rgb, end_rgb, ends=True):
-	'''Draws a horizontal line on the image on row y, from column s to e.
-
-	image - where to draw
-	y - v co-ordinate
-	s - start u co-ordinate
-	e - end u co-ordinate
-	start_rgb - start colour
-	end_rgb - end_colour
-	'''
-	if s > e:
-		c = s
-		s = e
-		e = c
-	if s - e == 0 and ends:
-		image.setPixelI(e, y, (end_rgb.x, end_rgb.y, end_rgb.z, 255))
+def draw_point(image, u, v, colour):
+	'''Set pixel colour for given u,v on a sculpt map'''
+	if u == image.size[0] - 1:
 		return
-	delta = (end_rgb - start_rgb) / (e - s)
-	c = start_rgb
-	if ends:
-		e += 1
-	else:
-		c+= delta
-		s += 1
-	for u in range(s, e):
-		image.setPixelI(u, y, (clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255))
-		c += delta
-
-def _drawVLine(image, x, s, e, start_rgb, end_rgb, ends=True):
-	'''Draws a vertical line on the image on column x, from row s to e.
-
-	image - where to draw
-	x - u co-ordinate
-	s - start v co-ordinate
-	e - end v co-ordinate
-	start_rgb - start colour
-	end_rgb - end_colour
-	'''
-	if s > e:
-		c = s
-		s = e
-		e = c
-	if s - e == 0 and ends:
-		image.setPixelI(x, e, (end_rgb.x, end_rgb.y, end_rgb.z, 255))
+	if v == image.size[1] - 1:
 		return
-	delta = (end_rgb - start_rgb) / (e - s)
-	c = start_rgb
-	if ends:
-		e += 1
-	else:
-		c += delta
-		s += 1
-	for v in range(s , e):
-		image.setPixelI(x, v, (clip(int(c.x)), clip(int(c.y)), clip(int(c.z)), 255))
-		c += delta
+	if u == image.size[0]:
+		u = image.size[0] - 1
+	if v == image.size[1]:
+		v = image.size[1] - 1
+	image.setPixelF(u, v, (colour.x, colour.y, colour.z, 1.0))
 
 def face_count(width, height, x_faces, y_faces, model = True):
 	'''Returns usable face count from input
@@ -763,14 +773,14 @@ def fill_holes(image):
 	debug( 30, "sculpty.fill_holes(%s)"%(image.name))
 	def getFirstX(y):
 		for x in xrange(image.size[0]):
-			c = image.getPixelI(x, y)
+			c = image.getPixelF(x, y)
 			if c[3] != 0:
 				if x > 0: fill = True
 				return c
 		return None
 	def getFirstY(x):
 		for y in xrange(image.size[1]):
-			c = image.getPixelI(x, y)
+			c = image.getPixelF(x, y)
 			if c[3] != 0:
 				if y > 0: fill = True
 				return c
@@ -787,14 +797,15 @@ def fill_holes(image):
 			sb = c[2]
 			s = 0
 			for u in xrange(1, image.size[0]):
-				nc = image.getPixelI(u, v)
+				nc = image.getPixelF(u, v)
 				if nc[3] == 0:
 					if not fill:
 						fill = True
 				else:
 					if fill:
 						fill = False
-						_drawHLine(image, v, s, u,
+						draw_line(image, XYZ(s, v, 0),
+								XYZ(u, v, 0),
 								XYZ(sr, sg, sb),
 								XYZ(nc[0], nc[1], nc[2]))
 					s = u
@@ -803,7 +814,10 @@ def fill_holes(image):
 					sb = nc[2]
 			if fill:
 				fill = False
-				_drawHLine(image, v, s, u, XYZ(sr, sg, sb), XYZ(sr, sg, sb))
+				draw_line(image, XYZ(s, v, 0),
+						XYZ(u, v, 0),
+						XYZ(sr, sg, sb),
+						XYZ(sr, sg, sb))
 		return skipx
 	def fillY():
 		fill = False
@@ -816,14 +830,15 @@ def fill_holes(image):
 			sb = c[2]
 			s = 0
 			for v in xrange(1, image.size[1]):
-				nc = image.getPixelI(u, v)
+				nc = image.getPixelF(u, v)
 				if nc[3] == 0:
 					if not fill:
 						fill = True
 				else:
 					if fill:
 						fill = False
-						_drawVLine(image, u, s, v,
+						draw_line(image, XYZ(u, s, 0),
+								XYZ(u, v, 0),
 								XYZ(sr, sg, sb),
 								XYZ(nc[0], nc[1], nc[2]))
 					s = v
@@ -832,7 +847,10 @@ def fill_holes(image):
 					sb = nc[2]
 			if fill:
 				fill = False
-				_drawVLine(image, u, s, v, XYZ(sr, sg, sb), XYZ(sr, sg, sb))
+				draw_line(image, XYZ(u, s, 0),
+						XYZ(u, v, 0),
+						XYZ(sr, sg, sb),
+						XYZ(sr, sg, sb))
 	skipx = fillX()
 	fillY()
 	if skipx: fillX()
@@ -1272,10 +1290,13 @@ def update_from_map(mesh, image):
 					if v == image.size[1]:
 						v = image.size[1] - 1
 					p  = image.getPixelF(u, v)
-					adjust = 256.0 / 255.0
-					x = min( p[0]  * adjust, 1.0 ) - 0.5
-					y = min( p[1]  * adjust, 1.0 ) - 0.5
-					z = min( p[2]  * adjust, 1.0 ) - 0.5
+					#adjust = 256.0 / 255.0
+					#x = min( p[0]  * adjust, 1.0 ) - 0.5
+					#y = min( p[1]  * adjust, 1.0 ) - 0.5
+					#z = min( p[2]  * adjust, 1.0 ) - 0.5
+					x = p[0] - 0.5
+					y = p[1] - 0.5
+					z = p[2] - 0.5
 					f.verts[ vi ].co = Blender.Mathutils.Vector(x, y, z)
 	mesh.activeUVLayer = currentUV
 	mesh.sel = True

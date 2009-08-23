@@ -360,10 +360,10 @@ def bake_sculptie():
 					n = Blender.sys.splitext( image.name )
 					if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
 						image.name = ob.name
-					if ob.properties["ps_bake_scale_rgb"]:
-						image.properties['ps_scale_x'] /= bb.rgb.scale.x
-						image.properties['ps_scale_y'] /= bb.rgb.scale.y
-						image.properties['ps_scale_z'] /= bb.rgb.scale.z
+#					if ob.properties["ps_bake_scale_rgb"]:
+#						image.properties['ps_scale_x'] /= bb.rgb.scale.x
+#						image.properties['ps_scale_y'] /= bb.rgb.scale.y
+#						image.properties['ps_scale_z'] /= bb.rgb.scale.z
 					if ob.properties["ps_bake_fill"]:
 						sculpty.fill_holes( image )
 					if ob.properties["ps_bake_final"]:
