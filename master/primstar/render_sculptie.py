@@ -346,10 +346,10 @@ def bake_sculptie():
 					#center new
 					sculpty.set_center( ob )
 				bb.add( ob )
-		if ob.properties["ps_bake_scale"]:
-			bb = bb.normalised()
-		if ob.properties["ps_bake_center"]:
-			bb = bb.centered()
+				if ob.properties["ps_bake_scale"]:
+					bb = bb.normalised()
+				if ob.properties["ps_bake_center"]:
+					bb = bb.centered()
 		# Good to go, do the bake
 		success = False
 		for ob in scene.objects.selected:
