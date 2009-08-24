@@ -53,7 +53,7 @@ def obChildren(ob):
     return [ob_child for ob_child in Blender.Object.Get() if ob_child.parent == ob]
 
 #***********************************************
-# classes
+# helper classes
 #***********************************************
 
 class XYZ:
@@ -106,6 +106,31 @@ class XYZ:
 		return "XYZ(" + str(self.x) + ", " +\
 			str(self.y) + ", " +\
 			str(self.z) + ")"
+
+class RGBRange:
+	def __init__(self, minimum=XYZ(0, 0, 0), maximum=XYZ(255, 255, 255)):
+		self.min = minimum
+		self.max = maximum
+		self.update()
+
+	def convert(self, rgb):
+		'''converts float rgb to integers from the range'''
+		return XYZ(int(round(self.min.x + self.range.x * rgb.x)),
+				int(round(self.min.y + self.range.y * rgb.y)),
+				int(round(self.min.z + self.range.z * rgb.z)))
+
+	def update(self):
+		'''Call after setting min and max to refresh the scale and center.'''
+		self.range = self.max - self.min
+		self.scale = self.range / 255.0
+		self.center = (self.min + self.max * 0.5) / 255.0 - XYZ(0.5, 0.5, 0.5)
+
+	def __repr__(self):
+		return "RGBRange(" + repr(self.min) + ", " + repr(self.max) + ")"
+
+#***********************************************
+# classes
+#***********************************************
 
 class BoundingBox:
 	'''class for calculating the bounding box for post modifier stack meshes'''
@@ -351,24 +376,25 @@ class BakeMap:
 		self.range = self.bb_max - self.bb_min
 		self.center = self.bb_min + self.range * 0.5
 
-	def bake(self):
+	def bake(self, rgb=RGBRange()):
 		for u in range(self.image.size[0]):
 			for v in range(self.image.size[1]):
 				if self.map[u][v].values:
 					c = self.map[u][v].values[0] - self.bb_min
 					if self.range.x:
-						r = int((c.x / self.range.x + DRAW_ADJUST) * 255)
+						c.x = c.x / self.range.x + DRAW_ADJUST
 					else:
-						r = 127
+						c.x = 0.5
 					if self.range.y:
-						g = int((c.y / self.range.y + DRAW_ADJUST) * 255)
+						c.y = c.y / self.range.y + DRAW_ADJUST
 					else:
-						g = 127
+						c.y = 0.5
 					if self.range.z:
-						b = int((c.z / self.range.z + DRAW_ADJUST) * 255)
+						c.z = c.z / self.range.z + DRAW_ADJUST
 					else:
-						b = 127
-					self.image.setPixelI(u, v, (r, g, b, 255))
+						c.z = 0.5
+					c = rgb.convert( c )
+					self.image.setPixelI(u, v, (c.x, c.y, c.z, 255))
 
 class LibPath:
 	def __init__(self, path, root=None):
@@ -407,27 +433,6 @@ def build_lib(path=None, LibDir=LibDir, LibFile=LibFile):
 				dirobj.files.append(LibFile(os.path.join(root, name), top.path))
 				dirobj.files[-1].local_path = dirobj.files[-1].local_path[:-4]
 	return top
-
-class RGBRange:
-	def __init__(self, minimum=XYZ(0, 0, 0), maximum=XYZ(255, 255, 255)):
-		self.min = minimum
-		self.max = maximum
-		self.update()
-
-	def convert(self, rgb):
-		'''converts float rgb to integers from the range'''
-		return XYZ(int(round(self.min.x + self.range.x * rgb.x)),
-				int(round(self.min.y + self.range.y * rgb.y)),
-				int(round(self.min.z + self.range.z * rgb.z)))
-
-	def update(self):
-		'''Call after setting min and max to refresh the scale and center.'''
-		self.range = self.max - self.min
-		self.scale = self.range / 255.0
-		self.center = (self.min + self.max * 0.5) / 255.0 - XYZ(0.5, 0.5, 0.5)
-
-	def __repr__(self):
-		return "RGBRange(" + repr(self.min) + ", " + repr(self.max) + ")"
 
 class Pixel:
 	def __init__(self, u, v, rgb):
@@ -623,7 +628,7 @@ def bake_object(ob, bb, clear=True):
 		maps[m].image.properties['ps_size_x'] = bb.scale.x * ob.size[0]
 		maps[m].image.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
 		maps[m].image.properties['ps_size_z'] = bb.scale.z * ob.size[2]
-		maps[m].bake()
+		maps[m].bake(bb.rgb)
 	mesh.activeUVLayer = currentUV
 	return True
 
