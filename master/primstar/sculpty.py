@@ -115,9 +115,9 @@ class RGBRange:
 
 	def convert(self, rgb):
 		'''converts float rgb to integers from the range'''
-		return XYZ(int(round(self.min.x + self.range.x * rgb.x)),
-				int(round(self.min.y + self.range.y * rgb.y)),
-				int(round(self.min.z + self.range.z * rgb.z)))
+		return XYZ(int(self.min.x + self.range.x * rgb.x),
+				int(self.min.y + self.range.y * rgb.y),
+				int(self.min.z + self.range.z * rgb.z))
 
 	def update(self):
 		'''Call after setting min and max to refresh the scale and center.'''
