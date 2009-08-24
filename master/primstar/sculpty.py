@@ -280,7 +280,7 @@ class BakeMap:
 		self.image = image
 		self.bb_min = None
 		self.bb_max = None
-		self.range = None
+		self.scale = None
 		self.center = None
 		self.edges = {}
 		self.map = [[PlotPoint() for x in range(image.size[0])] for y in range(image.size[1])]
@@ -373,24 +373,24 @@ class BakeMap:
 		self.update()
 
 	def update(self):
-		self.range = self.bb_max - self.bb_min
-		self.center = self.bb_min + self.range * 0.5
+		self.scale = self.bb_max - self.bb_min
+		self.center = self.bb_min + self.scale * 0.5
 
 	def bake(self, rgb=RGBRange()):
 		for u in range(self.image.size[0]):
 			for v in range(self.image.size[1]):
 				if self.map[u][v].values:
 					c = self.map[u][v].values[0] - self.bb_min
-					if self.range.x:
-						c.x = c.x / self.range.x + DRAW_ADJUST
+					if self.scale.x:
+						c.x = c.x / self.scale.x + DRAW_ADJUST
 					else:
 						c.x = 0.5
-					if self.range.y:
-						c.y = c.y / self.range.y + DRAW_ADJUST
+					if self.scale.y:
+						c.y = c.y / self.scale.y + DRAW_ADJUST
 					else:
 						c.y = 0.5
-					if self.range.z:
-						c.z = c.z / self.range.z + DRAW_ADJUST
+					if self.scale.z:
+						c.z = c.z / self.scale.z + DRAW_ADJUST
 					else:
 						c.z = 0.5
 					c = rgb.convert( c )
@@ -622,9 +622,9 @@ def bake_object(ob, bb, clear=True):
 		#todo handle updating bb_min & bb_max to give common scale on joined meshes
 		pass
 	for m in maps:
-		maps[m].image.properties['ps_scale_x'] = bb.scale.x / maps[m].range.x
-		maps[m].image.properties['ps_scale_y'] = bb.scale.y / maps[m].range.y
-		maps[m].image.properties['ps_scale_z'] = bb.scale.z / maps[m].range.z
+		maps[m].image.properties['ps_scale_x'] = bb.scale.x / maps[m].scale.x
+		maps[m].image.properties['ps_scale_y'] = bb.scale.y / maps[m].scale.y
+		maps[m].image.properties['ps_scale_z'] = bb.scale.z / maps[m].scale.z
 		maps[m].image.properties['ps_size_x'] = bb.scale.x * ob.size[0]
 		maps[m].image.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
 		maps[m].image.properties['ps_size_z'] = bb.scale.z * ob.size[2]
