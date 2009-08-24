@@ -300,6 +300,14 @@ class BakeMap:
 				error = error + deltax
 
 	def plot_point(self, x, y, colour, seam):
+		if x < 0:
+			return
+		if y < 0:
+			return
+		if x > self.image.size[0]:
+			return
+		if y > self.image.size[1]:
+			return
 		if x == self.image.size[0] - 1:
 			seam = False
 		if y == self.image.size[1] - 1:
@@ -310,7 +318,7 @@ class BakeMap:
 			y = self.image.size[1] - 1
 		self.map[x][y].add(colour, seam)
 
-	def update(self):
+	def update_map(self):
 		for key, line in self.edges.iteritems():
 			seam = line['seam'] or line['count'] == 1
 			self.plot_line(line['uv1'][0], line['uv2'][0], line['v1'], line['v2'], seam)
@@ -337,6 +345,9 @@ class BakeMap:
 					else:
 						self.bb_min = XYZ() + self.map[u][v].values[0]
 						self.bb_max = XYZ() + self.map[u][v].values[0]
+		self.update()
+
+	def update(self):
 		self.range = self.bb_max - self.bb_min
 		self.center = self.bb_min + self.range * 0.5
 
@@ -597,8 +608,21 @@ def bake_object(ob, bb, clear=True):
 				i = f.v.index(edges[key]['v2'])
 				maps[f.image.name].edges[key]['uv2'].append(XYZ(f.uv[i].x, f.uv[i].y, 0.0))
 	for m in maps:
-		maps[m].update()
-		# todo: keep center, keep scale stuff goes here
+		maps[m].update_map()
+		if len(maps) == 1:
+			maps[m].bb_min = bb.min
+			maps[m].bb_max = bb.max
+			maps[m].update()
+	if len(maps) > 1:
+		#todo handle updating bb_min & bb_max to give common scale on joined meshes
+		pass
+	for m in maps:
+		maps[m].image.properties['ps_scale_x'] = bb.scale.x / maps[m].range.x
+		maps[m].image.properties['ps_scale_y'] = bb.scale.y / maps[m].range.y
+		maps[m].image.properties['ps_scale_z'] = bb.scale.z / maps[m].range.z
+		maps[m].image.properties['ps_size_x'] = bb.scale.x * ob.size[0]
+		maps[m].image.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
+		maps[m].image.properties['ps_size_z'] = bb.scale.z * ob.size[2]
 		maps[m].bake()
 	mesh.activeUVLayer = currentUV
 	return True
