@@ -31,6 +31,11 @@ from math import sin, cos, pi, sqrt, log, ceil, atan2, radians
 lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
 
 #***********************************************
+# constants
+#***********************************************
+DRAW_ADJUST = 1.0 / 512.0
+
+#***********************************************
 # helper functions
 #***********************************************
 
@@ -245,8 +250,6 @@ class PlotPoint:
 		return "(%s, %s)"%(repr(self.values), repr(self.seam))
 
 class BakeMap:
-	adjust = 1.0 / 510
-
 	def __init__(self, image):
 		self.map = []
 		self.image = image
@@ -284,7 +287,7 @@ class BakeMap:
 		for x in range(x1, x2 + 1):
 			d = x - x1
 			if d:
-				colour = c1 + (mix * (float(d) / deltax))
+				colour = c1 + mix * (float(d) / deltax)
 			else:
 				colour = c1
 			if steep:
@@ -343,15 +346,15 @@ class BakeMap:
 				if self.map[u][v].values:
 					c = self.map[u][v].values[0] - self.bb_min
 					if self.range.x:
-						r = int((c.x / self.range.x + self.adjust) * 255)
+						r = int((c.x / self.range.x + DRAW_ADJUST) * 255)
 					else:
 						r = 127
 					if self.range.y:
-						g = int((c.y / self.range.y + self.adjust) * 255)
+						g = int((c.y / self.range.y + DRAW_ADJUST) * 255)
 					else:
 						g = 127
 					if self.range.z:
-						b = int((c.z / self.range.z + self.adjust) * 255)
+						b = int((c.z / self.range.z + DRAW_ADJUST) * 255)
 					else:
 						b = 127
 					self.image.setPixelI(u, v, (r, g, b, 255))
@@ -595,6 +598,7 @@ def bake_object(ob, bb, clear=True):
 				maps[f.image.name].edges[key]['uv2'].append(XYZ(f.uv[i].x, f.uv[i].y, 0.0))
 	for m in maps:
 		maps[m].update()
+		# todo: keep center, keep scale stuff goes here
 		maps[m].bake()
 	mesh.activeUVLayer = currentUV
 	return True
@@ -672,7 +676,10 @@ def draw_line(image, v1, v2, c1, c2):
 	for x in range(x1, x2 + 1):
 		d = x - x1
 		if d:
-			colour = c1 + (mix * (float(d) / deltax))
+			if d == deltax:
+				colour = c2
+			else:
+				colour = c1 + mix * (DRAW_ADJUST + float(d) / deltax)
 		else:
 			colour = c1
 		if steep:
