@@ -671,7 +671,7 @@ def clear_alpha(image):
 			c1[3] = 0
 			image.setPixelI(x, y, c1)
 
-def draw_line(image, v1, v2, c1, c2):
+def draw_line(image, v1, v2, c1, c2, ends = False):
 	'''Draws a gradient line on a sculpt map image'''
 	x1 = v1.x
 	if x1 == image.size[0] - 1:
@@ -703,18 +703,23 @@ def draw_line(image, v1, v2, c1, c2):
 	else:
 		ystep = -1
 	for x in range(x1, x2 + 1):
-		d = x - x1
-		if d:
-			if d == deltax:
-				colour = c2
+		if ends:
+			draw = True
+		else:
+			draw = (x != x1 and x != x2)
+		if draw:
+			d = x - x1
+			if d:
+				if d == deltax:
+					colour = c2
+				else:
+					colour = c1 + mix * (DRAW_ADJUST + float(d) / deltax)
 			else:
-				colour = c1 + mix * (DRAW_ADJUST + float(d) / deltax)
-		else:
-			colour = c1
-		if steep:
-			draw_point(image, y, x, colour)
-		else:
-			draw_point(image, x, y, colour)
+				colour = c1
+			if steep:
+				draw_point(image, y, x, colour)
+			else:
+				draw_point(image, x, y, colour)
 		error = error - deltay
 		if error < 0:
 			y = y + ystep
