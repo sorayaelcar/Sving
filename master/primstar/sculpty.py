@@ -618,10 +618,10 @@ def bake_object(ob, bb, clear=True):
 			maps[m].bb_min = bb.min
 			maps[m].bb_max = bb.max
 			maps[m].update()
-	if len(maps) > 1:
-		#todo handle updating bb_min & bb_max to give common scale on joined meshes
-		pass
 	for m in maps:
+		maps[m].image.properties['ps_loc_x'] = maps[m].center.x
+		maps[m].image.properties['ps_loc_y'] = maps[m].center.y
+		maps[m].image.properties['ps_loc_z'] = maps[m].center.z
 		maps[m].image.properties['ps_scale_x'] = bb.scale.x / maps[m].scale.x
 		maps[m].image.properties['ps_scale_y'] = bb.scale.y / maps[m].scale.y
 		maps[m].image.properties['ps_scale_z'] = bb.scale.z / maps[m].scale.z
