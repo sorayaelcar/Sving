@@ -434,51 +434,6 @@ def build_lib(path=None, LibDir=LibDir, LibFile=LibFile):
 				dirobj.files[-1].local_path = dirobj.files[-1].local_path[:-4]
 	return top
 
-class Pixel:
-	def __init__(self, u, v, rgb):
-		self.u = u
-		self.v = v
-		self.rgb = rgb
-
-	def __cmp__(self, other):
-		if self.u == other.u:
-			return cmp(self.v, other.v)
-		else:
-			return cmp(self.u, other.u)
-
-	def __sub__(self, other):
-		return Pixel(
-			self.u - other.u,
-			self.v - other.v,
-			self.rgb - other.rgb
-		)
-
-	def __add__(self, other):
-		return Pixel(
-			self.u + other.u,
-			self.v + other.v,
-			self.rgb + other.rgb
-		)
-
-	def __mul__(self, scalar):
-		return Pixel(
-			self.u * scalar,
-			self.v * scalar,
-			self.rgb * scalar
-		)
-
-	def __div__(self, scalar):
-		return Pixel(
-			self.u / scalar,
-			self.v / scalar,
-			self.rgb / scalar
-		)
-
-	def __repr__(self):
-		return "Pixel(" + str(self.u) + ", " +\
-			str(self.v) + ", " +\
-			str(self.rgb) + ")"
-
 class Prim:
 	def __init__(self, name, ob=None):
 		self.name = name
@@ -703,10 +658,7 @@ def draw_line(image, v1, v2, c1, c2, ends = False):
 	else:
 		ystep = -1
 	for x in range(x1, x2 + 1):
-		if ends:
-			draw = True
-		else:
-			draw = (x != x1 and x != x2)
+		draw = ends or (x != x1 and x != x2)
 		if draw:
 			d = x - x1
 			if d:
@@ -1196,9 +1148,9 @@ def open(filename):
 	debug(10, "sculpty.open(%s)"%(filename))
 	image = Blender.Image.Load(filename)
 	image.name = Blender.sys.splitext(image.name)[0]
-	image.properties["scale_x"] = 1.0
-	image.properties["scale_y"] = 1.0
-	image.properties["scale_z"] = 1.0
+	image.properties["ps_size_x"] = 1.0
+	image.properties["ps_size_y"] = 1.0
+	image.properties["ps_size_z"] = 1.0
 	return new_from_map(image)
 
 def set_alpha(image, alpha):
@@ -1281,10 +1233,6 @@ def update_from_map(mesh, image):
 					if v == image.size[1]:
 						v = image.size[1] - 1
 					p  = image.getPixelF(u, v)
-					#adjust = 256.0 / 255.0
-					#x = min( p[0]  * adjust, 1.0 ) - 0.5
-					#y = min( p[1]  * adjust, 1.0 ) - 0.5
-					#z = min( p[2]  * adjust, 1.0 ) - 0.5
 					x = p[0] - 0.5
 					y = p[1] - 0.5
 					z = p[2] - 0.5
