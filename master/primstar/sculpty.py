@@ -370,7 +370,7 @@ class BakeMap:
 		self.update()
 
 	def update(self):
-		'''update scale and center'''
+		'''update scale and center from bb_min and bb_max'''
 		self.scale = self.bb_max - self.bb_min
 		self.center = self.bb_min + self.scale * 0.5
 
@@ -566,22 +566,44 @@ def bake_object(ob, bb, clear=True):
 				maps[f.image.name].edges[key]['uv1'].append(XYZ(f.uv[i].x, f.uv[i].y, 0.0))
 				i = f.v.index(edges[key]['v2'])
 				maps[f.image.name].edges[key]['uv2'].append(XYZ(f.uv[i].x, f.uv[i].y, 0.0))
+	max_scale = None
 	for m in maps.itervalues():
 		m.update_map()
 		if len(maps) == 1:
 			m.bb_min = bb.min
 			m.bb_max = bb.max
 			m.update()
+		else:
+			if max_scale == None:
+				max_scale = XYZ() + m.scale
+			else:
+				if max_scale.x < m.scale.x:
+					max_scale.x = m.scale.x
+				if max_scale.y < m.scale.y:
+					max_scale.y = m.scale.y
+				if max_scale.z < m.scale.z:
+					max_scale.z = m.scale.z
 	for m in maps.itervalues():
 		m.image.properties['ps_loc_x'] = m.center.x
 		m.image.properties['ps_loc_y'] = m.center.y
 		m.image.properties['ps_loc_z'] = m.center.z
-		m.image.properties['ps_scale_x'] = bb.scale.x / m.scale.x
-		m.image.properties['ps_scale_y'] = bb.scale.y / m.scale.y
-		m.image.properties['ps_scale_z'] = bb.scale.z / m.scale.z
-		m.image.properties['ps_size_x'] = bb.scale.x * ob.size[0]
-		m.image.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
-		m.image.properties['ps_size_z'] = bb.scale.z * ob.size[2]
+		if len(maps) > 1:
+			m.image.properties['ps_scale_x'] = max_scale.x / m.scale.x
+			m.image.properties['ps_scale_y'] = max_scale.y / m.scale.y
+			m.image.properties['ps_scale_z'] = max_scale.z / m.scale.z
+			m.image.properties['ps_size_x'] = max_scale.x * ob.size[0]
+			m.image.properties['ps_size_y'] =  max_scale.y * ob.size[1]
+			m.image.properties['ps_size_z'] = max_scale.z * ob.size[2]
+			m.bb_min = m.center - max_scale * 0.5
+			m.bb_max = m.center + max_scale * 0.5
+			m.scale = max_scale
+		else:
+			m.image.properties['ps_scale_x'] = bb.scale.x / m.scale.x
+			m.image.properties['ps_scale_y'] = bb.scale.y / m.scale.y
+			m.image.properties['ps_scale_z'] = bb.scale.z / m.scale.z
+			m.image.properties['ps_size_x'] = bb.scale.x * ob.size[0]
+			m.image.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
+			m.image.properties['ps_size_z'] = bb.scale.z * ob.size[2]
 		m.bake(bb.rgb)
 	mesh.activeUVLayer = currentUV
 	return True
