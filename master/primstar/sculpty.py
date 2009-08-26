@@ -39,12 +39,6 @@ DRAW_ADJUST = 1.0 / 512.0
 # helper functions
 #***********************************************
 
-def clip(value, minimum=0, maximum=255):
-	result = min(maximum, max(minimum, value))
-	if value != result:
-		debug(90, str(value) + "clipped to" + str(result))
-	return result
-
 def debug(num,msg):
 	if Blender.Get('rt') >= num:
 		print 'debug:', (' '*num), msg
@@ -283,9 +277,10 @@ class BakeMap:
 		self.scale = None
 		self.center = None
 		self.edges = {}
-		self.map = [[PlotPoint() for x in range(image.size[0])] for y in range(image.size[1])]
+		self.map = [[PlotPoint() for y in range(image.size[1])] for x in range(image.size[0])]
 
 	def plot_line(self, v1, v2, col1, col2, seam):
+		'''plot a gradient line in the bake buffer'''
 		c1 = XYZ(col1.co.x, col1.co.y, col1.co.z)
 		c2 = XYZ(col2.co.x, col2.co.y, col2.co.z)
 		x1 = int(v1.x * self.image.size[0])
@@ -325,6 +320,7 @@ class BakeMap:
 				error = error + deltax
 
 	def plot_point(self, x, y, colour, seam):
+		'''plot a point in the bake buffer'''
 		if x < 0:
 			return
 		if y < 0:
@@ -344,6 +340,7 @@ class BakeMap:
 		self.map[x][y].add(colour, seam)
 
 	def update_map(self):
+		'''plot edge buffer into bake buffer and update minimum and maximum range'''
 		for key, line in self.edges.iteritems():
 			seam = line['seam'] or line['count'] == 1
 			self.plot_line(line['uv1'][0], line['uv2'][0], line['v1'], line['v2'], seam)
@@ -373,10 +370,12 @@ class BakeMap:
 		self.update()
 
 	def update(self):
+		'''update scale and center'''
 		self.scale = self.bb_max - self.bb_min
 		self.center = self.bb_min + self.scale * 0.5
 
 	def bake(self, rgb=RGBRange()):
+		'''bake the map buffer to the image'''
 		for u in range(self.image.size[0]):
 			for v in range(self.image.size[1]):
 				if self.map[u][v].values:
@@ -567,23 +566,23 @@ def bake_object(ob, bb, clear=True):
 				maps[f.image.name].edges[key]['uv1'].append(XYZ(f.uv[i].x, f.uv[i].y, 0.0))
 				i = f.v.index(edges[key]['v2'])
 				maps[f.image.name].edges[key]['uv2'].append(XYZ(f.uv[i].x, f.uv[i].y, 0.0))
-	for m in maps:
-		maps[m].update_map()
+	for m in maps.itervalues():
+		m.update_map()
 		if len(maps) == 1:
-			maps[m].bb_min = bb.min
-			maps[m].bb_max = bb.max
-			maps[m].update()
-	for m in maps:
-		maps[m].image.properties['ps_loc_x'] = maps[m].center.x
-		maps[m].image.properties['ps_loc_y'] = maps[m].center.y
-		maps[m].image.properties['ps_loc_z'] = maps[m].center.z
-		maps[m].image.properties['ps_scale_x'] = bb.scale.x / maps[m].scale.x
-		maps[m].image.properties['ps_scale_y'] = bb.scale.y / maps[m].scale.y
-		maps[m].image.properties['ps_scale_z'] = bb.scale.z / maps[m].scale.z
-		maps[m].image.properties['ps_size_x'] = bb.scale.x * ob.size[0]
-		maps[m].image.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
-		maps[m].image.properties['ps_size_z'] = bb.scale.z * ob.size[2]
-		maps[m].bake(bb.rgb)
+			m.bb_min = bb.min
+			m.bb_max = bb.max
+			m.update()
+	for m in maps.itervalues():
+		m.image.properties['ps_loc_x'] = m.center.x
+		m.image.properties['ps_loc_y'] = m.center.y
+		m.image.properties['ps_loc_z'] = m.center.z
+		m.image.properties['ps_scale_x'] = bb.scale.x / m.scale.x
+		m.image.properties['ps_scale_y'] = bb.scale.y / m.scale.y
+		m.image.properties['ps_scale_z'] = bb.scale.z / m.scale.z
+		m.image.properties['ps_size_x'] = bb.scale.x * ob.size[0]
+		m.image.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
+		m.image.properties['ps_size_z'] = bb.scale.z * ob.size[2]
+		m.bake(bb.rgb)
 	mesh.activeUVLayer = currentUV
 	return True
 
@@ -591,8 +590,8 @@ def bake_preview(image):
 	'''Bakes a pseudo 3D representation of the sculpt map image to it's alpha channel'''
 	debug(30, "sculpty.bake_preview(%s)"%(image.name))
 	clear_alpha(image)
-	for x in xrange(image.size[0]):
-		for y in xrange(image.size[1]):
+	for x in range(image.size[0]):
+		for y in range(image.size[1]):
 			c1 = image.getPixelF(x, y)
 			f = (c1[1] * 0.35) + 0.65
 			s = int((image.size[0] - 1) * (0.5 - (0.5 - c1[0]) * f))
@@ -613,15 +612,15 @@ def check(ob):
 def clear_image(image):
 	'''Clears the image to black with alpha 0'''
 	debug(30, "sculpty.clear_image(%s)"%(image.name))
-	for x in xrange(image.size[0]):
-		for y in xrange(image.size[1]):
+	for x in range(image.size[0]):
+		for y in range(image.size[1]):
 			image.setPixelI(x, y, (0, 0, 0, 0))
 
 def clear_alpha(image):
 	'''Clears the alpha channel of the sculpt map image to hide the map'''
 	debug(30, "sculpty.clear_alpha(%s)"%(image.name))
-	for x in xrange(image.size[0]):
-		for y in xrange(image.size[1]):
+	for x in range(image.size[0]):
+		for y in range(image.size[1]):
 			c1 = image.getPixelI(x, y)
 			c1[3] = 0
 			image.setPixelI(x, y, c1)
@@ -715,14 +714,14 @@ def fill_holes(image):
 	'''Any pixels with alpha 0 on the image have colour interpolated from neighbours'''
 	debug( 30, "sculpty.fill_holes(%s)"%(image.name))
 	def getFirstX(y):
-		for x in xrange(image.size[0]):
+		for x in range(image.size[0]):
 			c = image.getPixelF(x, y)
 			if c[3] != 0:
 				if x > 0: fill = True
 				return c
 		return None
 	def getFirstY(x):
-		for y in xrange(image.size[1]):
+		for y in range(image.size[1]):
 			c = image.getPixelF(x, y)
 			if c[3] != 0:
 				if y > 0: fill = True
@@ -730,7 +729,7 @@ def fill_holes(image):
 		return None
 	def fillX():
 		skipx = fill = False
-		for v in xrange(image.size[1]):
+		for v in range(image.size[1]):
 			c = getFirstX(v)
 			if not c :
 				skipx= True
@@ -739,7 +738,7 @@ def fill_holes(image):
 			sg = c[1]
 			sb = c[2]
 			s = 0
-			for u in xrange(1, image.size[0]):
+			for u in range(1, image.size[0]):
 				nc = image.getPixelF(u, v)
 				if nc[3] == 0:
 					if not fill:
@@ -764,7 +763,7 @@ def fill_holes(image):
 		return skipx
 	def fillY():
 		fill = False
-		for u in xrange(image.size[0]):
+		for u in range(image.size[0]):
 			c = getFirstY(u)
 			if not c :
 				continue
@@ -772,7 +771,7 @@ def fill_holes(image):
 			sg = c[1]
 			sb = c[2]
 			s = 0
-			for v in xrange(1, image.size[1]):
+			for v in range(1, image.size[1]):
 				nc = image.getPixelF(u, v)
 				if nc[3] == 0:
 					if not fill:
@@ -959,7 +958,7 @@ def map_type(image):
 	p2 = image.getPixelI(0, image.size[1] - 1)[:3]
 	if p1 != p2:
 		yseam = False
-	for x in xrange(1, image.size[0] ):
+	for x in range(1, image.size[0] ):
 		p3 = image.getPixelI(x, 0)[:3]
 		p4 = image.getPixelI(x, image.size[1] - 1)[:3]
 		if p1 != p3 or p2 != p4:
@@ -968,7 +967,7 @@ def map_type(image):
 			yseam = False
 		p1 = p3
 		p2 = p4
-	for y in xrange(image.size[1] ):
+	for y in range(image.size[1] ):
 		p1 = image.getPixelI(0, y)[:3]
 		p2 = image.getPixelI(image.size[0] - 1, y)[:3]
 		if p1 != p2:
@@ -1097,9 +1096,9 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True,
 	uvgrid_t.append(1.0)
 	verts_s = s + 1 - wrap_x
 	verts_t = t + 1 - wrap_y
-	for i in xrange(verts_t):
+	for i in range(verts_t):
 		profile = float(i)/t
-		for k in xrange(verts_s):
+		for k in range(verts_s):
 			path = float(k)/s
 			pos = uv_to_rgb(sculpt_type, path, profile, radius)
 			vert = Blender.Mathutils.Vector(pos.x - 0.5, pos.y - 0.5, pos.z - 0.5)
@@ -1114,12 +1113,12 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True,
 						seams.append((0, i * verts_s))
 	if wrap_y:
 		verts.extend(verts[:(s+1)])
-		for x in xrange(verts_s - 1):
+		for x in range(verts_s - 1):
 			seams.append((x, x + 1))
 		seams.append((0, verts_s - 1))
-	for y in xrange(t):
+	for y in range(t):
 		offset_y = y * (s +1)
-		for x in xrange(s):
+		for x in range(s):
 			faces.append((verts[offset_y + x], verts[offset_y + s + 1 + x],
 					verts[offset_y + s + x + 2], verts[offset_y + x + 1]))
 			if wrap_x and x == verts_s - 1 and (y == 0 or y == verts_t -1):
@@ -1135,7 +1134,7 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True,
 					Blender.Mathutils.Vector(uvgrid_s[ x + 1 ], uvgrid_t[ y ])))
 	mesh.faces.extend(faces)
 	mesh.faceUV = True
-	for f in xrange(len(mesh.faces)):
+	for f in range(len(mesh.faces)):
 		mesh.faces[ f ].uv = uv[ f ]
 	mesh.renameUVLayer(mesh.activeUVLayer, "sculptie")
 	if seams != []:
@@ -1156,8 +1155,8 @@ def open(filename):
 def set_alpha(image, alpha):
 	'''Sets the alpha channel of the sculpt map image to the alpha image'''
 	debug(30, "sculpty.set_alpha(%s, %s)"%(image.name, alpha.name))
-	for x in xrange(image.size[0]):
-		for y in xrange(image.size[1]):
+	for x in range(image.size[0]):
+		for y in range(image.size[1]):
 			c1 = image.getPixelI (x, y)
 			c2 = pimage.getPixelI(x, y)
 			c1[3]= c2[1]
@@ -1221,7 +1220,7 @@ def update_from_map(mesh, image):
 		mesh.activeUVLayer = "sculptie"
 	verts = range(len(mesh.verts))
 	for f in mesh.faces:
-		for vi in xrange(len(f.verts)):
+		for vi in range(len(f.verts)):
 			if f.verts[ vi ].index in verts:
 				verts.remove(f.verts[ vi ].index)
 				if f.verts[ vi ].sel:
