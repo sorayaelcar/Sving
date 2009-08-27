@@ -680,6 +680,19 @@ def draw_line(image, v1, v2, c1, c2, ends = False):
 		ystep = -1
 	for x in range(x1, x2 + 1):
 		draw = ends or (x != x1 and x != x2)
+		if not draw:
+			#make sure we can skip this pixel
+			if steep:
+				u, v  = y, x
+			else:
+				u, v = x, y
+			if u == image.size[0]:
+				u -= 1
+			if v == image.size[1]:
+				v -= 1
+			c = image.getPixelI(u, v)
+			if c[3] == 0:
+				draw = True
 		if draw:
 			d = x - x1
 			if d:
