@@ -1,10 +1,10 @@
 #!BPY
 
 """
-Name: 'Second Life Sculptie (.tga)'
+Name: 'Second Life Sculptie (.tga, .obj, .dae)'
 Blender: 246
 Group: 'Import'
-Tooltip: 'Import from a Second Life sculptie image map (.tga)'
+Tooltip: 'Import Second Life sculptie from image, obj, or Collada 1.4 files'
 """
 
 __author__ = ["Domino Marama"]
@@ -14,7 +14,8 @@ __bpydoc__ = """\
 
 Sculptie Importer
 
-This script creates an object from a Second Life sculptie image map
+This script creates a sculptie object from a Second Life sculptie map or meshes
+in obj and Collada 1.4 formats.
 """
 
 # ***** BEGIN GPL LICENSE BLOCK *****
@@ -44,6 +45,23 @@ This script creates an object from a Second Life sculptie image map
 
 import Blender
 from primstar import sculpty
+from colladaImEx.translator import Translator
+from import_obj import load_obj
+
+def import_collada(filename):
+	t = Translator(True, '0.3.161', False, filename, False, False, False, False, True,
+			False, False, True, False, False, False, False, True, False)
+	sculptify_scene()
+
+def import_obj(filename):
+	load_obj(filename)
+	sculptify_scene()
+
+def sculptify_scene():
+	scene = Blender.Scene.GetCurrent()
+	for ob in scene.objects:
+		if not sculpty.sculptify(ob):
+			Blender.Draw.PupBlock( "Sculptie Import Error", ["Unable to determine map size", "Please check your UVs"] )
 
 #***********************************************
 # load sculptie file
@@ -63,7 +81,17 @@ def load_sculptie(filename):
 			in_editmode = Blender.Get('add_editmode')
 		except:
 			pass
-	ob = sculpty.open( filename )
+	f, e = Blender.sys.splitext(filename)
+	e = e.lower()
+	if e == '.dae':
+		import_collada(filename)
+	elif e == '.obj':
+		import_obj(filename)
+	else:
+		try:
+			ob = sculpty.open( filename )
+		except:
+			Blender.Draw.PupBlock( "Sculptie Import Error", ["Unsupported file type", "Use .dae or an image file"] )
 	if in_editmode:
 		Blender.Window.EditMode(1)
 	Blender.Redraw()
@@ -76,4 +104,4 @@ def my_callback(filename):
 	load_sculptie(filename)
 
 if __name__ == '__main__':
-	Blender.Window.FileSelector(my_callback, "Import Sculptie", '.tga')
+	Blender.Window.FileSelector(my_callback, "Import Sculptie")

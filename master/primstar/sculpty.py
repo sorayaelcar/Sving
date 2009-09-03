@@ -1187,6 +1187,38 @@ def open(filename):
 	image.properties["ps_size_z"] = 1.0
 	return new_from_map(image)
 
+def sculptify(object):
+	if object.type == 'Mesh':
+		mesh = object.getData(False, True)
+		if "sculptie" not in mesh.getUVLayerNames():
+			mesh.renameUVLayer(mesh.activeUVLayer, "sculptie")
+		else:
+			mesh.activeUVLayer = "sculptie"
+		mesh.update()
+		x_verts = 0
+		x_verts2 = 0
+		y_verts = 0
+		y_verts2 = 0
+		for f in mesh.faces:
+			f.sel = True
+			for v in f.uv:
+				if v[1] == 0.0:
+					x_verts += 1
+				elif v[1] == 1.0:
+					x_verts2 +=1
+				if v[0] == 0.0:
+					y_verts += 1
+				elif v[0] == 1.0:
+					y_verts2 += 1
+		if min(max(x_verts, x_verts2) ,	max(y_verts, y_verts2)) < 4:
+			return False # unable to complete
+		else:
+			s,t,w,h,cs,ct = map_size(max(x_verts, x_verts2) / 2,
+					max(y_verts, y_verts2) / 2, 0)
+			image = Blender.Image.New(mesh.name, w, h, 32)
+			set_map(mesh, image)
+	return True # successful or skipped
+
 def set_alpha(image, alpha):
 	'''Sets the alpha channel of the sculpt map image to the alpha image'''
 	debug(30, "sculpty.set_alpha(%s, %s)"%(image.name, alpha.name))
