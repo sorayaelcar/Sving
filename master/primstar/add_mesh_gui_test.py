@@ -430,6 +430,9 @@ static unsigned char file_open_bits[] = {
 					mesh.multires = True
 					mesh.addMultiresLevel(self.levels.get(), ('simple', 'catmull-clark')[self.subdivision.get()])
 					mesh.sel = True
+			if self.subdivision.get():
+				for f in mesh.faces:
+					f.smooth = True
 			# adjust scale for subdivision
 			minimum, maximum = sculpty.get_bounding_box(ob)
 			x = 1.0 / (maximum.x - minimum.x)
