@@ -585,26 +585,28 @@ def bake_object(ob, bb, clear=True):
 				if max_scale.z < m.scale.z:
 					max_scale.z = m.scale.z
 	for m in maps.itervalues():
-		m.image.properties['ps_loc_x'] = m.center.x
-		m.image.properties['ps_loc_y'] = m.center.y
-		m.image.properties['ps_loc_z'] = m.center.z
+		if 'primstar' not in m.image.properties:
+			m.image.properties['primstar'] = {}
+		m.image.properties['primstar']['loc_x'] = m.center.x
+		m.image.properties['primstar']['loc_y'] = m.center.y
+		m.image.properties['primstar']['loc_z'] = m.center.z
 		if len(maps) > 1:
-			m.image.properties['ps_scale_x'] = max_scale.x / m.scale.x
-			m.image.properties['ps_scale_y'] = max_scale.y / m.scale.y
-			m.image.properties['ps_scale_z'] = max_scale.z / m.scale.z
-			m.image.properties['ps_size_x'] = max_scale.x * ob.size[0]
-			m.image.properties['ps_size_y'] =  max_scale.y * ob.size[1]
-			m.image.properties['ps_size_z'] = max_scale.z * ob.size[2]
+			m.image.properties['primstar']['scale_x'] = max_scale.x / m.scale.x
+			m.image.properties['primstar']['scale_y'] = max_scale.y / m.scale.y
+			m.image.properties['primstar']['scale_z'] = max_scale.z / m.scale.z
+			m.image.properties['primstar']['size_x'] = max_scale.x * ob.size[0]
+			m.image.properties['primstar']['size_y'] =  max_scale.y * ob.size[1]
+			m.image.properties['primstar']['size_z'] = max_scale.z * ob.size[2]
 			m.bb_min = m.center - max_scale * 0.5
 			m.bb_max = m.center + max_scale * 0.5
 			m.scale = max_scale
 		else:
-			m.image.properties['ps_scale_x'] = bb.scale.x / m.scale.x
-			m.image.properties['ps_scale_y'] = bb.scale.y / m.scale.y
-			m.image.properties['ps_scale_z'] = bb.scale.z / m.scale.z
-			m.image.properties['ps_size_x'] = bb.scale.x * ob.size[0]
-			m.image.properties['ps_size_y'] =  bb.scale.y * ob.size[1]
-			m.image.properties['ps_size_z'] = bb.scale.z * ob.size[2]
+			m.image.properties['primstar']['scale_x'] = bb.scale.x / m.scale.x
+			m.image.properties['primstar']['scale_y'] = bb.scale.y / m.scale.y
+			m.image.properties['primstar']['scale_z'] = bb.scale.z / m.scale.z
+			m.image.properties['primstar']['size_x'] = bb.scale.x * ob.size[0]
+			m.image.properties['primstar']['size_y'] =  bb.scale.y * ob.size[1]
+			m.image.properties['primstar']['size_z'] = bb.scale.z * ob.size[2]
 		m.bake(bb.rgb)
 	mesh.activeUVLayer = currentUV
 	return True
@@ -1064,9 +1066,9 @@ def new_from_map(image):
 	except:
 		pass
 	try:
-		x = image.properties['ps_size_x']
-		y = image.properties['ps_size_y']
-		z = image.properties['ps_size_z']
+		x = image.properties['primstar']['size_x']
+		y = image.properties['primstar']['size_y']
+		z = image.properties['primstar']['size_z']
 		ob.setSize( x, y, z )
 	except:
 		pass
@@ -1183,9 +1185,9 @@ def open(filename):
 	debug(10, "sculpty.open(%s)"%(filename))
 	image = Blender.Image.Load(filename)
 	image.name = Blender.sys.splitext(image.name)[0]
-	image.properties["ps_size_x"] = 1.0
-	image.properties["ps_size_y"] = 1.0
-	image.properties["ps_size_z"] = 1.0
+	image.properties['primstar']['size_x'] = 1.0
+	image.properties['primstar']['size_y'] = 1.0
+	image.properties['primstar']['size_z'] = 1.0
 	return new_from_map(image)
 
 def sculptify(object):
