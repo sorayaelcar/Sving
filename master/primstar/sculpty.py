@@ -562,9 +562,10 @@ def bake_object(ob, bb, clear=True):
 					maps[f.image.name].edges[key]['uv1'] = []
 					maps[f.image.name].edges[key]['uv2'] = []
 				maps[f.image.name].edges[key]['count'] += 1
-				i = f.v.index(edges[key]['v1'])
+				verts = list(f.v) # support python < 2.6
+				i = verts.index(edges[key]['v1'])
 				maps[f.image.name].edges[key]['uv1'].append(XYZ(f.uv[i].x, f.uv[i].y, 0.0))
-				i = f.v.index(edges[key]['v2'])
+				i = verts.index(edges[key]['v2'])
 				maps[f.image.name].edges[key]['uv2'].append(XYZ(f.uv[i].x, f.uv[i].y, 0.0))
 	max_scale = None
 	for m in maps.itervalues():
