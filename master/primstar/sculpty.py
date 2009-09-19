@@ -44,7 +44,10 @@ def debug(num,msg):
 		print 'debug:', (' '*num), msg
 
 def obChildren(ob):
-    return [ob_child for ob_child in Blender.Object.Get() if ob_child.parent == ob]
+	return [ob_child for ob_child in Blender.Object.Get() if ob_child.parent == ob]
+
+def clip(value):
+	return min(1.0, max(0.0, value))
 
 #***********************************************
 # helper classes
@@ -109,9 +112,12 @@ class RGBRange:
 
 	def convert(self, rgb):
 		'''converts float rgb to integers from the range'''
-		return XYZ(int(self.min.x + self.range.x * rgb.x),
-				int(self.min.y + self.range.y * rgb.y),
-				int(self.min.z + self.range.z * rgb.z))
+		x = clip(rgb.x)
+		y = clip(rgb.y)
+		z = clip(rgb.z)
+		return XYZ(int(self.min.x + self.range.x * x),
+				int(self.min.y + self.range.y * y),
+				int(self.min.z + self.range.z * z))
 
 	def update(self):
 		'''Call after setting min and max to refresh the scale and center.'''
@@ -277,7 +283,7 @@ class BakeMap:
 		self.scale = None
 		self.center = None
 		self.edges = {}
-		self.map = [[PlotPoint() for y in range(image.size[1])] for x in range(image.size[0])]
+		self.map = [[PlotPoint() for y in range(image.size[1]+1)] for x in range(image.size[0]+1)]
 
 	def plot_line(self, v1, v2, col1, col2, seam):
 		'''plot a gradient line in the bake buffer'''
@@ -329,14 +335,6 @@ class BakeMap:
 			return
 		if y > self.image.size[1]:
 			return
-		if x == self.image.size[0] - 1:
-			seam = False
-		if y == self.image.size[1] - 1:
-			seam = False
-		if x == self.image.size[0]:
-			x = self.image.size[0] - 1
-		if y == self.image.size[1]:
-			y = self.image.size[1] - 1
 		self.map[x][y].add(colour, seam)
 
 	def update_map(self):
@@ -349,8 +347,8 @@ class BakeMap:
 					self.plot_line(line['uv1'][1], line['uv2'][1], line['v1'], line['v2'], seam)
 			if line['count'] >= 3:
 				print "Skipping extra edges: %d not drawn"%(line['count'] - 2)
-		for u in range(self.image.size[0]):
-			for v in range(self.image.size[1]):
+		for u in range(self.image.size[0]+1):
+			for v in range(self.image.size[1]+1):
 				if len(self.map[u][v].values) > 1:
 					value = XYZ()
 					for val in self.map[u][v].values:
@@ -376,8 +374,14 @@ class BakeMap:
 
 	def bake(self, rgb=RGBRange()):
 		'''bake the map buffer to the image'''
-		for u in range(self.image.size[0]):
-			for v in range(self.image.size[1]):
+		for u in range(self.image.size[0]+1):
+			u1 = u
+			if u == self.image.size[0]:
+				u1 -= 1
+			for v in range(self.image.size[1]+1):
+				v1 = v
+				if v == self.image.size[1]:
+					v1 -= 1
 				if self.map[u][v].values:
 					c = self.map[u][v].values[0] - self.bb_min
 					if self.scale.x:
@@ -393,7 +397,7 @@ class BakeMap:
 					else:
 						c.z = 0.5
 					c = rgb.convert( c )
-					self.image.setPixelI(u, v, (c.x, c.y, c.z, 255))
+					self.image.setPixelI(u1, v1, (c.x, c.y, c.z, 255))
 
 class LibPath:
 	def __init__(self, path, root=None):
