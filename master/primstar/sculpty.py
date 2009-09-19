@@ -46,9 +46,6 @@ def debug(num,msg):
 def obChildren(ob):
 	return [ob_child for ob_child in Blender.Object.Get() if ob_child.parent == ob]
 
-def clip(value):
-	return min(1.0, max(0.0, value))
-
 #***********************************************
 # helper classes
 #***********************************************
@@ -112,12 +109,9 @@ class RGBRange:
 
 	def convert(self, rgb):
 		'''converts float rgb to integers from the range'''
-		x = clip(rgb.x)
-		y = clip(rgb.y)
-		z = clip(rgb.z)
-		return XYZ(int(self.min.x + self.range.x * x),
-				int(self.min.y + self.range.y * y),
-				int(self.min.z + self.range.z * z))
+		return XYZ(int(self.min.x + self.range.x * min(1.0, rgb.x)),
+				int(self.min.y + self.range.y * min(1.0, rgb.y)),
+				int(self.min.z + self.range.z * min(1.0, rgb.z)))
 
 	def update(self):
 		'''Call after setting min and max to refresh the scale and center.'''
@@ -375,13 +369,9 @@ class BakeMap:
 	def bake(self, rgb=RGBRange()):
 		'''bake the map buffer to the image'''
 		for u in range(self.image.size[0]+1):
-			u1 = u
-			if u == self.image.size[0]:
-				u1 -= 1
+			u1 = u - (u == self.image.size[0])
 			for v in range(self.image.size[1]+1):
-				v1 = v
-				if v == self.image.size[1]:
-					v1 -= 1
+				v1 = v - (v == self.image.size[1])
 				if self.map[u][v].values:
 					c = self.map[u][v].values[0] - self.bb_min
 					if self.scale.x:
