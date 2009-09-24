@@ -321,14 +321,6 @@ class BakeMap:
 
 	def plot_point(self, x, y, colour, seam):
 		'''plot a point in the bake buffer'''
-		if x < 0:
-			return
-		if y < 0:
-			return
-		if x > self.image.size[0]:
-			return
-		if y > self.image.size[1]:
-			return
 		self.map[x][y].add(colour, seam)
 
 	def update_map(self):
@@ -861,7 +853,7 @@ def get_bounding_box(obj):
 	max_y = min_y
 	min_z = mesh.verts[0].co.z
 	max_z = min_z
-	for v in mesh.verts[1:-1]:
+	for v in mesh.verts:
 		if v.co.x < min_x :
 			min_x = v.co.x
 		elif v.co.x > max_x :
