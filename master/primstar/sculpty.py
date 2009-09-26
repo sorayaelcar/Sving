@@ -109,9 +109,9 @@ class RGBRange:
 
 	def convert(self, rgb):
 		'''converts float rgb to integers from the range'''
-		return XYZ(int(self.min.x + self.range.x * min(1.0, rgb.x)),
-				int(self.min.y + self.range.y * min(1.0, rgb.y)),
-				int(self.min.z + self.range.z * min(1.0, rgb.z)))
+		return XYZ(int(self.min.x + self.range.x * max(0.0, min(1.0, rgb.x))),
+				int(self.min.y + self.range.y * max(0.0, min(1.0, rgb.y))),
+				int(self.min.z + self.range.z * max(0.0, min(1.0, rgb.z))))
 
 	def update(self):
 		'''Call after setting min and max to refresh the scale and center.'''
@@ -255,18 +255,20 @@ class PlotPoint:
 	def __init__(self):
 		self.seam = False
 		self.values = []
+		self.offset = []
 
-	def add(self, value, seam):
-		if self.seam:
+	def add(self, value, seam, offset):
+		if self.seam and not seam:
 			return
-		if seam:
+		if seam and not self.seam:
 			self.seam = seam
-			self.values = [value]
-		else:
-			self.values.append(value)
+			self.values = []
+			self.offset = []
+		self.offset.append(abs(offset))
+		self.values.append(value)
 
 	def __repr__(self):
-		return "(%s, %s)"%(repr(self.values), repr(self.seam))
+		return "PlotPoint(%s, %s, %s)"%(repr(self.values), repr(self.seam), repr(self.edges))
 
 class BakeMap:
 	def __init__(self, image):
@@ -287,6 +289,15 @@ class BakeMap:
 		y1 = int(v1.y * self.image.size[1])
 		x2 = int(v2.x * self.image.size[0])
 		y2 = int(v2.y * self.image.size[1])
+		ox1 = v1.x * self.image.size[0] - x1
+		ox2 = v2.x * self.image.size[0] - x2
+		oy1 = v1.y * self.image.size[1] - y1
+		oy2 = v2.y * self.image.size[1] - y2
+		o1 = sqrt(ox1 * ox1 + oy1 * oy1)
+		o2 = sqrt(ox2 * ox2 + oy2 * oy2)
+		if x1 == x2 and y1 == y2:
+			self.plot_point(x1, y1, (c1 + c2) / 2, seam, o1 + 0.5 * (o2 - o1))
+			return
 		steep = abs(y2 - y1) > abs(x2 - x1)
 		if steep:
 			x1, y1 = y1, x1
@@ -295,9 +306,11 @@ class BakeMap:
 			x1, x2 = x2, x1
 			y1, y2 = y2, y1
 			c1, c2 = c2, c1
+			o1, o2 = o2, o1
 		mix = c2 - c1
 		deltax = x2 - x1
 		deltay = abs(y2 - y1)
+		deltao = o2 - o1
 		error = deltax / 2
 		y = y1
 		if y1 < y2:
@@ -307,21 +320,24 @@ class BakeMap:
 		for x in range(x1, x2 + 1):
 			d = x - x1
 			if d:
-				colour = c1 + mix * (float(d) / deltax)
+				d = float(d) / deltax
+				colour = c1 + mix * d
+				offset = o1 + deltao * d
 			else:
 				colour = c1
+				offset = o1
 			if steep:
-				self.plot_point(y, x, colour, seam)
+				self.plot_point(y, x, colour, seam, offset)
 			else:
-				self.plot_point(x, y, colour, seam)
+				self.plot_point(x, y, colour, seam, offset)
 			error = error - deltay
 			if error < 0:
 				y = y + ystep
 				error = error + deltax
 
-	def plot_point(self, x, y, colour, seam):
+	def plot_point(self, x, y, colour, seam, offset):
 		'''plot a point in the bake buffer'''
-		self.map[x][y].add(colour, seam)
+		self.map[x][y].add(colour, seam, offset)
 
 	def update_map(self):
 		'''plot edge buffer into bake buffer and update minimum and maximum range'''
@@ -337,9 +353,13 @@ class BakeMap:
 			for v in range(self.image.size[1]+1):
 				if len(self.map[u][v].values) > 1:
 					value = XYZ()
-					for val in self.map[u][v].values:
-						value += val
-					self.map[u][v].values = [value / len(self.map[u][v].values)]
+					offset = min(self.map[u][v].offset)
+					count = 0
+					for i in range(len(self.map[u][v].values)):
+						if self.map[u][v].offset[i] == offset:
+							value += self.map[u][v].values[i]
+							count += 1
+					self.map[u][v].values = [value / count]
 				if self.map[u][v].values != []:
 					if self.bb_min:
 						self.bb_min.x = min(self.bb_min.x, self.map[u][v].values[0].x)
