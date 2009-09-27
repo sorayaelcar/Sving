@@ -112,7 +112,7 @@ def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods=True
 		settings['radius'] = radius.val
 		Blender.Registry.SetKey('ImportSculptie', settings, True) # save latest settings
 	mesh = sculpty.new_mesh( basename,
-			["none","SPHERE","TORUS","PLANE","CYLINDER","HEMI"][sculpt_type],
+			["none","SPHERE","TORUS Z","PLANE","CYLINDER","HEMI"][sculpt_type],
 			faces_x, faces_y, multires, clean_lods, settings['radius'])
 	s, t, w, h, clean_s, clean_t = sculpty.map_size( faces_x, faces_y, multires )
 	image = Blender.Image.New( basename, w, h, 32 )
