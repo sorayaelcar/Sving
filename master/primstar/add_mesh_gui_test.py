@@ -143,6 +143,7 @@ static unsigned char file_open_bits[] = {
 				to=256,
 				width=3,
 				command=self.update_info)
+		self.x_faces_input.bind('<Key>', self.update_info)
 		self.x_faces_input.pack(side=RIGHT)
 		fy = gui.Frame(f)
 		fy.pack(expand=True)
@@ -157,6 +158,7 @@ static unsigned char file_open_bits[] = {
 				to=256,
 				width=3,
 				command=self.update_info)
+		self.y_faces_input.bind('<Key>', self.update_info)
 		self.y_faces_input.pack(side=RIGHT)
 		fr = gui.Frame(f)
 		fr.pack(expand=True)
@@ -201,6 +203,7 @@ static unsigned char file_open_bits[] = {
 				to=6,
 				width=3,
 				command=self.update_info)
+		self.levels_input.bind('<Key>', self.update_info)
 		self.levels_input.pack(side=RIGHT)
 		self.sub_type = IntVar(self.master, 1)
 		r = gui.Frame(fs)
