@@ -47,6 +47,20 @@ from primstar import gui
 
 ADD_SCULPT_MESH_LABEL = "Primstar - Add sculpt mesh"
 SCRIPT="add_mesh_gui_test"
+REGISTRY='PrimstarAdd'
+settings = Blender.Registry.GetKey(REGISTRY, True)
+if not settings:
+	settings={
+		'x_faces':8,
+		'y_faces':8,
+		'levels':2,
+		'subdivision':1,
+		'sub_type':1,
+		'clean_lods':True,
+		'radius':0.25,
+		'shape_name':"Sphere",
+		'shape_file':None,
+		'quads':1}
 
 class MenuMap(sculpty.LibFile):
 	def get_command(self, app):
@@ -105,8 +119,8 @@ static unsigned char file_open_bits[] = {
 				justify=RIGHT,
 				font=('Helvetica',9,'bold'))
 		t.pack(side=LEFT)
-		self.shape_name = StringVar()
-		self.shape_file = None
+		self.shape_name = StringVar(master, settings['shape_name'])
+		self.shape_file = settings['shape_file']
 		self.map_type = gui.Button(shape_frame,
 				textvariable= self.shape_name,
 				command=self.set_map_type,
@@ -136,7 +150,7 @@ static unsigned char file_open_bits[] = {
 			text="X Faces",
 			justify=RIGHT)
 		t.pack(side=LEFT)
-		self.x_faces = IntVar(self.master, 8)
+		self.x_faces = IntVar(self.master, settings['x_faces'])
 		self.x_faces_input = gui.Spinbox(fx,
 				textvariable=self.x_faces,
 				from_=1,
@@ -151,7 +165,7 @@ static unsigned char file_open_bits[] = {
 				text="Y Faces",
 				justify=RIGHT)
 		t.pack(side=LEFT)
-		self.y_faces = IntVar(self.master, 8)
+		self.y_faces = IntVar(self.master, settings['y_faces'])
 		self.y_faces_input = gui.Spinbox(fy,
 				textvariable=self.y_faces,
 				from_=1,
@@ -166,7 +180,7 @@ static unsigned char file_open_bits[] = {
 				text="Radius",
 				justify=RIGHT)
 		t.pack(side=LEFT)
-		self.radius = DoubleVar(self.master, 0.25)
+		self.radius = DoubleVar(self.master, settings['radius'])
 		self.radius_input = gui.Spinbox(fr,
 				textvariable=self.radius,
 				from_=0.05,
@@ -175,7 +189,7 @@ static unsigned char file_open_bits[] = {
 				format = "%4.3f",
 				width=5)
 		self.radius_input.pack(side=RIGHT)
-		self.clean_lods = BooleanVar( self.master, True )
+		self.clean_lods = BooleanVar( self.master, settings['clean_lods'] )
 		self.clean_lods_input = gui.Checkbutton(f,
 				text="Clean LODs",
 				variable=self.clean_lods,
@@ -187,11 +201,11 @@ static unsigned char file_open_bits[] = {
 		# ==========================================
 
 		middle_frame = gui.Frame(frame)
-		middle_frame.pack(side=LEFT, padx=4, fill=Y)
+		middle_frame.pack(side=LEFT, padx=4, fill=BOTH)
 		fs = gui.LabelFrame(middle_frame,
 				text="Subdivision")
 		fs.pack(fill=X)
-		self.levels = IntVar(self.master, 2)
+		self.levels = IntVar(self.master, settings['levels'])
 		fl = gui.Frame(fs)
 		fl.pack()
 		t = gui.Label(fl,
@@ -206,7 +220,7 @@ static unsigned char file_open_bits[] = {
 				command=self.update_info)
 		self.levels_input.bind('<Key>', self.update_info)
 		self.levels_input.pack(side=RIGHT)
-		self.sub_type = IntVar(self.master, 1)
+		self.sub_type = IntVar(self.master, settings['sub_type'])
 		r = gui.Frame(fs)
 		r.pack(side=LEFT)
 		gui.Radiobutton(r,
@@ -217,7 +231,7 @@ static unsigned char file_open_bits[] = {
 				text="Multires",
 				variable=self.sub_type,
 				value=0).pack()
-		self.subdivision = IntVar(self.master, 1)
+		self.subdivision = IntVar(self.master, settings['subdivision'])
 		r = gui.Frame(fs)
 		r.pack(side=RIGHT)
 		gui.Radiobutton(r,
@@ -235,7 +249,7 @@ static unsigned char file_open_bits[] = {
 
 		mesh_frame = gui.LabelFrame(middle_frame, text="Mesh Type")
 		mesh_frame.pack(fill=X)
-		self.quads = IntVar(self.master, 1)
+		self.quads = IntVar(self.master, settings['quads'])
 		gui.Radiobutton(mesh_frame,
 				text="Quads",
 				variable=self.quads,
@@ -260,6 +274,7 @@ static unsigned char file_open_bits[] = {
 				justify=LEFT)
 		self.lod_display.pack()
 		self.update_info()
+		self.save_defaults = IntVar(self.master, False)
 		create_button = gui.Button(build_frame,
 				text="Build",
 				image=self.cube_icon,
@@ -267,6 +282,10 @@ static unsigned char file_open_bits[] = {
 				command=self.add,
 				default=ACTIVE)
 		create_button.pack(fill=BOTH, expand=True, anchor=SE, pady=5)
+		t = gui.Checkbutton(build_frame,
+				text="Save Settings",
+				variable=self.save_defaults)
+		t.pack()
 
 		# ==========================================
 		# Popup menu for base mesh shape
@@ -283,7 +302,7 @@ static unsigned char file_open_bits[] = {
 		self.sculpt_menu.add_separator()
 		library = sculpty.build_lib(LibDir=MenuDir, LibFile=MenuMap)
 		library.add_to_menu(self, self.sculpt_menu)
-		self.set_shape("Sphere") # TODO: retrieve settings from registry
+		self.set_shape(settings['shape_name'],settings['shape_file'])
 
 	def set_file(self):
 		self.master.withdraw()
@@ -473,6 +492,21 @@ static unsigned char file_open_bits[] = {
 						ob.setMatrix(mat)
 			except:
 				pass
+			if self.save_defaults.get():
+				settings = {
+					'x_faces':self.x_faces.get(),
+					'y_faces':self.y_faces.get(),
+					'levels':self.levels.get(),
+					'subdivision':self.subdivision.get(),
+					'sub_type':self.sub_type.get(),
+					'clean_lods':self.clean_lods.get(),
+					'radius':self.radius.get(),
+					'shape_name':self.shape_name.get(),
+					'shape_file':self.shape_file,
+					'quads':self.quads.get()
+				}
+				Blender.Registry.SetKey(REGISTRY, settings, True)
+
 		except RuntimeError:
 			#todo tkinter this
 			#Blender.Draw.PupBlock("Unable to create sculptie", ["Please decrease face counts","or subdivision levels"])
