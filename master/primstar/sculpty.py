@@ -640,6 +640,23 @@ def check(ob):
 			return True
 	return False
 
+def check_clean(x, y, u, v, clean):
+	'''Returns true if the U, V size with the clean setting aligns to the sculptie points on an X, Y sized image'''
+	xs, ys = map_pixels(x, y, [3])
+	if clean:
+		w = int(pow(2, 1 + ceil(log(u) / log(2))))
+		h = int(pow(2, 1 + ceil(log(v) / log(2))))
+	else:
+		w = u
+		h = v
+	for i in range(1, w):
+		if int( x * i / float(w)) not in xs:
+			return False
+	for i in range(1, h):
+		if int( y * i / float(h)) not in ys:
+			return False
+	return True
+
 def clear_image(image):
 	'''Clears the image to black with alpha 0'''
 	debug(30, "sculpty.clear_image(%s)"%(image.name))
@@ -925,12 +942,12 @@ def map_images(mesh, layer='sculptie'):
 		mesh.activeUVLayer = currentUV
 	return images
 
-def map_pixels(width, height):
+def map_pixels(width, height, levels=[3,2,1,0]):
 	'''Returns ss and ts as lists of used pixels for the given map size.'''
 	debug(40, "sculpty.map_pixels(%d, %d)"%(width, height))
 	ss = [ width - 1 ]
 	ts = [ height - 1 ]
-	for i in [3,2,1,0]:
+	for i in levels:
 		u,v = lod_size(width, height, i)
 		for p in vertex_pixels(width, u):
 			if p not in ss:

@@ -176,10 +176,11 @@ static unsigned char file_open_bits[] = {
 				width=5)
 		self.radius_input.pack(side=RIGHT)
 		self.clean_lods = BooleanVar( self.master, True )
-		c = gui.Checkbutton(f,
+		self.clean_lods_input = gui.Checkbutton(f,
 				text="Clean LODs",
-				variable=self.clean_lods)
-		c.pack(expand=True)
+				variable=self.clean_lods,
+				command=self.update_info)
+		self.clean_lods_input.pack(expand=True)
 
 		# ==========================================
 		# Subdivision section
@@ -354,6 +355,14 @@ static unsigned char file_open_bits[] = {
 		s, t, w, h, clean_s, clean_t = sculpty.map_size(self.x_faces.get(), self.y_faces.get(), self.levels.get())
 		self.info_frame.config(text="Map Size - %d x %d"%(w, h))
 		self.info_text.set(sculpty.lod_info(w, h)[:-1])
+		if sculpty.check_clean(w, h, self.x_faces.get(), self.y_faces.get(), self.clean_lods.get()):
+			self.clean_lods_input.configure(
+					background=gui.theme.others['panel'],
+					highlightcolor=gui.theme.defaults['highlightcolor'])
+		else:
+			self.clean_lods_input.configure(
+					background=gui.theme.defaults['highlightcolor'],
+					highlightcolor=gui.theme.defaults['selectbackground'])
 		if self.levels.get() == 0:
 			if self.x_faces.get() < 4:
 				clean_s = False
