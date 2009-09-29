@@ -49,8 +49,7 @@ ADD_SCULPT_MESH_LABEL = "Primstar - Add sculpt mesh"
 SCRIPT="add_mesh_gui_test"
 REGISTRY='PrimstarAdd'
 settings = Blender.Registry.GetKey(REGISTRY, True)
-if not settings:
-	settings={
+default_settings={
 		'x_faces':8,
 		'y_faces':8,
 		'levels':2,
@@ -60,7 +59,11 @@ if not settings:
 		'radius':0.25,
 		'shape_name':"Sphere",
 		'shape_file':None,
-		'quads':1}
+		'quads':1,
+		'save':True}
+for key, value in default_settings.iteritems():
+	if key not in settings:
+		settings[key] = value
 
 class MenuMap(sculpty.LibFile):
 	def get_command(self, app):
@@ -275,6 +278,7 @@ static unsigned char file_open_bits[] = {
 		self.lod_display.pack()
 		self.update_info()
 		self.save_defaults = IntVar(self.master, False)
+		self.save_settings = IntVar(self.master, settings['save'])
 		create_button = gui.Button(build_frame,
 				text="Build",
 				image=self.cube_icon,
@@ -282,17 +286,23 @@ static unsigned char file_open_bits[] = {
 				command=self.add,
 				default=ACTIVE)
 		create_button.pack(fill=BOTH, expand=True, anchor=SE, pady=5)
-		t = gui.Checkbutton(build_frame,
-				text="Save Settings",
+		save_frame = gui.Frame(build_frame)
+		save_frame.pack(fill=Y)
+		t = gui.Checkbutton(save_frame,
+				text="Save",
+				variable=self.save_settings)
+		t.pack(side=LEFT)
+		t = gui.Checkbutton(save_frame,
+				text="Defaults",
 				variable=self.save_defaults)
-		t.pack()
+		t.pack(side=LEFT)
 
 		# ==========================================
 		# Popup menu for base mesh shape
 		# ==========================================
 
 		self.sculpt_menu = gui.Menu(self.master, tearoff=0)
-		for sculpt_type in [ "Sphere", "Torus Z", "Torus X", "Plane", "Cylinder", "Hemi"]:
+		for sculpt_type in [ "Cylinder", "Hemi", "Plane", "Sphere", "Torus X", "Torus Z"]:
 			def type_command( sculpt_type ):
 				def new_command():
 					self.set_shape(sculpt_type)
@@ -492,7 +502,7 @@ static unsigned char file_open_bits[] = {
 						ob.setMatrix(mat)
 			except:
 				pass
-			if self.save_defaults.get():
+			if self.save_settings.get() or self.save_defaults.get():
 				settings = {
 					'x_faces':self.x_faces.get(),
 					'y_faces':self.y_faces.get(),
@@ -503,9 +513,10 @@ static unsigned char file_open_bits[] = {
 					'radius':self.radius.get(),
 					'shape_name':self.shape_name.get(),
 					'shape_file':self.shape_file,
-					'quads':self.quads.get()
+					'quads':self.quads.get(),
+					'save':self.save_settings.get()
 				}
-				Blender.Registry.SetKey(REGISTRY, settings, True)
+				Blender.Registry.SetKey(REGISTRY, settings, self.save_defaults.get())
 
 		except RuntimeError:
 			#todo tkinter this
