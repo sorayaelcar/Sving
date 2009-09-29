@@ -65,7 +65,7 @@ else:
 	for f in remove_files:
 		t = os.path.join(script_path, f)
 		if os.path.exists(t):
-			os.remove(f)
+			os.remove(t)
 bpydata_path = os.path.join(script_path,"bpydata")
 if not os.path.exists(bpydata_path):
 	os.mkdir(bpydata_path)

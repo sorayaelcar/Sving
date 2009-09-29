@@ -1191,6 +1191,7 @@ def open(filename):
 	debug(10, "sculpty.open(%s)"%(filename))
 	image = Blender.Image.Load(filename)
 	image.name = Blender.sys.splitext(image.name)[0]
+	image.properties['primstar'] = {}
 	image.properties['primstar']['size_x'] = 1.0
 	image.properties['primstar']['size_y'] = 1.0
 	image.properties['primstar']['size_z'] = 1.0
