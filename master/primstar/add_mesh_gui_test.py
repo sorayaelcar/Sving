@@ -49,6 +49,8 @@ ADD_SCULPT_MESH_LABEL = "Primstar - Add sculpt mesh"
 SCRIPT="add_mesh_gui_test"
 REGISTRY='PrimstarAdd'
 settings = Blender.Registry.GetKey(REGISTRY, True)
+if settings == None:
+	settings = {}
 default_settings={
 		'x_faces':8,
 		'y_faces':8,
