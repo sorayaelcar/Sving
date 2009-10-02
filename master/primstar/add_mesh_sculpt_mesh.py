@@ -351,7 +351,10 @@ static unsigned char file_open_bits[] = {
 			t = t[0]
 		else:
 			t = t[1]
-		i = self.sculpt_menu.index( t )
+		try:
+			i = self.sculpt_menu.index( t )
+		except:
+			i = self.sculpt_menu.index( "Sphere" )
 		y = self.map_type.winfo_rooty() - self.sculpt_menu.yposition( i ) + 8
 		x  = self.master.winfo_pointerx() - self.sculpt_menu.winfo_reqwidth() // 2
 		self.sculpt_menu.post(x, y)
