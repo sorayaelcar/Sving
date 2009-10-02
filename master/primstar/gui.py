@@ -187,29 +187,41 @@ class ModalRoot(Tkinter.Tk):
 		self.bind('<Escape>', self.destroy_handler)
 		self.bind('<Leave>', self.leave_handler)
 		self.bind('<Enter>',self.enter_handler)
+		self.bind('<Button-1>',self.click_handler)
+		self.bind('<FocusOut>', self.focus_out_handler)
 		self.protocol("WM_DELETE_WINDOW", self.destroy)
-		self.mouse_exit = True
+		self.mouse_exit = 0
 
 	def destroy_handler(self, event):
 		self.quit()
 
 	def leave_handler(self, event):
 		debug(60,"Leave: %s"%str(event.widget))
-		if event.widget == self and self.mouse_exit:
-			if self.winfo_containing(event.x_root, event.y_root) == None:
-				self.quit()
+		if not self.mouse_exit:
+			self.quit()
+		self.mouse_exit -= 1
 
 	def enter_handler(self, event):
 		debug(60,"Enter: %s"%str(event.widget))
+		self.mouse_exit += 1
 		if event.widget == self:
 			if self.grab_status() == None:
-				self.grab_set_global()
-				self.focus_set()
-			self.mouse_exit = True
+				if platform == "win32":
+					self.grab_set()
+				else:
+					self.grab_set_global()
 		self.update_idletasks()
 
+	def click_handler(self, event):
+		debug(60, "Left Click: %s"%str(event.widget))
+		if not self.mouse_exit or self.winfo_containing(event.x_root, event.y_root) == None:
+			self.quit()
+
+	def focus_out_handler(self, event):
+		if not self.mouse_exit:
+			self.quit()
+
 	def withdraw(self):
-		self.mouse_exit = False
 		Tkinter.Tk.withdraw(self)
 
 class BitmapImage(Tkinter.BitmapImage):

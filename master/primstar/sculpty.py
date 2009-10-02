@@ -986,8 +986,14 @@ def map_size(x_faces, y_faces, levels):
 		h = (y_faces - y_faces % 2) * 2
 		cs = ct = False
 	else:
-		w = int(pow(2, levels + 1 + ceil(log(x_faces) / log(2))))
-		h = int(pow(2, levels + 1 + ceil(log(y_faces) / log(2))))
+		try:
+			w = int(pow(2, levels + 1 + ceil(log(x_faces) / log(2))))
+		except OverflowError:
+			w = 256
+		try:
+			h = int(pow(2, levels + 1 + ceil(log(y_faces) / log(2))))
+		except OverflowError:
+			h = 256
 		w, h = face_count(w, h, 32, 32)
 		s = min(w, x_faces)
 		t = min(h, y_faces)

@@ -6,9 +6,9 @@ Group: 'AddMesh'
 Tooltip: 'Add a Second Life sculptie compatible mesh'
 """
 
-__author__ = ["Domino Marama"]
+__author__ = ["Domino Marama", "Gaia Clary"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.13"
+__version__ = "0.90"
 __bpydoc__ = """\
 
 Sculpt Mesh
@@ -38,389 +38,510 @@ This script creates an object with a gridded UV map suitable for Second Life scu
 # --------------------------------------------------------------------------
 
 import Blender
-from math import log, ceil, sqrt, pi, sin, cos
 from primstar import sculpty
+import os
+from Tkinter import *
+import tkFileDialog
+from binascii import hexlify
+from primstar import gui
 
-#***********************************************
-# constants
-#***********************************************
+ADD_SCULPT_MESH_LABEL = "Primstar - Add sculpt mesh"
+SCRIPT="add_mesh_gui_test"
+REGISTRY='PrimstarAdd'
+settings = Blender.Registry.GetKey(REGISTRY, True)
+if settings == None:
+	settings = {}
+default_settings={
+		'x_faces':8,
+		'y_faces':8,
+		'levels':2,
+		'subdivision':1,
+		'sub_type':1,
+		'clean_lods':True,
+		'radius':0.25,
+		'shape_name':"Sphere",
+		'shape_file':None,
+		'quads':1,
+		'save':True}
+for key, value in default_settings.iteritems():
+	if key not in settings:
+		settings[key] = value
 
-SPHERE   = 1
-TORUS    = 2
-PLANE    = 3
-CYLINDER = 4
-HEMI     = 5
+class MenuMap(sculpty.LibFile):
+	def get_command(self, app):
+		def new_command():
+			app.set_shape(self.local_path, self.path)
+		return new_command
 
-BUILD_MODE_SUBSURF  = 1
-BUILD_MODE_MULTIRES = 2
+class MenuDir(sculpty.LibDir):
+	def add_to_menu(self, app, menu):
+		for f in self.files:
+			menu.add_command(label=f.name, command=f.get_command(app))
+		if self.dirs and self.files:
+			menu.add_separator()
+		for d in self.dirs:
+			submenu = gui.Menu(menu, tearoff=0)
+			d.add_to_menu(app, submenu)
+			menu.add_cascade(label=d.name, menu=submenu)
 
-SUBDIV_MODE_CATMULL_CLARK = 1
-SUBDIV_MODE_SIMPLE = 2
+class GuiApp:
+	def __init__(self, master):
+		self.master = master
+		self.cube_icon = gui.BitmapImage(data="""#define cube_width 16
+#define cube_height 16
+static unsigned char cube_bits[] = {
+   0x00, 0x00, 0x80, 0x03, 0x70, 0x1c, 0x8c, 0x62, 0x94, 0x53, 0x64, 0x4c,
+   0xa4, 0x4b, 0x2c, 0x69, 0x34, 0x59, 0x64, 0x4d, 0xa4, 0x4b, 0x2c, 0x69,
+   0x30, 0x19, 0x40, 0x05, 0x80, 0x03, 0x00, 0x00 };
+""")
+		self.file_icon = gui.BitmapImage(data="""#define file_open_width 16
+#define file_open_height 16
+static unsigned char file_open_bits[] = {
+   0x00, 0x00, 0x08, 0x00, 0x0c, 0x00, 0xfe, 0x01, 0x0c, 0x02, 0x08, 0x04,
+   0x00, 0x04, 0xf0, 0x00, 0x08, 0x7f, 0xf8, 0x40, 0x08, 0x40, 0x08, 0x40,
+   0x08, 0x40, 0x08, 0x40, 0xf8, 0x7f, 0x00, 0x00 };
+""")
 
-EVENT_NONE = 0
-EVENT_EXIT = 1
-EVENT_REDRAW = 2
-EVENT_MESH_CHANGE = 3
+		# ==========================================
+		# Main window frame
+		# ==========================================
 
-EVENT_SUBDIV_CATMULL = 10
-EVENT_SUBDIV_SIMPLE  = 11
+		top_frame = gui.Frame(master, border=4)
+		top_frame.pack()
+		frame = gui.LabelFrame(top_frame,
+				text=ADD_SCULPT_MESH_LABEL,
+				labelanchor=NW)
+		frame.pack()
 
-EVENT_SCULPT_TYPE_SPHERE   = 21
-EVENT_SCULPT_TYPE_TORUS    = 22
-EVENT_SCULPT_TYPE_PLANE    = 23
-EVENT_SCULPT_TYPE_CYLINDER = 24
-EVENT_SCULPT_TYPE_HEMI     = 25
+		# ==========================================
+		# Settings frame
+		# ==========================================
 
-EVENT_BUILD_MODE_SUBSURF  = 31
-EVENT_BUILD_MODE_MULTIRES = 32
+		shape_frame = gui.Frame(frame)
+		shape_frame.pack(fill=X)
+		t = gui.Label(shape_frame,
+				text="Shape",
+				justify=RIGHT,
+				font=('Helvetica',9,'bold'))
+		t.pack(side=LEFT)
+		self.shape_name = StringVar(master, settings['shape_name'])
+		self.shape_file = settings['shape_file']
+		self.map_type = gui.Button(shape_frame,
+				textvariable= self.shape_name,
+				command=self.set_map_type,
+				cursor='based_arrow_down',
+				background=gui.hex_color(gui.theme.ui.textfield),
+				relief=SUNKEN,
+				pady=1,
+				anchor=NW)
+		self.map_type.pack(expand=True, fill=X, side=LEFT)
+		file_button = gui.Button(shape_frame,
+				image=self.file_icon,
+				compound=LEFT,
+				command=self.set_file,
+				default=ACTIVE)
+		file_button.pack(side=RIGHT)
 
-EVENT_CLEAN_LOD = 41
+		# ==========================================
+		# Geometry section
+		# ==========================================
 
-EVENT_OK = 51
+		f = gui.LabelFrame(frame,
+				text="Geometry")
+		f.pack(side=LEFT, fill=Y)
+		fx = gui.Frame(f)
+		fx.pack(expand=True)
+		t = gui.Label(fx,
+			text="X Faces",
+			justify=RIGHT)
+		t.pack(side=LEFT)
+		self.x_faces = IntVar(self.master, settings['x_faces'])
+		self.x_faces_input = gui.Spinbox(fx,
+				textvariable=self.x_faces,
+				from_=1,
+				to=256,
+				width=3,
+				command=self.update_info)
+		self.x_faces_input.bind('<Key>', self.update_info)
+		self.x_faces_input.pack(side=RIGHT)
+		fy = gui.Frame(f)
+		fy.pack(expand=True)
+		t = gui.Label(fy,
+				text="Y Faces",
+				justify=RIGHT)
+		t.pack(side=LEFT)
+		self.y_faces = IntVar(self.master, settings['y_faces'])
+		self.y_faces_input = gui.Spinbox(fy,
+				textvariable=self.y_faces,
+				from_=1,
+				to=256,
+				width=3,
+				command=self.update_info)
+		self.y_faces_input.bind('<Key>', self.update_info)
+		self.y_faces_input.pack(side=RIGHT)
+		fr = gui.Frame(f)
+		fr.pack(expand=True)
+		t = gui.Label(fr,
+				text="Radius",
+				justify=RIGHT)
+		t.pack(side=LEFT)
+		self.radius = DoubleVar(self.master, settings['radius'])
+		self.radius_input = gui.Spinbox(fr,
+				textvariable=self.radius,
+				from_=0.05,
+				to=0.5,
+				increment=0.025,
+				format = "%4.3f",
+				width=5)
+		self.radius_input.pack(side=RIGHT)
+		self.clean_lods = BooleanVar( self.master, settings['clean_lods'] )
+		self.clean_lods_input = gui.Checkbutton(f,
+				text="Clean LODs",
+				variable=self.clean_lods,
+				command=self.update_info)
+		self.clean_lods_input.pack(expand=True)
 
-MESH_REGISTRY = 'AddMeshSculptMesh'
+		# ==========================================
+		# Subdivision section
+		# ==========================================
 
-settings = {'x_faces':8,
-			'y_faces':8, 
-			'sculpt_type':1,
-			'multires_levels':2,
-			'subdiv_type':1,
-			'clean_lod':True,
-			'radius':0.25,
-			'build_mode':1
-		   }
+		middle_frame = gui.Frame(frame)
+		middle_frame.pack(side=LEFT, padx=4, fill=BOTH)
+		fs = gui.LabelFrame(middle_frame,
+				text="Subdivision")
+		fs.pack(fill=X)
+		self.levels = IntVar(self.master, settings['levels'])
+		fl = gui.Frame(fs)
+		fl.pack()
+		t = gui.Label(fl,
+				text="Levels",
+				justify=RIGHT)
+		t.pack(side=LEFT)
+		self.levels_input = gui.Spinbox(fl,
+				textvariable=self.levels,
+				from_=0,
+				to=6,
+				width=3,
+				command=self.update_info)
+		self.levels_input.bind('<Key>', self.update_info)
+		self.levels_input.pack(side=RIGHT)
+		self.sub_type = IntVar(self.master, settings['sub_type'])
+		r = gui.Frame(fs)
+		r.pack(side=LEFT)
+		gui.Radiobutton(r,
+				text="Subsurf",
+				variable=self.sub_type,
+				value=1).pack()
+		gui.Radiobutton(r,
+				text="Multires",
+				variable=self.sub_type,
+				value=0).pack()
+		self.subdivision = IntVar(self.master, settings['subdivision'])
+		r = gui.Frame(fs)
+		r.pack(side=RIGHT)
+		gui.Radiobutton(r,
+				text="Catmull",
+				variable=self.subdivision,
+				value=1).pack()
+		gui.Radiobutton(r,
+				text="Simple",
+				variable=self.subdivision,
+				value=0).pack()
 
-GLOBALS = {}
+		# ==========================================
+		# Mesh Type Selection
+		# ==========================================
 
-def add_sculptie( sculpt_type, faces_x=8, faces_y=8, multires=2, clean_lods=True, subsurf=False, catmull=True ):
-	Blender.Window.WaitCursor(1)
-	basename = ("Sphere", "Torus", "Plane", "Cylinder", "Hemi")[sculpt_type -1]
-	scene = Blender.Scene.GetCurrent()
-	for ob in scene.objects:
-		ob.sel = False
-	rdict = Blender.Registry.GetKey('ImportSculptie', True) # True to check on disk also
-	if rdict: # if found, get the values saved there
-		try:
-			settings['radius'] = rdict['radius']
-		except:
-			settings['radius'] = 0.25
-	if sculpt_type == TORUS:
-		radius = Blender.Draw.Create( settings['radius'] )
-		Blender.Window.WaitCursor(0)
-		retval = Blender.Draw.PupBlock( "Torus Options", [( "Radius: ", radius, 0.05, 0.5 )] )
-		Blender.Window.WaitCursor(1)
-		settings['radius'] = radius.val
-		Blender.Registry.SetKey('ImportSculptie', settings, True) # save latest settings
-	mesh = sculpty.new_mesh( basename,
-			["none","SPHERE","TORUS Z","PLANE","CYLINDER","HEMI"][sculpt_type],
-			faces_x, faces_y, multires, clean_lods, settings['radius'])
-	s, t, w, h, clean_s, clean_t = sculpty.map_size( faces_x, faces_y, multires )
-	image = Blender.Image.New( basename, w, h, 32 )
-	sculpty.bake_lod(image)
-	ob = scene.objects.new( mesh, basename )
-	if sculpt_type != PLANE:
-		mesh.flipNormals()
-	ob.sel = True
-	ob.setLocation( Blender.Window.GetCursorPos() )
-	if sculpt_type == PLANE:
-		mesh.flipNormals()
-	sculpty.set_map( mesh, image )
-	if multires:
-		if subsurf:
-			mods = ob.modifiers
-			mod = mods.append(Blender.Modifier.Types.SUBSURF)
-			mod[Blender.Modifier.Settings.LEVELS] = multires
-			mod[Blender.Modifier.Settings.RENDLEVELS] = multires
-			mod[Blender.Modifier.Settings.UV] = False
-			if not catmull:
-				mod[Blender.Modifier.Settings.TYPES] = 1
+		mesh_frame = gui.LabelFrame(middle_frame, text="Mesh Type")
+		mesh_frame.pack(fill=X)
+		self.quads = IntVar(self.master, settings['quads'])
+		gui.Radiobutton(mesh_frame,
+				text="Quads",
+				variable=self.quads,
+				value=1).pack(side=LEFT)
+		gui.Radiobutton(mesh_frame,
+				state=DISABLED,
+				text="Triangles",
+				variable=self.quads,
+				value=0).pack(side=LEFT)
+
+		# ==========================================
+		# LOD display and Create button
+		# ==========================================
+
+		build_frame = gui.Frame(frame)
+		build_frame.pack(fill=Y, side=LEFT)
+		self.info_text = StringVar(self.master)
+		self.info_frame = gui.LabelFrame(build_frame)
+		self.info_frame.pack()
+		self.lod_display = gui.Label(self.info_frame,
+				textvariable=self.info_text,
+				justify=LEFT)
+		self.lod_display.pack()
+		self.update_info()
+		self.save_defaults = IntVar(self.master, False)
+		self.save_settings = IntVar(self.master, settings['save'])
+		create_button = gui.Button(build_frame,
+				text="Build",
+				image=self.cube_icon,
+				compound=LEFT,
+				command=self.add,
+				default=ACTIVE)
+		create_button.pack(fill=BOTH, expand=True, anchor=SE, pady=5)
+		save_frame = gui.Frame(build_frame)
+		save_frame.pack(fill=Y)
+		t = gui.Checkbutton(save_frame,
+				text="Save",
+				variable=self.save_settings)
+		t.pack(side=LEFT)
+		t = gui.Checkbutton(save_frame,
+				text="Defaults",
+				variable=self.save_defaults)
+		t.pack(side=LEFT)
+
+		# ==========================================
+		# Popup menu for base mesh shape
+		# ==========================================
+
+		self.sculpt_menu = gui.Menu(self.master, tearoff=0)
+		for sculpt_type in [ "Cylinder", "Hemi", "Plane", "Sphere", "Torus X", "Torus Z"]:
+			def type_command( sculpt_type ):
+				def new_command():
+					self.set_shape(sculpt_type)
+				return new_command
+			self.sculpt_menu.add_command(label=sculpt_type,
+					command=type_command(sculpt_type))
+		self.sculpt_menu.add_separator()
+		library = sculpty.build_lib(LibDir=MenuDir, LibFile=MenuMap)
+		library.add_to_menu(self, self.sculpt_menu)
+		self.set_shape(settings['shape_name'],settings['shape_file'])
+
+	def set_file(self):
+		self.master.withdraw()
+		filename = tkFileDialog.askopenfilename(
+				initialdir='~',
+				title='Select a sculpt map',
+				parent=self.master,
+				filetypes=[
+						('targa', '*.tga'),
+						('bmp','*.bmp'),
+						('png','*.png'),
+						('all files', '.*')])
+		self.master.deiconify()
+		self.redraw()
+		if filename:
+			self.set_shape(Blender.sys.makename(filename), filename)
+			i = Blender.Image.Load(filename)
+			sculpt_type = sculpty.map_type(i)
+			if sculpt_type[:5] == "TORUS":
+				self.radius_input.config(state=NORMAL)
+			else:
+				self.radius_input.config(state=DISABLED)
+			x_faces, y_faces = i.size
+			x_faces, y_faces = sculpty.face_count(x_faces, y_faces, 32, 32)
+			self.x_faces_input.config(to=i.size[0] / 2)
+			self.y_faces_input.config(to=i.size[1] / 2)
+			self.x_faces.set(x_faces)
+			self.y_faces.set(y_faces)
+			self.levels.set(0)
+
+	def set_map_type(self):
+		t = self.shape_name.get().split(os.sep)
+		if t[0]:
+			t = t[0]
 		else:
-			mesh.multires = True
-			mesh.addMultiresLevel(multires, ('simple', 'catmull-clark')[catmull])
-			mesh.sel = True
-	# adjust scale for subdivision
-	minimum, maximum = sculpty.get_bounding_box( ob )
-	x = 1.0 / (maximum.x - minimum.x)
-	y = 1.0 / (maximum.y - minimum.y)
-	try:
-		z = 1.0 / (maximum.z - minimum.z)
-	except:
-		z = 0.0
-	if sculpt_type == TORUS:
-		z = settings['radius'] * z
-	elif sculpt_type == HEMI:
-		z = 0.5 * z
-	tran = Blender.Mathutils.Matrix( [ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z] ).resize4x4()
-	mesh.transform( tran )
-	# align to view
-	try:
-		quat = None
-		if Blender.Get('add_view_align'):
-			quat = Blender.Mathutils.Quaternion(Blender.Window.GetViewQuat())
-			if quat:
-				mat = quat.toMatrix()
-				mat.invert()
-				mat.resize4x4()
-				ob.setMatrix(mat)
-	except:
-		pass
-	Blender.Window.WaitCursor(0)
-	return ob
+			t = t[1]
+		i = self.sculpt_menu.index( t )
+		y = self.map_type.winfo_rooty() - self.sculpt_menu.yposition( i ) + 8
+		x  = self.master.winfo_pointerx() - self.sculpt_menu.winfo_reqwidth() // 2
+		self.sculpt_menu.post(x, y)
 
-# ============================================
-# Event handler for the Sculpt Mesh selection
-# ============================================
-def do_sculpt_type_sel(event, val):
-	GLOBALS['event'] = event
-	GLOBALS['sculpt_type_sphere'].val   =  (event == EVENT_SCULPT_TYPE_SPHERE)
-	GLOBALS['sculpt_type_torus'].val    =  (event == EVENT_SCULPT_TYPE_TORUS)
-	GLOBALS['sculpt_type_plane'].val    =  (event == EVENT_SCULPT_TYPE_PLANE)
-	GLOBALS['sculpt_type_cylinder'].val =  (event == EVENT_SCULPT_TYPE_CYLINDER)
-	GLOBALS['sculpt_type_hemi'].val     =  (event == EVENT_SCULPT_TYPE_HEMI)
-	GLOBALS['sculpt_type']              =   event - EVENT_SCULPT_TYPE_SPHERE + 1
+	def set_shape(self, name, filename=None):
+		gui.debug(40, "set_shape(\"%s\", \"%s\")"%(name, filename))
+		self.shape_name.set(name)
+		self.shape_file = filename
+		if filename:
+			# reading the image file leaves it in the blend
+			# can uncomment this when able to remove the temporary image
+			#i = Blender.Image.Load(filename)
+			#sculpt_type = sculpty.map_type(i)
+			#if sculpt_type == "TORUS":
+			self.radius_input.config(state=NORMAL)
+			#else:
+			#	self.radius_input.config(state=DISABLED)
+			#self.x_faces_input.config(to=i.size[0] / 2)
+			#self.y_faces_input.config(to=i.size[1] / 2)
+		else:
+			if name[:5] == "Torus":
+				self.radius_input.config(state=NORMAL)
+			else:
+				self.radius_input.config(state=DISABLED)
+		self.x_faces_input.config(to=256)
+		self.y_faces_input.config(to=256)
 
-# ============================================
-# Event handler for the build mode
-# ============================================
-def do_build_mode_sel(event, val):
-	GLOBALS['event'] = event
-	GLOBALS['build_mode_subsurf'].val  = (event == EVENT_BUILD_MODE_SUBSURF)
-	GLOBALS['build_mode_multires'].val = (event == EVENT_BUILD_MODE_MULTIRES)
-	GLOBALS['build_mode']              = event - EVENT_BUILD_MODE_SUBSURF + 1
+	def redraw(self):
+		self.master.update_idletasks()
+		Blender.Redraw()
 
-# =============================================
-# Event handler for subdivision type selection
-# =============================================
-def do_subdiv_type_sel(event, val):
-	GLOBALS['event'] = event
-	GLOBALS['subdiv_type_catmull_clark'].val  = (event == EVENT_SUBDIV_CATMULL)
-	GLOBALS['subdiv_type_simple'].val         = (event == EVENT_SUBDIV_SIMPLE)
-	GLOBALS['subdiv_type']                    = event - EVENT_SUBDIV_CATMULL + 1
+	def update_info(self, event=None):
+		s, t, w, h, clean_s, clean_t = sculpty.map_size(self.x_faces.get(), self.y_faces.get(), self.levels.get())
+		self.info_frame.config(text="Map Size - %d x %d"%(w, h))
+		self.info_text.set(sculpty.lod_info(w, h)[:-1])
+		if sculpty.check_clean(w, h, self.x_faces.get(), self.y_faces.get(), self.clean_lods.get()):
+			self.clean_lods_input.configure(
+					background=gui.theme.others['panel'],
+					highlightcolor=gui.theme.defaults['highlightcolor'])
+		else:
+			self.clean_lods_input.configure(
+					background=gui.theme.defaults['highlightcolor'],
+					highlightcolor=gui.theme.defaults['selectbackground'])
+		if self.levels.get() == 0:
+			if self.x_faces.get() < 4:
+				clean_s = False
+			if self.y_faces.get() < 4:
+				clean_t = False
+		if self.levels.get() == 1:
+			if self.x_faces.get() < 2:
+				clean_s = False
+			if self.y_faces.get() < 2:
+				clean_t = False
+		if clean_s and clean_t:
+			self.levels_input.configure(
+					background=gui.hex_color(gui.theme.ui.textfield),
+					highlightcolor=gui.theme.defaults['highlightcolor'])
+		else:
+			self.levels_input.configure(
+					background=gui.theme.defaults['highlightcolor'],
+					highlightcolor=gui.theme.defaults['selectbackground'])
+		if clean_s:
+			self.x_faces_input.configure(
+					background=gui.hex_color(gui.theme.ui.textfield),
+					highlightcolor=gui.theme.defaults['highlightcolor'])
+		else:
+			self.x_faces_input.configure(
+					background=gui.theme.defaults['highlightcolor'],
+					highlightcolor=gui.theme.defaults['selectbackground'])
+		if clean_t:
+			self.y_faces_input.configure(
+					background=gui.hex_color(gui.theme.ui.textfield),
+					highlightcolor=gui.theme.defaults['highlightcolor'])
+		else:
+			self.y_faces_input.configure(
+					background=gui.theme.defaults['highlightcolor'],
+					highlightcolor=gui.theme.defaults['selectbackground'])
 
-# =============================================
-# Event handler for the Clean LODs button
-# =============================================
-def toggle_button(event, val):
-	GLOBALS['event'] = event
-
-# ===============================================================
-# Event handler for the Clean LODs button if build mode is NURBS
-# ===============================================================
-def do_force_clean_lod_sel(event, val):
-	GLOBALS['clean_lod'].val = 0
-
-# ===============================================================
-# Event handler for the OK button
-# ===============================================================
-def do_ok_sel(event, val):
-	GLOBALS['event'] = event
-
-def addLodRow(label, x, y, width, height, lod, levels, tooltip ):
-	Blender.Draw.Button(label, EVENT_NONE, x, y, 55, 20, tooltip)
-	factor = 2**levels
-	x_faces = width  * factor
-	y_faces = height * factor
-	lx,ly = sculpty.lod_size( x_faces , y_faces, lod )
-	Blender.Draw.Button(str(lx),     EVENT_NONE, x+55,  y, 35, 20)
-	Blender.Draw.Button(str(ly) ,    EVENT_NONE, x+90,  y, 35, 20)
-	Blender.Draw.Button(str(ly*lx) , EVENT_NONE, x+125, y, 50, 20)
-
-def addLodLabelRow(x, y):
-	Blender.Draw.Button("faces:", EVENT_NONE, x,  y, 55, 20)
-	Blender.Draw.Button("X",      EVENT_NONE, x+ 55, y, 35, 20)
-	Blender.Draw.Button("Y" ,     EVENT_NONE, x+ 90, y, 35, 20)
-	Blender.Draw.Button("X*Y",    EVENT_NONE, x+125, y, 50, 20)
-
-# ===================================================================
-# This method presets the GLOBAL map from where the UIBlock and the 
-# event handlers read the data
-# ===================================================================
-def create_gui_globals():
-
-	# ====================================================
-	# Preset the Window element values from the registry
-	# ====================================================
-	
-	registry = MESH_REGISTRY
-	try:
-		rdict = Blender.Registry.GetKey(registry, True) # True to check on disk also
-	except:
-		print "No registry entry found for key", registry
-		
-	if rdict: # if found, get the values saved there
+	def add(self):
+		Blender.Window.WaitCursor(1)
+		name = self.shape_name.get()
+		basename = name.split(os.sep)[-1]
+		if self.shape_file:
+			baseimage = Blender.Image.Load(self.shape_file)
+			sculpt_type = sculpty.map_type(baseimage)
+		else:
+			sculpt_type = name.upper()
+			baseimage = None
+		gui.debug(11,
+				"Add sculptie (%s) of type %s"%(name, sculpt_type),
+				"add_mesh_sculpt_mesh")
+		scene = Blender.Scene.GetCurrent()
+		for ob in scene.objects:
+			ob.sel = False
 		try:
-			settings['x_faces']          = rdict['x_faces']
-			settings['y_faces']          = rdict['y_faces']
-			settings['multires_levels']  = rdict['multires_levels']
-			settings['subdiv_type']      = rdict['subdiv_type']
-			settings['sculpt_type']      = rdict['sculpt_type']
-			settings['clean_lod']        = rdict['clean_lod']
-			settings['build_mode']       = rdict['build_mode']
-			settings['radius']           = rdict['radius']
-		except:
+			mesh = sculpty.new_mesh( basename,sculpt_type,
+					self.x_faces.get(), self.y_faces.get(),
+					self.levels.get(), self.clean_lods.get(),
+					min(0.5,max(self.radius.get(),0.05)))
+			s, t, w, h, clean_s, clean_t = sculpty.map_size(self.x_faces.get(), self.y_faces.get(), self.levels.get())
+			image = Blender.Image.New(basename, w, h, 32)
+			sculpty.bake_lod(image)
+			ob = scene.objects.new(mesh, basename)
+			mesh.flipNormals()
+			ob.sel = True
+			ob.setLocation(Blender.Window.GetCursorPos())
+			sculpty.set_map(mesh, image)
+			if baseimage:
+				sculpty.update_from_map(mesh, baseimage)
+			if self.levels.get():
+				if self.sub_type.get():
+					mods = ob.modifiers
+					mod = mods.append(Blender.Modifier.Types.SUBSURF)
+					mod[Blender.Modifier.Settings.LEVELS] = self.levels.get()
+					mod[Blender.Modifier.Settings.RENDLEVELS] = self.levels.get()
+					mod[Blender.Modifier.Settings.UV] = False
+					if not self.subdivision.get():
+						mod[Blender.Modifier.Settings.TYPES] = 1
+				else:
+					mesh.multires = True
+					mesh.addMultiresLevel(self.levels.get(), ('simple', 'catmull-clark')[self.subdivision.get()])
+					mesh.sel = True
+			if self.subdivision.get():
+				for f in mesh.faces:
+					f.smooth = True
+			# adjust scale for subdivision
+			minimum, maximum = sculpty.get_bounding_box(ob)
+			x = 1.0 / (maximum.x - minimum.x)
+			y = 1.0 / (maximum.y - minimum.y)
+			try:
+				z = 1.0 / (maximum.z - minimum.z)
+			except:
+				z = 0.0
+			if sculpt_type == "TORUS Z":
+				z = min(0.5,max(self.radius.get(),0.05)) * z
+			elif sculpt_type == "TORUS X":
+				x = min(0.5,max(self.radius.get(),0.05)) * x
+			elif sculpt_type == "HEMI":
+				z = 0.5 * z
+			tran = Blender.Mathutils.Matrix([ x, 0.0, 0.0 ], [0.0, y, 0.0], [0.0, 0.0, z]).resize4x4()
+			mesh.transform(tran)
+			# align to view
+			try:
+				quat = None
+				if Blender.Get('add_view_align'):
+					quat = Blender.Mathutils.Quaternion(Blender.Window.GetViewQuat())
+					if quat:
+						mat = quat.toMatrix()
+						mat.invert()
+						mat.resize4x4()
+						ob.setMatrix(mat)
+			except:
+				pass
+			if self.save_settings.get() or self.save_defaults.get():
+				settings = {
+					'x_faces':self.x_faces.get(),
+					'y_faces':self.y_faces.get(),
+					'levels':self.levels.get(),
+					'subdivision':self.subdivision.get(),
+					'sub_type':self.sub_type.get(),
+					'clean_lods':self.clean_lods.get(),
+					'radius':self.radius.get(),
+					'shape_name':self.shape_name.get(),
+					'shape_file':self.shape_file,
+					'quads':self.quads.get(),
+					'save':self.save_settings.get()
+				}
+				Blender.Registry.SetKey(REGISTRY, settings, self.save_defaults.get())
+
+		except RuntimeError:
+			#todo tkinter this
+			#Blender.Draw.PupBlock("Unable to create sculptie", ["Please decrease face counts","or subdivision levels"])
 			pass
+		Blender.Window.WaitCursor(0)
+		self.master.quit() # self.master.destroy() makes blender crash occasionally (thread problems)
 
-	# ===========================================================
-	# Create the drawing elements
-	# ===========================================================
-	
-	GLOBALS['sculpt_type']     = settings['sculpt_type']
-	GLOBALS['subdiv_type']     = settings['subdiv_type']
-	GLOBALS['build_mode']      = settings['build_mode']
-	GLOBALS['faces_x']         = Blender.Draw.Create( settings['x_faces'] )
-	GLOBALS['faces_y']         = Blender.Draw.Create( settings['y_faces'] )
-	GLOBALS['multires_levels'] = Blender.Draw.Create( settings['multires_levels'] )
-	GLOBALS['clean_lod']       = Blender.Draw.Create( settings['clean_lod'] )
-	
-	GLOBALS['subdiv_type_catmull_clark']  = Blender.Draw.Create( settings['subdiv_type'] == SUBDIV_MODE_CATMULL_CLARK )
-	GLOBALS['subdiv_type_simple']         = Blender.Draw.Create( settings['subdiv_type'] == SUBDIV_MODE_SIMPLE )
-	
-	GLOBALS['sculpt_type_sphere']   = Blender.Draw.Create(settings['sculpt_type'] == SPHERE)
-	GLOBALS['sculpt_type_torus']    = Blender.Draw.Create(settings['sculpt_type'] == TORUS)
-	GLOBALS['sculpt_type_plane']    = Blender.Draw.Create(settings['sculpt_type'] == PLANE)
-	GLOBALS['sculpt_type_cylinder'] = Blender.Draw.Create(settings['sculpt_type'] == CYLINDER)
-	GLOBALS['sculpt_type_hemi']     = Blender.Draw.Create(settings['sculpt_type'] == HEMI)
-	
-	GLOBALS['build_mode_subsurf']  = Blender.Draw.Create(settings['build_mode'] == BUILD_MODE_SUBSURF)
-	GLOBALS['build_mode_multires'] = Blender.Draw.Create(settings['build_mode'] == BUILD_MODE_MULTIRES)
-	
-	GLOBALS['mouseCoords'] = Blender.Window.GetMouseCoords()
-	GLOBALS['event'] = EVENT_NONE
-	
-
-# ===============================================================
-# The main drawing routine
-# ===============================================================
-def drawCreateBox():
-	
-	mouseCoords = GLOBALS['mouseCoords']
-	mouse_x, mouse_y = mouseCoords
-	mouse_x-=260
-	mouse_y+=200
-
-	row  = [mouse_x + 0, mouse_x + 190, mouse_x + 305]
-
-	GLOBALS['event'] = EVENT_EXIT
-
-	block = []
-		
-	title = "Sculpt Mesh Options"
-	# Left Popup Block
-
-	x = row[0]
-	y = mouse_y	
-	
-	Blender.Draw.Label(title, x, y, 335, 20)
-			
-	# ==========================================================
-	# MESH GEOMETRY
-	# ==========================================================
-	y -= 30
-	Blender.Draw.Label("Mesh Geometry:", x, y, 150, 20); y -= 20
-
-
-	Blender.Draw.BeginAlign()
-	GLOBALS['clean_lod'] = Blender.Draw.Toggle("Clean LODs", EVENT_CLEAN_LOD, x,y, 175, 20, GLOBALS['clean_lod'].val,   "For non power of 2 facecounts: Ensure the object will use good LOD settings", toggle_button); y -=20
-	GLOBALS['faces_x']   = Blender.Draw.Number("X Faces", EVENT_MESH_CHANGE, x,y, 175, 20, GLOBALS['faces_x'].val, 0, 256, "Number of faces along the X-axis", toggle_button); y -=20
-	GLOBALS['faces_y']   = Blender.Draw.Number("Y Faces", EVENT_MESH_CHANGE, x,y, 175, 20, GLOBALS['faces_y'].val, 0, 256, "Number of faces along the Y-axis", toggle_button); y -=20
-	GLOBALS['multires_levels'] = Blender.Draw.Number("subdivision levels", EVENT_MESH_CHANGE, x,y, 175, 20, GLOBALS['multires_levels'].val, 0, 256, "Number of mesh subdivisions (Corresponds to SL LOD)", toggle_button); y -=20
-	GLOBALS['subdiv_type_catmull_clark'] = Blender.Draw.Toggle("Catmull-Clark", EVENT_SUBDIV_CATMULL, x,y, 100, 20, GLOBALS['subdiv_type_catmull_clark'].val,"Catmull-Clark", do_subdiv_type_sel) 
-	GLOBALS['subdiv_type_simple']        = Blender.Draw.Toggle("Simple",        EVENT_SUBDIV_SIMPLE, x+100, y, 75, 20, GLOBALS['subdiv_type_simple'].val, "Simple", do_subdiv_type_sel); y -=20
-	Blender.Draw.EndAlign()
-
-	y -=10
-	Blender.Draw.BeginAlign()
-	addLodLabelRow(x,y); y -=20
-	addLodRow("LOD3", x,y, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 3, GLOBALS['multires_levels'].val+1, "Maximum Number of rendered faces (when object is close to camera)" ); y -=20
-	addLodRow("LOD2", x,y, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 2, GLOBALS['multires_levels'].val+1, "First reduction of rendered faces (when object is near to camera)"); y -=20
-	addLodRow("LOD1", x,y, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 1, GLOBALS['multires_levels'].val+1, "Secnd reduction of rendered faces (when object is further away from camera"); y -=20
-	addLodRow("LOD0", x,y, GLOBALS['faces_x'].val, GLOBALS['faces_y'].val, 0, GLOBALS['multires_levels'].val+1, "Minimum Number of rendered faces (when object is far away from camera"); y -=20
-	Blender.Draw.EndAlign()
-	
-	# ==========================================================
-	# MESH TYPE
-	# ==========================================================
-	x = row[1]
-	y = mouse_y - 30
-	
-	Blender.Draw.Label("Mesh type:", x,y, 100, 20); y -=20
-
-	Blender.Draw.BeginAlign()
-	GLOBALS['sculpt_type_sphere']   = Blender.Draw.Toggle("Sphere",   EVENT_SCULPT_TYPE_SPHERE,  x, y, 100, 18, GLOBALS['sculpt_type_sphere'].val,  "Spherical shaped object", do_sculpt_type_sel); y -=20
-	GLOBALS['sculpt_type_torus']    = Blender.Draw.Toggle("Torus",    EVENT_SCULPT_TYPE_TORUS,   x, y, 100, 18, GLOBALS['sculpt_type_torus'].val,   "Torus shaped object",     do_sculpt_type_sel);	y -=20
-	GLOBALS['sculpt_type_plane']    = Blender.Draw.Toggle("Plane",    EVENT_SCULPT_TYPE_PLANE,   x, y, 100, 18, GLOBALS['sculpt_type_plane'].val,   "Plane object",            do_sculpt_type_sel);	y -=20
-	GLOBALS['sculpt_type_cylinder'] = Blender.Draw.Toggle("Cylinder", EVENT_SCULPT_TYPE_CYLINDER,x, y, 100, 18, GLOBALS['sculpt_type_cylinder'].val,"Cylinder shaped object",  do_sculpt_type_sel);	y -=20
-	GLOBALS['sculpt_type_hemi']     = Blender.Draw.Toggle("Hemi",     EVENT_SCULPT_TYPE_HEMI,    x, y, 100, 18, GLOBALS['sculpt_type_hemi'].val,    "Hemi shaped object",      do_sculpt_type_sel);	y -=20
-	Blender.Draw.EndAlign()
-
-	# ==========================================================
-	# BUILD STYLE
-	# ==========================================================
-	y -=50
-
-	Blender.Draw.Label("Build style:", x, y, 100, 20); y -=20			
-	Blender.Draw.BeginAlign()
-	GLOBALS['build_mode_subsurf']  = Blender.Draw.Toggle("Subsurf",  EVENT_BUILD_MODE_SUBSURF , x, y, 100, 20, GLOBALS['build_mode_subsurf'].val, "subsurf (beginners, easy LOD)", do_build_mode_sel); y -= 20
-	GLOBALS['build_mode_multires'] = Blender.Draw.Toggle("Multires", EVENT_BUILD_MODE_MULTIRES, x, y, 100, 20, GLOBALS['build_mode_multires'].val,"multires (experts, high flexibility)", do_build_mode_sel); y -= 20
-	Blender.Draw.EndAlign()
-
-	x = row[2]
-	y = mouse_y - 240	
-	GLOBALS['button_ok']    = Blender.Draw.Button("OK", EVENT_OK, x, y, 25, 210,  "Create object", do_ok_sel)
-
-def create_sculpty():
-
-	settings['x_faces']          = GLOBALS['faces_x'].val
-	settings['y_faces']          = GLOBALS['faces_y'].val
-	settings['multires_levels']  = GLOBALS['multires_levels'].val
-	settings['subdiv_type']      = GLOBALS['subdiv_type']
-	settings['sculpt_type']      = GLOBALS['sculpt_type']
-	settings['build_mode']       = GLOBALS['build_mode']
-	settings['clean_lod']        = GLOBALS['clean_lod'].val
-		
-	Blender.Registry.SetKey(MESH_REGISTRY, settings, True)
-	in_editmode = Blender.Window.EditMode()
-	# MUST leave edit mode before changing an active mesh:
-	if in_editmode:
-		Blender.Window.EditMode(0)
-	else:
-		try:
-			in_editmode = Blender.Get('add_editmode')
-		except:
-			pass
-	try:
-		ob = add_sculptie(
-			GLOBALS['sculpt_type'], 
-			GLOBALS['faces_x'].val, 
-			GLOBALS['faces_y'].val, 
-			GLOBALS['multires_levels'].val, 
-			GLOBALS['clean_lod'].val, 
-			GLOBALS['build_mode']==BUILD_MODE_SUBSURF,
-			GLOBALS['subdiv_type']==SUBDIV_MODE_CATMULL_CLARK )
-	except RuntimeError:
-		Blender.Draw.PupBlock( "Unable to create sculptie", ["Please decrease face counts","or subdivision levels"] )
-
-	if in_editmode:
-		Blender.Window.EditMode(1)
-
-# ===============================================================
-# Main loop.
-# Note: The UIBlock is redrawn with every mouse click, so that
-# Toggle buttons are refreshed or made visible/invisible epending
-# on the mesh type and build mode etc...
-#
-# The main loop terminates when the mouse clicks outside of the
-# Window or when the mouse clicks on the OK button. If the OK
-# button is clicked, a new sculptie will be created.
-# ===============================================================
 def main():
-
-	create_gui_globals()
-	GLOBALS['event'] = EVENT_REDRAW
-	while GLOBALS['event'] != EVENT_EXIT and GLOBALS['event'] != EVENT_OK:
-		Blender.Draw.UIBlock( drawCreateBox, 0 )
-	if GLOBALS['event'] == EVENT_OK:
-		create_sculpty()
+	root = None
+	start_time = Blender.sys.time()
+	gui.debug(1, "started", SCRIPT)
+	try:
+		root = gui.ModalRoot()
+		app = GuiApp(root)
+		root.mainloop()
+		root.destroy()
+	except:
+		if root:
+			root.destroy()
+		raise
+	gui.debug(1, "ended in %.4f sec."%(Blender.sys.time() - start_time), SCRIPT)
 
 if __name__ == '__main__':
 	main()

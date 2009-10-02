@@ -47,7 +47,8 @@ remove_files = [
 		'render_sculptie.pyc',
 		'sculpty.pyc',
 		'uvcalc_eac.pyc',
-		'primstar/import_collada_as_sculptie.py']
+		'primstar/import_collada_as_sculptie.py',
+		'primstar/add_mesh_test_gui.py']
 
 script_path = bpy.config.userScriptsDir
 
