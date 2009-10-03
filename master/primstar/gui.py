@@ -210,7 +210,6 @@ class ModalRoot(Tkinter.Tk):
 					self.grab_set()
 				else:
 					self.grab_set_global()
-		self.update_idletasks()
 
 	def click_handler(self, event):
 		debug(60, "Left Click: %s"%str(event.widget))

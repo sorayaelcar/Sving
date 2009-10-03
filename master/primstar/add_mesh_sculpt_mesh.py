@@ -381,6 +381,7 @@ static unsigned char file_open_bits[] = {
 				self.radius_input.config(state=DISABLED)
 		self.x_faces_input.config(to=256)
 		self.y_faces_input.config(to=256)
+		self.redraw()
 
 	def redraw(self):
 		self.master.update_idletasks()
