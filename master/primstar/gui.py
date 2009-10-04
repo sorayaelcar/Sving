@@ -188,7 +188,6 @@ class ModalRoot(Tkinter.Tk):
 		self.bind('<Leave>', self.leave_handler)
 		self.bind('<Enter>',self.enter_handler)
 		self.bind('<Button-1>',self.click_handler)
-		self.bind('<FocusOut>', self.focus_out_handler)
 		self.protocol("WM_DELETE_WINDOW", self.destroy)
 		self.mouse_exit = 0
 
@@ -215,13 +214,6 @@ class ModalRoot(Tkinter.Tk):
 		debug(60, "Left Click: %s"%str(event.widget))
 		if not self.mouse_exit or self.winfo_containing(event.x_root, event.y_root) == None:
 			self.quit()
-
-	def focus_out_handler(self, event):
-		if not self.mouse_exit:
-			self.quit()
-
-	def withdraw(self):
-		Tkinter.Tk.withdraw(self)
 
 class BitmapImage(Tkinter.BitmapImage):
 	def __init__(self, data=None, **kw):
