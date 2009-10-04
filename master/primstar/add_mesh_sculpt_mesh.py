@@ -548,4 +548,5 @@ def main():
 	gui.debug(1, "ended in %.4f sec."%(Blender.sys.time() - start_time), SCRIPT)
 
 if __name__ == '__main__':
+	gui.theme = gui.Theme() # refresh theme in case user changed prefs.
 	main()
