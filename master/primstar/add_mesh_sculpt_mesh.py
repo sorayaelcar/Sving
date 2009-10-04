@@ -42,12 +42,20 @@ from primstar import sculpty
 import os
 from Tkinter import *
 import tkFileDialog
-from binascii import hexlify
 from primstar import gui
 
-ADD_SCULPT_MESH_LABEL = "Primstar - Add sculpt mesh"
-SCRIPT="add_mesh_gui_test"
-REGISTRY='PrimstarAdd'
+#***********************************************
+# constants
+#***********************************************
+
+LABEL = "%s - Add sculpt mesh"%(sculpty.LABEL)
+SCRIPT = 'add_mesh_gui_test'
+REGISTRY = 'PrimstarAdd'
+
+#***********************************************
+# settings
+#***********************************************
+
 settings = Blender.Registry.GetKey(REGISTRY, True)
 if settings == None:
 	settings = {}
@@ -66,6 +74,10 @@ default_settings={
 for key, value in default_settings.iteritems():
 	if key not in settings:
 		settings[key] = value
+
+#***********************************************
+# classes
+#***********************************************
 
 class MenuMap(sculpty.LibFile):
 	def get_command(self, app):
@@ -106,10 +118,10 @@ static unsigned char file_open_bits[] = {
 		# Main window frame
 		# ==========================================
 
-		top_frame = gui.Frame(master, border=4)
+		top_frame = gui.Frame(self.master, border=4)
 		top_frame.pack()
 		frame = gui.LabelFrame(top_frame,
-				text=ADD_SCULPT_MESH_LABEL,
+				text=LABEL,
 				labelanchor=NW)
 		frame.pack()
 
@@ -124,7 +136,7 @@ static unsigned char file_open_bits[] = {
 				justify=RIGHT,
 				font=('Helvetica',9,'bold'))
 		t.pack(side=LEFT)
-		self.shape_name = StringVar(master, settings['shape_name'])
+		self.shape_name = StringVar(self.master, settings['shape_name'])
 		self.shape_file = settings['shape_file']
 		self.map_type = gui.Button(shape_frame,
 				textvariable= self.shape_name,
@@ -194,7 +206,7 @@ static unsigned char file_open_bits[] = {
 				format = "%4.3f",
 				width=5)
 		self.radius_input.pack(side=RIGHT)
-		self.clean_lods = BooleanVar( self.master, settings['clean_lods'] )
+		self.clean_lods = BooleanVar(self.master, settings['clean_lods'])
 		self.clean_lods_input = gui.Checkbutton(f,
 				text="Clean LODs",
 				variable=self.clean_lods,
@@ -279,8 +291,6 @@ static unsigned char file_open_bits[] = {
 				justify=LEFT)
 		self.lod_display.pack()
 		self.update_info()
-		self.save_defaults = IntVar(self.master, False)
-		self.save_settings = IntVar(self.master, settings['save'])
 		create_button = gui.Button(build_frame,
 				text="Build",
 				image=self.cube_icon,
@@ -288,6 +298,13 @@ static unsigned char file_open_bits[] = {
 				command=self.add,
 				default=ACTIVE)
 		create_button.pack(fill=BOTH, expand=True, anchor=SE, pady=5)
+
+		# ==========================================
+		# Save settings frame
+		# ==========================================
+
+		self.save_defaults = BooleanVar(self.master, False)
+		self.save_settings = BooleanVar(self.master, settings['save'])
 		save_frame = gui.Frame(build_frame)
 		save_frame.pack(fill=Y)
 		t = gui.Checkbutton(save_frame,
@@ -532,6 +549,10 @@ static unsigned char file_open_bits[] = {
 		Blender.Window.WaitCursor(0)
 		self.master.quit() # self.master.destroy() makes blender crash occasionally (thread problems)
 
+#***********************************************
+# main
+#***********************************************
+
 def main():
 	root = None
 	start_time = Blender.sys.time()
@@ -539,6 +560,7 @@ def main():
 	try:
 		root = gui.ModalRoot()
 		app = GuiApp(root)
+		app.redraw()
 		root.mainloop()
 		root.destroy()
 	except:

@@ -33,6 +33,8 @@ lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
 #***********************************************
 # constants
 #***********************************************
+
+LABEL = 'Primstar 0.9.x'
 DRAW_ADJUST = 1.0 / 512.0
 
 #***********************************************
@@ -538,7 +540,7 @@ def bake_lod(image):
 				c[2] += 0.25
 				image.setPixelF(s, t, c)
 
-def bake_object(ob, bb, clear=True):
+def bake_object(ob, bb, clear=True, keep_seams=True):
 	'''Bakes the object's mesh to the specified bounding box.
 	Returns False if object is not an active sculptie.
 	'''
@@ -556,7 +558,7 @@ def bake_object(ob, bb, clear=True):
 	currentUV = mesh.activeUVLayer
 	mesh.activeUVLayer = "sculptie"
 	edges = dict([(ed.key, {'count':0,
-		'seam':bool(ed.flag & Blender.Mesh.EdgeFlags.SEAM),
+		'seam':bool((ed.flag & Blender.Mesh.EdgeFlags.SEAM) and keep_seams),
 		'v1':ed.v1,
 		'v2':ed.v2
 		}) for ed in mesh.edges])
@@ -1257,8 +1259,8 @@ def set_alpha(image, alpha):
 	debug(30, "sculpty.set_alpha(%s, %s)"%(image.name, alpha.name))
 	for x in range(image.size[0]):
 		for y in range(image.size[1]):
-			c1 = image.getPixelI (x, y)
-			c2 = pimage.getPixelI(x, y)
+			c1 = image.getPixelI(x, y)
+			c2 = alpha.getPixelI(x, y)
 			c1[3]= c2[1]
 			image.setPixelI(x, y, c1)
 

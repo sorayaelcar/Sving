@@ -1,7 +1,7 @@
 #!BPY
 
 """
-Name: 'Bake Second Life Sculpties'
+Name: 'Bake Sculpt Meshes'
 Blender: 245
 Group: 'Render'
 Tooltip: 'Bake Sculptie Maps on Active objects'
@@ -9,13 +9,13 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("http://dominodesigns.info")
-__version__ = "0.36"
+__version__ = "0.90"
 __bpydoc__ = """\
 
 Bake Sculptie Map
 
 This script requires a square planar mapping. It bakes the local vertex
-positions to the prim's sculptie map image.
+positions to the image assigned to the 'sculptie' UV layer.
 """
 
 # ***** BEGIN GPL LICENSE BLOCK *****
@@ -38,368 +38,406 @@ positions to the prim's sculptie map image.
 #
 # ***** END GPL LICENCE BLOCK *****
 
-#***********************************************
-# Import modules
-#***********************************************
 
 import Blender
+import os
+import tkFileDialog
 from primstar import sculpty
+from Tkinter import *
+from primstar import gui
 
 #***********************************************
 # constants
 #***********************************************
 
-PROTECTION_NONE       = 0
-PROTECTION_SIMPLE     = 1
-PROTECTION_SILHOUETTE = 2
-PROTECTION_IMAGE      = 3
+SCRIPT = 'render_sculptie_test'
+REGISTRY = 'PrimstarBake'
+LABEL = '%s - Bake sculpt meshes'%(sculpty.LABEL)
 
-EVENT_NONE = 0
-EVENT_EXIT = 1
-EVENT_REDRAW = 2
+#***********************************************
+# settings
+#***********************************************
 
-EVENT_INCLUDE_IN_SIZE = 10
-EVENT_DO_SCALE        = 11
-EVENT_KEEP_CENTER     = 12
-EVENT_MAKE_FLIPABLE   = 13
-EVENT_DO_CLEAR        = 14
-EVENT_DO_FILL         = 15
-
-EVENT_MAP_PROTECT              = 20
-EVENT_PROTECT_TYPE_INVISIBLE   = 21
-EVENT_PROTECT_TYPE_SILHOUETTE  = 22
-EVENT_PROTECT_TYPE_IMAGE       = 23
-
-EVENT_OK = 51
-GLOBALS = {}
-
-settings = {
-			'doFinal':True,
-			'doFill':True,
-			'doCentre':False,
-			'doClear':True,
-			'doProtect':True,
-			'doPreview':True,
-			'minR':0,
-			'maxR':255,
-			'minG':0,
-			'maxG':255,
-			'minB':0,
-			'maxB':255,
-			'doScaleRGB':True
+settings = Blender.Registry.GetKey(REGISTRY, True)
+if settings == None:
+	settings = {}
+default_settings={
+		'keep_center':False,
+		'keep_scale':False,
+		'keep_seams':True,
+		'clear':True,
+		'fill':True,
+		'finalise':True,
+		'range_min':sculpty.XYZ(0, 0, 0),
+		'range_max':sculpty.XYZ(255, 255, 255),
+		'range_scale':True,
+		'alpha':2,
+		'alpha_file':None,
+		'save':True
 }
+for key, value in default_settings.iteritems():
+	if key not in settings:
+		settings[key] = value
 
+#***********************************************
+# classes
+#***********************************************
 
-# ===================================================================
-# This method presets the GLOBAL map from where the UIBlock and the 
-# event handlers read the data
-# ===================================================================
-def create_gui_globals():
+class GuiApp:
+	def __init__(self, master):
+		self.master = master
+		self.cube_icon = gui.BitmapImage(data="""#define cube_width 16
+#define cube_height 16
+static unsigned char cube_bits[] = {
+   0x00, 0x00, 0x80, 0x03, 0x70, 0x1c, 0x8c, 0x62, 0x94, 0x53, 0x64, 0x4c,
+   0xa4, 0x4b, 0x2c, 0x69, 0x34, 0x59, 0x64, 0x4d, 0xa4, 0x4b, 0x2c, 0x69,
+   0x30, 0x19, 0x40, 0x05, 0x80, 0x03, 0x00, 0x00 };
+""")
+		self.file_icon = gui.BitmapImage(data="""#define file_open_width 16
+#define file_open_height 16
+static unsigned char file_open_bits[] = {
+   0x00, 0x00, 0x08, 0x00, 0x0c, 0x00, 0xfe, 0x01, 0x0c, 0x02, 0x08, 0x04,
+   0x00, 0x04, 0xf0, 0x00, 0x08, 0x7f, 0xf8, 0x40, 0x08, 0x40, 0x08, 0x40,
+   0x08, 0x40, 0x08, 0x40, 0xf8, 0x7f, 0x00, 0x00 };
+""")
 
-	# ====================================================
-	# Preset the Window element values from the active object
-	# ====================================================
+		# ==========================================
+		# Settings
+		# ==========================================
 
-	scene = Blender.Scene.GetCurrent()
-	try:
-		settings['doFinal']    = scene.objects.active.properties["ps_bake_final"]
-		settings['doFill']     = scene.objects.active.properties["ps_bake_fill"]
-		settings['keepScale']  = scene.objects.active.properties["ps_bake_scale"]
-		settings['keepCenter'] = scene.objects.active.properties["ps_bake_center"]
-		settings['doClear']    = scene.objects.active.properties["ps_bake_clear"]
-		settings['doProtect']  = scene.objects.active.properties["ps_bake_protect"]
-		settings['doPreview']  = scene.objects.active.properties["ps_bake_preview"]
-		settings['minR']       = scene.objects.active.properties["ps_bake_min_r"]
-		settings['minG']       = scene.objects.active.properties["ps_bake_min_g"]
-		settings['minB']       = scene.objects.active.properties["ps_bake_min_b"]
-		settings['maxR']       = scene.objects.active.properties["ps_bake_max_r"]
-		settings['maxG']       = scene.objects.active.properties["ps_bake_max_g"]
-		settings['maxB']       = scene.objects.active.properties["ps_bake_max_b"]
-		settings['doScaleRGB'] = scene.objects.active.properties["ps_bake_scale_rgb"]
-	except:
-		settings['doFinal']    = True
-		settings['doFill']     = True
-		settings['keepScale']  = False
-		settings['keepCenter'] = False
-		settings['doClear']    = True
-		settings['doProtect']  = True
-		settings['doPreview']  = True
-		settings['minR']       = 0
-		settings['minG']       = 0
-		settings['minB']       = 0
-		settings['maxR']       = 255
-		settings['maxG']       = 255
-		settings['maxB']       = 255
-		settings['doScaleRGB'] = True
+		self.keep_center = BooleanVar(self.master, settings['keep_center'])
+		self.keep_scale = BooleanVar(self.master, settings['keep_scale'])
+		self.keep_seams = BooleanVar(self.master, settings['keep_seams'])
+		self.clear = BooleanVar(self.master, settings['clear'])
+		self.fill = BooleanVar(self.master, settings['fill'])
+		self.finalise = BooleanVar(self.master, settings['finalise'])
+		self.range_min_r = IntVar(self.master, settings['range_min'].x)
+		self.range_min_g = IntVar(self.master, settings['range_min'].y)
+		self.range_min_b = IntVar(self.master, settings['range_min'].z)
+		self.range_max_r = IntVar(self.master, settings['range_max'].x)
+		self.range_max_g = IntVar(self.master, settings['range_max'].y)
+		self.range_max_b = IntVar(self.master, settings['range_max'].z)
+		self.range_scale = BooleanVar(self.master, settings['range_scale'])
+		self.alpha = IntVar(self.master, settings['alpha'])
+		self.alpha_filename = settings['alpha_file']
+		self.alpha_file = StringVar(self.master)
+		self.update_file()
+		self.save_settings = BooleanVar(self.master, settings['save'])
+		self.save_defaults = BooleanVar(self.master, False)
 
-	# ===========================================================
-	# Create the drawing elements
-	# ===========================================================
+		# ==========================================
+		# Main window frame
+		# ==========================================
 
-	GLOBALS['doFinal']       = Blender.Draw.Create( settings['doFinal'] )
-	GLOBALS['doFill']        = Blender.Draw.Create( settings['doFill'] )
-	GLOBALS['keepScale']     = Blender.Draw.Create( settings['keepScale'] )
-	GLOBALS['keepCenter']    = Blender.Draw.Create( settings['keepCenter'] )
-	GLOBALS['doClear']       = Blender.Draw.Create( settings['doClear'] )
-	GLOBALS['doProtect']     = Blender.Draw.Create( settings['doProtect'] )
-	
-	GLOBALS['protect_type_simple']     = Blender.Draw.Create( settings['doPreview'] == False  )
-	GLOBALS['protect_type_silhouette'] = Blender.Draw.Create( settings['doPreview'] == True   )
+		top_frame = gui.Frame(master, border=4)
+		top_frame.pack()
+		frame = gui.LabelFrame(top_frame,
+				text=LABEL,
+				labelanchor=NW)
+		frame.pack()
+		settings_frame = gui.Frame(frame)
+		settings_frame.pack(fill=X)
 
-	GLOBALS['minR']        = Blender.Draw.Create( settings['minR'] )
-	GLOBALS['maxR']        = Blender.Draw.Create( settings['maxR'] )
-	GLOBALS['minG']        = Blender.Draw.Create( settings['minG'] )
-	GLOBALS['maxG']        = Blender.Draw.Create( settings['maxG'] )
-	GLOBALS['minB']        = Blender.Draw.Create( settings['minB'] )
-	GLOBALS['maxB']        = Blender.Draw.Create( settings['maxB'] )
-	GLOBALS['doScaleRGB']  = Blender.Draw.Create( settings['doScaleRGB'] )
+		# ==========================================
+		# Bake settings frame
+		# ==========================================
 
-	GLOBALS['mouseCoords'] = Blender.Window.GetMouseCoords()
-	GLOBALS['event'] = EVENT_NONE
+		f = gui.LabelFrame(settings_frame,
+				text="Bake")
+		f.pack(side=LEFT, fill=Y)
+		w = gui.Checkbutton(f,
+				text="Keep Center",
+				variable=self.keep_center)
+		w.pack(anchor=W, expand=True)
+		w = gui.Checkbutton(f,
+				text="Keep Scale",
+				variable=self.keep_scale)
+		w.pack(anchor=W, expand=True)
+		w = gui.Checkbutton(f,
+				text="Keep Seams",
+				variable=self.keep_seams)
+		w.pack(anchor=W, expand=True)
 
+		# ==========================================
+		# Image settings frame
+		# ==========================================
 
-# =============================================
-# Event handler for the toggle buttons
-# =============================================
-def do_toggle_button(event, val):
-	GLOBALS['event'] = event
+		f = gui.LabelFrame(settings_frame,
+				text="Image")
+		f.pack(side=LEFT, fill=Y)
+		w = gui.Checkbutton(f,
+				text="Clear",
+				variable=self.clear)
+		w.pack(anchor=W, expand=True)
+		w = gui.Checkbutton(f,
+				text="Fill",
+				variable=self.fill)
+		w.pack(anchor=W, expand=True)
+		w = gui.Checkbutton(f,
+				text="Finalise",
+				variable=self.finalise)
+		w.pack(anchor=W, expand=True)
 
-# =============================================
-# Event handler for subdivision type selection
-# =============================================
-def do_protection_type_sel(event, val):
-	GLOBALS['event'] = event
-	GLOBALS['protect_type_simple'].val     = (event == EVENT_PROTECT_TYPE_INVISIBLE)
-	GLOBALS['protect_type_silhouette'].val = (event == EVENT_PROTECT_TYPE_SILHOUETTE)
+		# ==========================================
+		# Range settings frame
+		# ==========================================
 
-# ===============================================================
-# The main drawing routine
-# ===============================================================
-def drawCreateBox():
-	
-	mouseCoords = GLOBALS['mouseCoords']
-	x,y = mouseCoords
-	x-=175
+		f = gui.LabelFrame(settings_frame,
+				text="Range")
+		f.pack(side=LEFT, fill=Y)
+		fr = gui.Frame(f)
+		fr.pack(fill=X)
+		w = gui.Spinbox(fr,
+				textvariable=self.range_max_r,
+				from_=0,
+				to=255,
+				width=4)
+		w.pack(side=RIGHT)
+		w = gui.Spinbox(fr,
+				textvariable=self.range_min_r,
+				from_=0,
+				to=255,
+				width=4)
+		w.pack(side=RIGHT)
+		t = gui.Label(fr,
+				text="Red",
+				justify=RIGHT)
+		t.pack(side=RIGHT)
+		fr = gui.Frame(f)
+		fr.pack(fill=X)
+		w = gui.Spinbox(fr,
+				textvariable=self.range_max_g,
+				from_=0,
+				to=255,
+				width=4)
+		w.pack(side=RIGHT)
+		w = gui.Spinbox(fr,
+				textvariable=self.range_min_g,
+				from_=0,
+				to=255,
+				width=4)
+		w.pack(side=RIGHT)
+		t = gui.Label(fr,
+				text="Green",
+				justify=RIGHT)
+		t.pack(side=RIGHT)
+		fr = gui.Frame(f)
+		fr.pack(fill=X)
+		w = gui.Spinbox(fr,
+				textvariable=self.range_max_b,
+				from_=0,
+				to=255,
+				width=4)
+		w.pack(side=RIGHT)
+		w = gui.Spinbox(fr,
+				textvariable=self.range_min_b,
+				from_=0,
+				to=255,
+				width=4)
+		w.pack(side=RIGHT)
+		t = gui.Label(fr,
+				text="Blue",
+				justify=RIGHT)
+		t.pack(side=RIGHT)
+		w = gui.Checkbutton(f,
+				text="Adjust Scale",
+				variable=self.range_scale)
+		w.pack()
 
-	row  = [x + 0, x + 165, x + 320, x+490]
+		# ==========================================
+		# Alpha settings frame
+		# ==========================================
 
-	GLOBALS['event'] = EVENT_EXIT
-	
-	selectState=False;
-	title = ""
+		f = gui.LabelFrame(frame,
+				text="Alpha")
+		f.pack(fill=X)
+		fr = gui.Frame(f)
+		fr.pack()
+		gui.Radiobutton(fr,
+				text="Preview",
+				variable=self.alpha,
+				value=2).pack(side=LEFT, anchor=W)
+		gui.Radiobutton(fr,
+				text="Solid",
+				variable=self.alpha,
+				value=0).pack(side=LEFT, anchor=W)
+		gui.Radiobutton(fr,
+				text="Transparent",
+				variable=self.alpha,
+				value=1).pack(side=LEFT, anchor=W)
+		gui.Radiobutton(fr,
+				textvariable=self.alpha_file,
+				variable=self.alpha,
+				command=self.set_alpha,
+				value=3).pack(side=LEFT,anchor=W)
+		gui.Button(fr,
+				image=self.file_icon,
+				compound=LEFT,
+				command=self.set_file,
+				default=ACTIVE).pack(side=RIGHT)
 
-	block = []
-	title = "Sculptie Bake Options"
-	Blender.Draw.Label(title, row[0], y, 345, 20)
+		# ==========================================
+		# Save settings frame
+		# ==========================================
 
+		save_frame = gui.Frame(frame)
+		save_frame.pack(fill=Y)
+		t = gui.Checkbutton(save_frame,
+				text="Save",
+				variable=self.save_settings)
+		t.pack(side=LEFT)
+		t = gui.Checkbutton(save_frame,
+				text="Defaults",
+				variable=self.save_defaults)
+		t.pack(side=LEFT)
 
-	# =======================================================
-	# Left popup block
-	# =======================================================
+		# ==========================================
+		# Bake button
+		# ==========================================
 
-	Blender.Draw.Label("Color Range Adjustment:", row[0], y-30, 150, 20)
+		w = gui.Button(save_frame,
+				text="Bake",
+				image=self.cube_icon,
+				compound=LEFT,
+				command=self.bake,
+				default=ACTIVE)
+		w.pack(side=LEFT,fill=BOTH, expand=True, anchor=SE, pady=5)
 
-	Blender.Draw.BeginAlign()
-
-	x = Blender.Draw.Button("",    EVENT_NONE, row[0],    y-50, 30, 20)
-	x = Blender.Draw.Button("Min", EVENT_NONE, row[0]+35, y-50, 55, 20)
-	x = Blender.Draw.Button("Max", EVENT_NONE, row[0]+90, y-50, 55, 20)
-
-	x = Blender.Draw.Button("R:", EVENT_NONE, row[0], y-70, 30, 20)
-	GLOBALS['minR'] = Blender.Draw.Number("", EVENT_NONE, row[0]+35, y-70, 55, 20, GLOBALS['minR'].val, 0, 255)
-	GLOBALS['maxR'] = Blender.Draw.Number("", EVENT_NONE, row[0]+90, y-70, 55, 20, GLOBALS['maxR'].val, 0, 255)
-
-	x = Blender.Draw.Button("G:", EVENT_NONE, row[0], y-90, 30, 20)
-	GLOBALS['minG'] = Blender.Draw.Number("", EVENT_NONE, row[0]+35, y-90, 55, 20, GLOBALS['minG'].val, 0, 255)
-	GLOBALS['maxG'] = Blender.Draw.Number("", EVENT_NONE, row[0]+90, y-90, 55, 20, GLOBALS['maxG'].val, 0, 255)
-
-	x = Blender.Draw.Button("B:", EVENT_NONE, row[0], y-110, 30, 20)
-	GLOBALS['minB'] = Blender.Draw.Number("", EVENT_NONE, row[0]+35, y-110, 55, 20, GLOBALS['minB'].val, 0, 255)
-	GLOBALS['maxB'] = Blender.Draw.Number("", EVENT_NONE, row[0]+90, y-110, 55, 20, GLOBALS['maxB'].val, 0, 255)
-
-	GLOBALS['doScaleRGB'] = Blender.Draw.Toggle("Include in size",
-						    EVENT_INCLUDE_IN_SIZE,
-						    row[0], y-130,
-						    145, 20,
-						    GLOBALS['doScaleRGB'].val,
-						    "in LSL script: correct rescaling due to color adjustment",
-						    do_toggle_button)
-	Blender.Draw.EndAlign()
-
-	Blender.Draw.Label("UV-Map options", row[0], y-155, 150, 20)
-	Blender.Draw.BeginAlign()
-	GLOBALS['doClear'] = Blender.Draw.Toggle( "Clear map",
-						   EVENT_DO_CLEAR,
-						   row[0], y-175,
-						   145, 20,
-						   GLOBALS['doClear'].val,
-						   "Remove all data from map before baking.",
-						   do_toggle_button)
-
-	GLOBALS['doFill'] = Blender.Draw.Toggle( "Fill holes",
-						   EVENT_DO_FILL,
-						   row[0], y-195,
-						   145, 20,
-						   GLOBALS['doFill'].val,
-						   "Add missing faces otherwise rendered as pure black.",
-						   do_toggle_button)
-	Blender.Draw.EndAlign()
-
-
-	# =======================================================
-	# Right popup block
-	# =======================================================
-
-	Blender.Draw.Label("Map protection (alpha)", row[1], y-30, 150, 20)
-	Blender.Draw.BeginAlign()
-
-	GLOBALS['doProtect'] = Blender.Draw.Toggle( "Protect map",
-			       EVENT_MAP_PROTECT,
-			       row[1], y-50,
-			       140, 20,
-			       GLOBALS['doProtect'].val,
-			       "Enable alpha mask protection of your sculptie. Hint enable F10 -> Format -> RGBA !",
-			       do_toggle_button)
-
-	if GLOBALS['doProtect'].val:
-		GLOBALS['protect_type_simple'] = Blender.Draw.Toggle( "Transparent",
-			       EVENT_PROTECT_TYPE_INVISIBLE,
-			       row[1], y-70,
-			       80,20,
-			       GLOBALS['protect_type_simple'].val,
-			       "Make image fully transparent. Hint: enable 'draw image with alpha' in UV-editor",
-			       do_protection_type_sel)
-
-		GLOBALS['protect_type_silhouette'] = Blender.Draw.Toggle( "Preview",
-			       EVENT_PROTECT_TYPE_SILHOUETTE,
-			       row[1]+80, y-70,
-			       60,20,
-			       GLOBALS['protect_type_silhouette'].val,
-			       "Use front view silhouette as alpha mask.",
-			       do_protection_type_sel)
-	Blender.Draw.EndAlign()
-
-	Blender.Draw.Label("Transformation", row[1], y-135, 120, 20)
-	Blender.Draw.BeginAlign()
-	GLOBALS['keepScale'] = Blender.Draw.Toggle("Keep Scale",
-						 EVENT_DO_SCALE,
-						 row[1], y-155,
-						 140, 20,
-						 GLOBALS['keepScale'].val,
-						 "Maintain aspect ration. No rescale necessary (but reduces resolution)",
-						 do_toggle_button)
-
-	GLOBALS['keepCenter'] = Blender.Draw.Toggle( "Keep Center",
-						    EVENT_KEEP_CENTER,
-						    row[1], y-175,
-						    140, 20,
-						    GLOBALS['keepCenter'].val,
-						    "With Keep Scale: ensure, that object center is preserved",
-						    do_toggle_button)
-
-	GLOBALS['doFinal'] = Blender.Draw.Toggle( "Finalize",
-						   EVENT_MAKE_FLIPABLE,
-						   row[1], y-195,
-						   140, 20,
-						   GLOBALS['doFinal'].val,
-						   "Optimize sculpt-map for precise mirroring (caution with odd face numbers!)",
-						   do_toggle_button)
-
-	Blender.Draw.EndAlign()
-
-	# =======================================================
-	# OK block
-	# =======================================================
-
-	GLOBALS['button_ok']    = Blender.Draw.Button("OK", EVENT_OK, row[2], y-195, 25, 165,  "Create object", do_toggle_button)
-
-def bake_sculptie():
-		print "--------------------------------"
+	def bake(self):
 		startTime = Blender.sys.time()  #for timing purposes
 		editmode  = Blender.Window.EditMode()
 		if editmode: Blender.Window.EditMode(0)
-		Blender.Window.WaitCursor(1)
+		self.master.configure(cursor="clock")
 		# prepare for bake, set centers and create bounding box
 		bb = sculpty.BoundingBox()
-		bb.rgb.min = sculpty.XYZ( GLOBALS['minR'].val, GLOBALS['minG'].val, GLOBALS['minB'].val )
-		bb.rgb.max = sculpty.XYZ( GLOBALS['maxR'].val, GLOBALS['maxG'].val, GLOBALS['maxB'].val )
+		bb.rgb.min = sculpty.XYZ(self.range_min_r.get(),self.range_min_g.get(),self.range_min_b.get())
+		bb.rgb.max = sculpty.XYZ(self.range_max_r.get(),self.range_max_g.get(),self.range_max_b.get())
 		bb.rgb.update()
 
 		scene = Blender.Scene.GetCurrent()
 		for ob in scene.objects.selected:
 			if sculpty.check( ob ):
-				ob.properties["ps_bake_final"]     = GLOBALS['doFinal'].val
-				ob.properties["ps_bake_fill"]      = GLOBALS['doFill'].val
-				ob.properties["ps_bake_scale"]     = GLOBALS['keepScale'].val
-				ob.properties["ps_bake_center"]    = GLOBALS['keepCenter'].val
-				ob.properties["ps_bake_clear"]     = GLOBALS['doClear'].val
-				ob.properties["ps_bake_protect"]   = GLOBALS['doProtect'].val
-				ob.properties["ps_bake_preview"]   = GLOBALS['protect_type_silhouette'].val == True
-				ob.properties["ps_bake_min_r"]     = GLOBALS['minR'].val
-				ob.properties["ps_bake_min_g"]     = GLOBALS['minG'].val
-				ob.properties["ps_bake_min_b"]     = GLOBALS['minB'].val
-				ob.properties["ps_bake_max_r"]     = GLOBALS['maxR'].val
-				ob.properties["ps_bake_max_g"]     = GLOBALS['maxG'].val
-				ob.properties["ps_bake_max_b"]     = GLOBALS['maxB'].val
-				ob.properties["ps_bake_scale_rgb"] = GLOBALS['doScaleRGB'].val
-				if not ob.properties["ps_bake_center"]:
+				if not self.keep_center.get():
 					#center new
 					sculpty.set_center( ob )
 				bb.add( ob )
-				if ob.properties["ps_bake_scale"]:
+				if self.keep_scale.get():
 					bb = bb.normalised()
-				if ob.properties["ps_bake_center"]:
+				if self.keep_center.get():
 					bb = bb.centered()
 		# Good to go, do the bake
 		success = False
+		image = None
+		a = self.alpha.get()
+		if a == 3:
+			alpha_image = Blender.Image.Load(self.alpha_filename)
 		for ob in scene.objects.selected:
 			if sculpty.active( ob ):
-				if sculpty.bake_object( ob, bb, ob.properties["ps_bake_clear"] ):
+				if sculpty.bake_object(ob, bb, self.clear.get(), self.keep_seams.get()):
 					success = True
 				for image in sculpty.map_images( ob.getData( False, True) ):
 					n = Blender.sys.splitext( image.name )
 					if n[0] in ["Untitled", "Sphere_map", "Torus_map", "Cylinder_map", "Plane_map", "Hemi_map", "Sphere", "Torus","Cylinder","Plane","Hemi" ]:
 						image.name = ob.name
-					if ob.properties["ps_bake_scale_rgb"]:
+					if self.range_scale.get():
 						if 'primstar' not in image.properties:
 							image.properties['primstar'] = {}
 						image.properties['primstar']['scale_x'] /= bb.rgb.scale.x
 						image.properties['primstar']['scale_y'] /= bb.rgb.scale.y
 						image.properties['primstar']['scale_z'] /= bb.rgb.scale.z
-					if ob.properties["ps_bake_fill"]:
+					if self.fill.get():
 						sculpty.fill_holes( image )
-					if ob.properties["ps_bake_final"]:
+					if self.finalise.get():
 						sculpty.finalise( image )
-						if ob.properties["ps_bake_protect"]:
-							if ob.properties["ps_bake_preview"]:
-								sculpty.bake_preview( image )
-							else:
-								sculpty.clear_alpha( image )
-
-		print "--------------------------------"
-		print 'finished baking: in %.4f sec.' % ((Blender.sys.time()- startTime))
+						if a == 2:
+							sculpty.bake_preview(image)
+						elif a == 1:
+							sculpty.clear_alpha(image)
+						elif a == 3:
+							sculpty.set_alpha(image, alpha_image)
 		Blender.Redraw()
 		if editmode: Blender.Window.EditMode(1)
-		Blender.Window.WaitCursor(0)
-		if not success:
-			Blender.Draw.PupBlock( "Sculptie Bake Error", ["No objects selected"] )
+		if success:
+			gui.debug(1, 'finished baking: in %.4f sec.' % ((Blender.sys.time()- startTime)))
+		else:
+			gui.debug(1, 'bake failed after %.4f sec.' % ((Blender.sys.time()- startTime)))
+		if self.save_settings.get() or self.save_defaults.get():
+			range_min = sculpty.XYZ(self.range_min_r.get(),self.range_min_g.get(),self.range_min_b.get())
+			range_max = sculpty.XYZ(self.range_max_r.get(),self.range_max_g.get(),self.range_max_b.get())
+			settings = {
+				'keep_center':self.keep_center.get(),
+				'keep_scale':self.keep_scale.get(),
+				'keep_seams':self.keep_seams.get(),
+				'clear':self.clear.get(),
+				'fill':self.fill.get(),
+				'finalise':self.finalise.get(),
+				'range_min':range_min,
+				'range_max':range_max,
+				'range_scale':self.range_scale.get(),
+				'alpha':self.alpha.get(),
+				'alpha_file':self.alpha_filename,
+				'save':self.save_settings.get()
+			}
+			Blender.Registry.SetKey(REGISTRY, settings, self.save_defaults.get())
+		self.master.quit()
 
-# ===============================================================
-# Main loop.
-# Note: The UIBlock is redrawn with every mouse click, so that
-# Toggle buttons are refreshed or made visible/invisible epending
-# on the mesh type and build mode etc...
-# The main loop terminates when the mouse clicks outside of the
-# Window or when the mouse clicks on the OK button. If the OK
-# button is clicked, the sculptie will be baked.
-# ===============================================================
+	def redraw(self):
+		self.master.update_idletasks()
+		Blender.Redraw()
+
+	def set_file(self):
+		self.master.withdraw()
+		filename = tkFileDialog.askopenfilename(
+				initialdir='~',
+				title='Select a sculpt map',
+				parent=self.master,
+				filetypes=[
+						('targa', '*.tga'),
+						('bmp','*.bmp'),
+						('png','*.png'),
+						('all files', '.*')])
+		self.master.deiconify()
+		self.redraw()
+		self.alpha_filename = filename
+		if not filename:
+			self.alpha.set(2)
+		self.update_file()
+
+	def set_alpha(self):
+		if not self.alpha_filename:
+			self.master.mouse_exit += 1 #hack to stop early exit
+			self.set_file()
+
+	def update_file(self):
+		if self.alpha_filename == None:
+			self.alpha_file.set("File")
+		else:
+			if not os.path.exists(self.alpha_filename):
+				self.alpha_file.set("File")
+			else:
+				self.alpha_file.set(self.alpha_filename.split(os.sep)[-1])
+		self.redraw()
+
+#***********************************************
+# main
+#***********************************************
+
 def main():
-	create_gui_globals()
-	GLOBALS['event'] = EVENT_REDRAW
-	while GLOBALS['event'] != EVENT_EXIT and GLOBALS['event'] != EVENT_OK:
-		Blender.Draw.UIBlock( drawCreateBox, 0 )
-	if GLOBALS['event'] == EVENT_OK:
-		bake_sculptie()
+	root = None
+	start_time = Blender.sys.time()
+	gui.debug(1, "started", SCRIPT)
+	try:
+		root = gui.ModalRoot()
+		app = GuiApp(root)
+		app.redraw()
+		root.mainloop()
+		root.destroy()
+	except:
+		if root:
+			root.destroy()
+		raise
+	gui.debug(1, "ended in %.4f sec."%(Blender.sys.time() - start_time), SCRIPT)
 
 if __name__ == '__main__':
+	gui.theme = gui.Theme() # refresh theme in case user changed prefs.
 	main()
