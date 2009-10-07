@@ -1,4 +1,4 @@
-#!BPY
+#!/usr/bin/env python
 
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
@@ -21,10 +21,21 @@
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
 
-import Blender
-import bpy
+import sys
 import os
 from distutils import dir_util
+
+try:
+	import Blender
+	import bpy
+except:
+	try:
+		from Tkinter import *
+		from tkMessageBox import *
+		showerror( 'Primstar Installer','Please run from command line with \'blender -P install.py\'')
+	except:
+		print 'Please run from command line with \'blender -P install.py\''
+	sys.exit()
 
 remove_files = [
 		'add_mesh_sculpt_mesh.py',
