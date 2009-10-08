@@ -177,43 +177,54 @@ class ModalRoot(Tkinter.Tk):
 		Tkinter.Tk.__init__(self)
 		self.overrideredirect(True)
 		theme.config(self, kw)
-		# OS specific features
-		if platform == "win32":
-			self.attributes("-topmost", 1)
 		# event handling
 		px, py = self.winfo_pointerxy()
 		self.geometry("+%d+%d"%(px - 100, py - 100))
 		self.update_idletasks()
 		self.bind('<Escape>', self.destroy_handler)
-		self.bind('<Leave>', self.leave_handler)
 		self.bind('<Enter>',self.enter_handler)
 		self.bind('<Button-1>',self.click_handler)
 		self.protocol("WM_DELETE_WINDOW", self.destroy)
-		self.mouse_exit = 0
+		self.mouse_exit = False
+		# OS specific features
+		if platform == "win32":
+			self.attributes("-topmost", 1)
+			self.bind('<FocusOut>', self.focus_out_handler)
 
 	def destroy_handler(self, event):
 		self.quit()
 
-	def leave_handler(self, event):
-		debug(60,"Leave: %s"%str(event.widget))
-		if not self.mouse_exit:
-			self.quit()
-		self.mouse_exit -= 1
-
 	def enter_handler(self, event):
 		debug(60,"Enter: %s"%str(event.widget))
-		self.mouse_exit += 1
 		if event.widget == self:
+			self.mouse_exit = True
 			if self.grab_status() == None:
 				if platform == "win32":
 					self.grab_set()
 				else:
 					self.grab_set_global()
 
+	def focus_out_handler(self, event):
+		debug(60,"Focus out: %s"%str(event.widget))
+		if self.mouse_exit and event.widget == self and self.state()=='normal':
+			# Windows specific quit
+			debug(70,"Mouse exit: %s"%str(event.widget))
+			self.quit()
+
 	def click_handler(self, event):
 		debug(60, "Left Click: %s"%str(event.widget))
-		if not self.mouse_exit or self.winfo_containing(event.x_root, event.y_root) == None:
+		if self.winfo_containing(event.x_root, event.y_root) == None:
+			# Linux and Mac quit
+			debug(70,"Mouse exit: %s"%str(event.widget))
 			self.quit()
+
+	def deiconify(self):
+		Tkinter.Tk.deiconify(self)
+		if self.grab_status() == None:
+			if platform == "win32":
+				self.grab_set()
+			else:
+				self.grab_set_global()
 
 class BitmapImage(Tkinter.BitmapImage):
 	def __init__(self, data=None, **kw):
