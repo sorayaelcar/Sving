@@ -869,6 +869,8 @@ def finalise(image):
 	for x in u_pixels[:-1]:
 		for y in v_pixels[:-1]:
 			c = image.getPixelI(x, y)
+			if c[3] == 0:
+				continue
 			if x + 1 not in u_pixels:
 				image.setPixelI(x + 1, y, c)
 				if y + 1 not in v_pixels:
