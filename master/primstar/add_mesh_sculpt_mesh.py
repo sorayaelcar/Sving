@@ -332,6 +332,14 @@ static unsigned char file_open_bits[] = {
 		library = sculpty.build_lib(LibDir=MenuDir, LibFile=MenuMap)
 		library.add_to_menu(self, self.sculpt_menu)
 		self.set_shape(settings['shape_name'],settings['shape_file'])
+		self.master.bind('<Button-1>', self.click_handler)
+
+	def click_handler(self, event):
+		if self.sculpt_menu.winfo_ismapped():
+			self.sculpt_menu.unpost()
+			self.redraw()
+		else:
+			gui.ModalRoot.click_handler(self.master, event)
 
 	def set_file(self):
 		self.master.withdraw()

@@ -57,7 +57,7 @@ def ignore(event):
 def redraw(event=None):
 	if event:
 		event.widget.master.update_idletasks()
-	Blender.Window.RedrawAll()
+	Blender.Redraw()
 
 class Theme:
 	def __init__(self):
@@ -276,7 +276,6 @@ class Menu(Tkinter.Menu):
 	def __init__(self, parent, **kw):
 		Tkinter.Menu.__init__(self, parent)
 		theme.config(self, kw)
-		self.bind('<Button-1>', redraw)
 
 class Menubutton(Tkinter.Menubutton):
 	def __init__(self, parent, **kw):
