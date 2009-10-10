@@ -419,11 +419,11 @@ static unsigned char file_open_bits[] = {
 		if sculpty.check_clean(w, h, self.x_faces.get(), self.y_faces.get(), self.clean_lods.get()):
 			self.clean_lods_input.configure(
 					background=gui.theme.others['panel'],
-					highlightcolor=gui.theme.defaults['highlightcolor'])
+					foreground=gui.theme.defaults['foreground'])
 		else:
 			self.clean_lods_input.configure(
-					background=gui.theme.defaults['highlightcolor'],
-					highlightcolor=gui.theme.defaults['selectbackground'])
+					background=gui.theme.defaults['foreground'],
+					foreground=gui.theme.others['panel'])
 		if self.levels.get() == 0:
 			if self.x_faces.get() < 4:
 				clean_s = False
@@ -437,27 +437,27 @@ static unsigned char file_open_bits[] = {
 		if clean_s and clean_t:
 			self.levels_input.configure(
 					background=gui.hex_color(gui.theme.ui.textfield),
-					highlightcolor=gui.theme.defaults['highlightcolor'])
+					foreground=gui.theme.defaults['foreground'])
 		else:
 			self.levels_input.configure(
-					background=gui.theme.defaults['highlightcolor'],
-					highlightcolor=gui.theme.defaults['selectbackground'])
+					background=gui.theme.defaults['foreground'],
+					foreground=gui.hex_color(gui.theme.ui.textfield))
 		if clean_s:
 			self.x_faces_input.configure(
 					background=gui.hex_color(gui.theme.ui.textfield),
-					highlightcolor=gui.theme.defaults['highlightcolor'])
+					foreground=gui.theme.defaults['foreground'])
 		else:
 			self.x_faces_input.configure(
-					background=gui.theme.defaults['highlightcolor'],
-					highlightcolor=gui.theme.defaults['selectbackground'])
+					background=gui.theme.defaults['foreground'],
+					foreground=gui.hex_color(gui.theme.ui.textfield))
 		if clean_t:
 			self.y_faces_input.configure(
 					background=gui.hex_color(gui.theme.ui.textfield),
-					highlightcolor=gui.theme.defaults['highlightcolor'])
+					foreground=gui.theme.defaults['foreground'])
 		else:
 			self.y_faces_input.configure(
-					background=gui.theme.defaults['highlightcolor'],
-					highlightcolor=gui.theme.defaults['selectbackground'])
+					background=gui.theme.defaults['foreground'],
+					foreground=gui.hex_color(gui.theme.ui.textfield))
 
 	def add(self):
 		Blender.Window.WaitCursor(1)
