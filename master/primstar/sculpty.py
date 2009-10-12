@@ -99,7 +99,10 @@ class XYZ:
 		)
 
 	def __repr__(self):
-		return "XYZ(" + str(self.x) + ", " +\
+		return "XYZ" + str(self)
+
+	def __str__(self):
+		return "(" + str(self.x) + ", " +\
 			str(self.y) + ", " +\
 			str(self.z) + ")"
 
@@ -146,7 +149,7 @@ class BoundingBox:
 		self.update()
 
 	def __repr__(self):
-		return "bb{ min=" + repr(self.min) +", max=" + repr(self.max) + ", scale=" +\
+		return "bb{min=" + repr(self.min) +", max=" + repr(self.max) + ", scale=" +\
 			repr(self.scale) + ", center" + repr(self.center) + "}"
 
 	def add(self, ob):
@@ -400,7 +403,7 @@ class BakeMap:
 						c.z = c.z / self.scale.z + DRAW_ADJUST
 					else:
 						c.z = 0.5
-					c = rgb.convert( c )
+					c = rgb.convert(c)
 					self.image.setPixelI(u1, v1, (c.x, c.y, c.z, 255))
 
 class LibPath:
@@ -410,7 +413,7 @@ class LibPath:
 			self.local_path = path[len(root):]
 		else:
 			self.local_path = path
-		self.name = Blender.sys.makename( path, strip=1 )
+		self.name = Blender.sys.makename(path, strip=1)
 
 	def __lt__(self, other):
 		return self.path < other.path
@@ -447,30 +450,34 @@ class Prim:
 		self.children = []
 		self.textures = []
 		self.sculpt_maps = []
-		self.size = (1.0, 1.0, 1.0)
+		self.size = XYZ(1.0, 1.0, 1.0)
 		self.rotation = (0.0, 0.0, 0.0, 1.0)
-		self.location = (0.0, 0.0, 0.0)
+		self.location = XYZ(0.0, 0.0, 0.0)
 		if ob:
 			if active(ob):
 				mesh = ob.getData(False, True)
 				self.sculpt_maps = map_images(mesh)
-				self.textures = [Texture( i ) for i in map_images(mesh, 'UVTex')]
+				self.textures = [Texture(i, mesh) for i in map_images(mesh, 'UVTex')]
 			self.size = ob.size
 			r = ob.getMatrix().rotationPart().invert().toQuat()
-			self.rotation = ( r[1], r[2], r[3], r[0] )
-			self.location = ob.getLocation( 'worldspace' )
+			self.rotation = (r[1], r[2], r[3], r[0])
+			location = ob.getLocation('worldspace')
+			self.location = XYZ(location.x, location.y, location.z)
 			for c in obChildren(ob):
 				self.children.append(Prim(c.name, c))
 
 class Texture:
-	def __init__( self, image = None ):
+	def __init__(self, image = None, mesh = None):
 		self.image = image
-		self.offset = ( 0.0, 0.0 )
-		self.repeat = ( 1.0, 1.0 )
-		self.rotation = 0.0
+		if mesh:
+			self.offset, self.repeat, self.rotation = uv_params(mesh)
+		else:
+			self.offset = XYZ(0.0, 0.0, 0.0)
+			self.repeat = XYZ(1.0, 1.0, 0.0)
+			self.rotation = 0.0
 		self.face = 0
 
-	def save_image( self, filename ):
+	def save_image(self, filename):
 		oldfile = self.image.filename
 		self.image.filename = filename
 		self.image.save()
@@ -528,11 +535,11 @@ def bake_lod(image):
 		for v in range(y):
 			image.setPixelF(u, v, (float(u) / x, float(v) / y, 0.0, 1.0))
 	for l in range(4):
-		sides = [ 6, 8, 16, 32 ][l]
+		sides = [6, 8, 16, 32][l]
 		s, t = face_count(x , y, sides, sides, False)
-		ss = [ int(x * k / float(s)) for k in range(s) ]
+		ss = [int(x * k / float(s)) for k in range(s)]
 		ss.append(x - 1)
-		ts = [ int(y * k / float(t)) for k in range(t) ]
+		ts = [int(y * k / float(t)) for k in range(t)]
 		ts.append(y - 1)
 		for s in ss:
 			for t in ts:
@@ -652,10 +659,10 @@ def check_clean(x, y, u, v, clean):
 		w = u
 		h = v
 	for i in range(1, w):
-		if int( x * i / float(w)) not in xs:
+		if int(x * i / float(w)) not in xs:
 			return False
 	for i in range(1, h):
-		if int( y * i / float(h)) not in ys:
+		if int(y * i / float(h)) not in ys:
 			return False
 	return True
 
@@ -775,7 +782,7 @@ def face_count(width, height, x_faces, y_faces, model = True):
 
 def fill_holes(image):
 	'''Any pixels with alpha 0 on the image have colour interpolated from neighbours'''
-	debug( 30, "sculpty.fill_holes(%s)"%(image.name))
+	debug(30, "sculpty.fill_holes(%s)"%(image.name))
 	def getFirstX(y):
 		for x in range(image.size[0]):
 			c = image.getPixelF(x, y)
@@ -881,7 +888,7 @@ def finalise(image):
 def flip_pixels(pixels):
 	'''Converts a list of pixels on a sculptie map to their mirror positions.'''
 	m = max(pixels)
-	return [ m - p for p in pixels ]
+	return [m - p for p in pixels]
 
 def get_bounding_box(obj):
 	'''Returns the post modifier stack bounding box for the object'''
@@ -909,20 +916,32 @@ def get_bounding_box(obj):
 			max_z = v.co.z
 	return XYZ(min_x, min_y, min_z), XYZ(max_x, max_y, max_z)
 
+def get_prims():
+	prims = []
+	scene = Blender.Scene.GetCurrent()
+	for ob in scene.objects.selected:
+		# collect prims
+		if ob.parent != None:
+			continue
+		rootprim = ob2Prim( ob )
+		if rootprim != None:
+			prims.append( rootprim )
+	return prims
+
 def lod_info(width, height, format = "LOD%(lod)d: %(x_faces)d x %(y_faces)d\n"):
 	'''Returns a string with the lod info for a map size of width * height'''
 	debug(40, "sculpty.lod_info(%d, %d, %s)"%(width, height, format))
 	info = ""
 	for i in [3,2,1,0]:
-		faces = float([ 6, 8, 16, 32 ][i])
+		faces = float([6, 8, 16, 32][i])
 		x_faces, y_faces = lod_size(width, height, i)
-		info += format%{ 'lod':i, 'x_faces':x_faces, 'y_faces':y_faces }
+		info += format%{'lod':i, 'x_faces':x_faces, 'y_faces':y_faces}
 	return info
 
 def lod_size(width, height, lod):
 	'''Returns x and y face counts for the given map size and lod'''
 	debug(40, "sculpty.lod_size(%d, %d, %d)"%(width, height, lod))
-	sides = float([ 6, 8, 16, 32 ][lod])
+	sides = float([6, 8, 16, 32][lod])
 	ratio = float(width) / float(height)
 	verts = int(min(0.25 * width * height, sides * sides))
 	y_faces = int(sqrt(verts / ratio))
@@ -949,8 +968,8 @@ def map_images(mesh, layer='sculptie'):
 def map_pixels(width, height, levels=[3,2,1,0]):
 	'''Returns ss and ts as lists of used pixels for the given map size.'''
 	debug(40, "sculpty.map_pixels(%d, %d)"%(width, height))
-	ss = [ width - 1 ]
-	ts = [ height - 1 ]
+	ss = [width - 1]
+	ts = [height - 1]
 	for i in levels:
 		u,v = lod_size(width, height, i)
 		for p in vertex_pixels(width, u):
@@ -982,7 +1001,7 @@ def map_size(x_faces, y_faces, levels):
 	ct - True if y face count was corrected
 	'''
 	debug(30, "sculpty.map_size(%d, %d, %d)"%(x_faces, y_faces, levels))
-	if ( (( x_faces == 9 and y_faces == 4) or ( x_faces == 4 and y_faces == 9))
+	if (((x_faces == 9 and y_faces == 4) or (x_faces == 4 and y_faces == 9))
 		and levels == 0):
 		s = x_faces
 		t = y_faces
@@ -1029,7 +1048,7 @@ def map_type(image):
 	p2 = image.getPixelI(0, image.size[1] - 1)[:3]
 	if p1 != p2:
 		yseam = False
-	for x in range(1, image.size[0] ):
+	for x in range(1, image.size[0]):
 		p3 = image.getPixelI(x, 0)[:3]
 		p4 = image.getPixelI(x, image.size[1] - 1)[:3]
 		if p1 != p3 or p2 != p4:
@@ -1038,7 +1057,7 @@ def map_type(image):
 			yseam = False
 		p1 = p3
 		p2 = p4
-	for y in range(image.size[1] ):
+	for y in range(image.size[1]):
 		p1 = image.getPixelI(0, y)[:3]
 		p2 = image.getPixelI(image.size[0] - 1, y)[:3]
 		if p1 != p2:
@@ -1102,7 +1121,7 @@ def new_from_map(image):
 		x = image.properties['primstar']['size_x']
 		y = image.properties['primstar']['size_y']
 		z = image.properties['primstar']['size_z']
-		ob.setSize( x, y, z )
+		ob.setSize(x, y, z)
 	except:
 		pass
 	if in_editmode:
@@ -1120,7 +1139,7 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True,
 	levels - LOD levels
 	clean_lods - aligns UV layout with power of two grid if True
 	'''
-	debug(10, "sculpty.new_mesh( %s, %s,%d, %d, %d, %d, %f)"%(
+	debug(10, "sculpty.new_mesh(%s, %s,%d, %d, %d, %d, %f)"%(
 			name,
 			sculpt_type,
 			x_faces,
@@ -1173,10 +1192,10 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True,
 			path = float(k)/s
 			pos = uv_to_rgb(sculpt_type, path, profile, radius)
 			vert = Blender.Mathutils.Vector(pos.x - 0.5, pos.y - 0.5, pos.z - 0.5)
-			mesh.verts.extend([ vert ])
+			mesh.verts.extend([vert])
 			verts.append (mesh.verts[-1])
 		if wrap_x:
-			verts.append(mesh.verts[ -verts_s ])
+			verts.append(mesh.verts[-verts_s])
 			if i:
 				seams.append(((i - 1) * verts_s, i * verts_s))
 				if wrap_y:
@@ -1194,19 +1213,19 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels = 0, clean_lods = True,
 					verts[offset_y + s + x + 2], verts[offset_y + x + 1]))
 			if wrap_x and x == verts_s - 1 and (y == 0 or y == verts_t -1):
 				# blender auto alters vert order - correct uv to match
-				uv.append((Blender.Mathutils.Vector(uvgrid_s[ x + 1 ], uvgrid_t[ y + 1 ]),
-					Blender.Mathutils.Vector(uvgrid_s[ x + 1 ], uvgrid_t[ y ]),
-					Blender.Mathutils.Vector(uvgrid_s[ x ], uvgrid_t[ y ]),
-					Blender.Mathutils.Vector(uvgrid_s[ x ], uvgrid_t[ y + 1 ])))
+				uv.append((Blender.Mathutils.Vector(uvgrid_s[x + 1], uvgrid_t[y + 1]),
+					Blender.Mathutils.Vector(uvgrid_s[x + 1], uvgrid_t[y]),
+					Blender.Mathutils.Vector(uvgrid_s[x], uvgrid_t[y]),
+					Blender.Mathutils.Vector(uvgrid_s[x], uvgrid_t[y + 1])))
 			else:
-				uv.append((Blender.Mathutils.Vector(uvgrid_s[ x ], uvgrid_t[ y ]),
-					Blender.Mathutils.Vector(uvgrid_s[ x ], uvgrid_t[ y + 1 ]),
-					Blender.Mathutils.Vector(uvgrid_s[ x + 1 ], uvgrid_t[ y + 1 ]),
-					Blender.Mathutils.Vector(uvgrid_s[ x + 1 ], uvgrid_t[ y ])))
+				uv.append((Blender.Mathutils.Vector(uvgrid_s[x], uvgrid_t[y]),
+					Blender.Mathutils.Vector(uvgrid_s[x], uvgrid_t[y + 1]),
+					Blender.Mathutils.Vector(uvgrid_s[x + 1], uvgrid_t[y + 1]),
+					Blender.Mathutils.Vector(uvgrid_s[x + 1], uvgrid_t[y])))
 	mesh.faces.extend(faces)
 	mesh.faceUV = True
 	for f in range(len(mesh.faces)):
-		mesh.faces[ f ].uv = uv[ f ]
+		mesh.faces[f].uv = uv[f]
 	mesh.renameUVLayer(mesh.activeUVLayer, "sculptie")
 	if seams != []:
 		for e in mesh.findEdges(seams):
@@ -1325,10 +1344,10 @@ def update_from_map(mesh, image):
 	verts = range(len(mesh.verts))
 	for f in mesh.faces:
 		for vi in range(len(f.verts)):
-			if f.verts[ vi ].index in verts:
-				verts.remove(f.verts[ vi ].index)
-				if f.verts[ vi ].sel:
-					u, v = f.uv[ vi ]
+			if f.verts[vi].index in verts:
+				verts.remove(f.verts[vi].index)
+				if f.verts[vi].sel:
+					u, v = f.uv[vi]
 					u = int(round(u * image.size[0]))
 					v = int(round(v * image.size[1]))
 					if u == image.size[0]:
@@ -1339,17 +1358,17 @@ def update_from_map(mesh, image):
 					x = p[0] - 0.5
 					y = p[1] - 0.5
 					z = p[2] - 0.5
-					f.verts[ vi ].co = Blender.Mathutils.Vector(x, y, z)
+					f.verts[vi].co = Blender.Mathutils.Vector(x, y, z)
 	mesh.activeUVLayer = currentUV
 	mesh.sel = True
 
 def uv_corners(mesh):
 	'''returns the four corner points of the UV layout'''
 	debug(40, "sculpty.uv_corners(%s)"%(mesh.name))
-	max_vu = XYZ(-99999.0, -99999.0, 0.0 )
-	min_vu = XYZ(99999.0, 99999.0, 0.0 )
-	max_uv = XYZ(-99999.0, -99999.0, 0.0 )
-	min_uv = XYZ(99999.0, 99999.0, 0.0 )
+	max_vu = XYZ(-99999.0, -99999.0, 0.0)
+	min_vu = XYZ(99999.0, 99999.0, 0.0)
+	max_uv = XYZ(-99999.0, -99999.0, 0.0)
+	min_uv = XYZ(99999.0, 99999.0, 0.0)
 	for f in mesh.faces:
 		for i in range(len(f.verts)):
 			v = XYZ(f.uv[i][0], f.uv[i][1], 0.0)
@@ -1366,15 +1385,18 @@ def uv_corners(mesh):
 		max_vu.y = min_vu.y
 	return min_vu, min_uv, max_vu, max_uv
 
-def uv_params(mesh):
+def uv_params(mesh, layer='UVTex'):
 	'''returns the offset, scale and rotation of the UV layout'''
-	debug(40, "sculpty.uv_params(%s)"%(mesh.name))
+	debug(40, "sculpty.uv_params(%s, %s)"%(mesh.name, layer))
+	currentUV = mesh.activeUVLayer
+	mesh.activeUVLayer = layer
 	bl, tl, br, tr = uv_corners(mesh)
+	mesh.activeUVLayer = currentUV
 	hv = tl - bl
 	wv = br - bl
 	a = atan2(hv.x,hv.y)
-	s = XYZ( Blender.Mathutils.Vector( wv.x, wv.y ).length,
-			Blender.Mathutils.Vector( hv.x, hv.y ).length, 0.0 )
+	s = XYZ(Blender.Mathutils.Vector(wv.x, wv.y).length,
+			Blender.Mathutils.Vector(hv.x, hv.y).length, 0.0)
 	return bl + (tr - bl) / 2.0 - XYZ(0.5, 0.5, 0.0), s, a
 
 def uv_to_rgb(sculpt_type, u, v, radius=0.25):
@@ -1423,6 +1445,6 @@ def uv_to_rgb(sculpt_type, u, v, radius=0.25):
 def vertex_pixels(size, faces):
 	'''Returns a list of pixels used for vertex points on map size'''
 	debug(50, "sculpty.vertex_pixels(%d, %d)"%(size, faces))
-	pixels = [ int(size * i / float(faces)) for i in range(faces) ]
+	pixels = [int(size * i / float(faces)) for i in range(faces)]
 	pixels.append(faces - 1)
 	return pixels
