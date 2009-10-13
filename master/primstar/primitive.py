@@ -19,6 +19,11 @@
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
 
+import Blender
+from primstar.sculpty import XYZ, map_images, obChildren, active
+from primstar.gui import debug
+from math import atan2
+
 class Prim:
 	def __init__(self, name, ob=None):
 		self.name = name
@@ -37,7 +42,7 @@ class Prim:
 			r = ob.getMatrix().rotationPart().invert().toQuat()
 			self.rotation = (r[1], r[2], r[3], r[0])
 			location = ob.getLocation('worldspace')
-			self.location = XYZ(location.x, location.y, location.z)
+			self.location = XYZ(location[0], location[1], location[2])
 			for c in obChildren(ob):
 				self.children.append(Prim(c.name, c))
 
