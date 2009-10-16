@@ -44,6 +44,7 @@ This script exports Second Life sculpties in lsl + tga files
 
 import Blender
 from primstar.primitive import get_prims
+from primstar.sculpty import map_type
 
 #***********************************************
 # Globals
@@ -56,9 +57,15 @@ PRIM_NAME = "Primstar"
 #***********************************************
 
 class UniqueList(list):
+	def __init__(self, items=None):
+		list.__init__(self, [])
+		if items:
+			self.extend(items)
+
 	def append(self, item):
 		if item not in self:
 			list.append(self, item)
+
 	def extend(self, items):
 		for item in items:
 			self.append(item)
@@ -170,7 +177,7 @@ state build
 	{
 		myPos = llGetPos();
 		llSetRot( ZERO_ROTATION );
-		addPrim( %(prim)s );
+		addPrim( "%(prim)s" );
 	}
 
 	object_rez( key id )
@@ -185,7 +192,7 @@ state build
 			tI = ~-llGetNumberOfPrims();
 			%(builder)sif (tI > 0 )
 			{
-				llSetLinkPrimitiveParams( 2, [ %(rootParams)s ] );
+				llSetLinkPrimitiveParams( 2, [ %(root_params)s ] );
 				llBreakLink( 1 );
 			}
 			else
@@ -198,10 +205,10 @@ state build
 }
 """
 
-LINK_LSL = """if ( tI == %(linkNum)i )
+LINK_LSL = """if ( tI == %(link_num)i )
 			{
-				llSetLinkPrimitiveParams( 2, [ %(linkParams)s ] );
-				addPrim( %(prim)s );
+				llSetLinkPrimitiveParams( 2, [ PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s", PRIM_SCULPT_TYPE_%(sculpt_type)s, PRIM_SIZE, %(size)s, PRIM_ROTATION, %(rotation)s, PRIM_POSITION, %(position)s ] );
+				addPrim( "%(prim)s" );
 			}
 			else """
 
@@ -213,12 +220,12 @@ PRIM_REZ = """addPrim( prim )
 
 PRIM_TEST = """		if ( llGetInventoryType( "%(prim)s" ) != INVENTORY_OBJECT )
 		{
-			llOwnerSay( "Please add a prim called "%(prim)s" to my contents" );
+			llOwnerSay( "Please add a prim called \\"%(prim)s\\" to my contents" );
 			state needs_something;
 		}
 """
 
-LINK_PARAMS = """PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s", PRIM_SCULPT_TYPE_%(sculpt_type)s, PRIM_SIZE, %(size)s, PRIM_ROTATION, %(rotation)s"""
+PRIM_PARAMS = """PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s", PRIM_SCULPT_TYPE_%(sculpt_type)s, PRIM_SIZE, %(size)s, PRIM_ROTATION, %(rotation)s"""
 
 PRIM_LOCATION = """PRIM_POSITION, %(position)s"""
 
@@ -242,42 +249,58 @@ def export_lsl( filename ):
 		return
 	basepath = Blender.sys.dirname( filename )
 	for p in prims:
-		save_prim( p, basepath )
+		save_linkset( p, basepath )
 	Blender.Window.WaitCursor(0)
 
-def prim2dict(prim):
-	d = {}
-	d['prim'] = PRIM_NAME
-	d['name'] = prim.name
-	d['position'] = "< %(x).5f, %(y).5f, %(z).5f >"%prim.location
-	d['rotation'] = "< %.5f, %.5f, %.5f, %.5f >"%prim.rotation
-	d['size'] = "< %(x).5f, %(y).5f, %(z).5f >"%prim.size
-	d['sculpt_map'] = prim.sculpt_map.name
-	return d
+def prim2dict(prim, link=0):
+	return {'prim':PRIM_NAME,
+		'name':prim.name,
+		'position':"< %(x).5f, %(y).5f, %(z).5f >"%prim.location,
+		'rotation':"< %.5f, %.5f, %.5f, %.5f >"%prim.rotation,
+		'size':"< %(x).5f, %(y).5f, %(z).5f >"%prim.size,
+		'sculpt_map':prim.sculpt_map.name,
+		'link_num':link,
+		'sculpt_type':map_type(prim.sculpt_map)}
 
 def texture2dict(texture):
-	d= {}
-	d['name'] = texture.image.name
-	d['offset'] = "< %(x).5f, %(y).5f, %(z).5f >"%texture.offset
-	d['repeat'] = "< %(x).5f, %(y).5f, %(z).5f >"%texture.repeat
-	d['rotation'] = "%.5f"%texture.rotation
+	d= {'name':texture.image.name,
+		'offset':"< %(x).5f, %(y).5f, %(z).5f >"%texture.offset,
+		'repeat':"< %(x).5f, %(y).5f, %(z).5f >"%texture.repeat,
+		'rotation':"%.5f"%texture.rotation}
 	if texture.face == -1:
 		d['face'] = "ALL_SIDES"
 	else:
 		d['face'] = str(texture.face)
 	return d
 
-def save_prim(prim, basepath):
-	d={}
+def link_lsl(prim, link = 0):
+	link += 1
+	if link > 1:
+		t = LINK_LSL%prim2dict(prim, link)
+	else:
+		t = ''
+	for c in prim.children:
+		tc, link = link_lsl(c, link)
+		t += tc
+	return t, link
+
+def save_linkset(prim, basepath):
+	d={'prim':PRIM_NAME}
+	root = prim2dict(prim)
 	if prim.children:
 		d['multi'] = 'TRUE'
+		d['functions'] = PRIM_REZ
+		d['setup'] = PRIM_TEST%d
+		builder, link = link_lsl(prim)
+		d['states'] = STATE_MULTI%{'prim':PRIM_NAME, 'builder':builder, 'root_params':PRIM_PARAMS%root + ", " + PRIM_LOCATION%root}
 	else:
 		d['multi'] = 'FALSE'
+		d['functions'] = ''
+		d['setup'] = ''
+		d['builder'] = ''
 	d['textures'] = str(collect_textures(prim)).replace("'", "\"")
-	print prim2dict(prim)
-	for t in prim.textures:
-		print TEXTURE%texture2dict(t)
-	print d
+
+	print MAIN_LSL%d
 
 #***********************************************
 # register callback
