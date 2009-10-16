@@ -64,7 +64,10 @@ http://wiki.blender.org/index.php/Manual/Python_Scripting has more information o
 **** Checking Install ****
 
 Run Blender and in the "File - Import" menu you should see a new option
-for 'Second Life Sculptie'
+for 'Second Life Sculptie', click this and press Build. You should get a sphere.
+
+Now in the "Render" menu select "Bake Sculpt Meshes" and press "Bake". If there are
+no errors, you should be ready to start making sculpties.
 	
 If the option is missing, select the scripts window and use
 "Scripts - Update Menus" to refresh the menus. If this doesn't work, make sure there is

@@ -59,7 +59,7 @@ class XYZ:
 		self.z = z
 
 	def __cmp__(self, other):
-		try:
+		if other.__class__ == XYZ:
 			if self.x == other.x:
 				if self.y == other.y:
 					return cmp(self.z, other.z)
@@ -67,8 +67,7 @@ class XYZ:
 					return cmp(self.y, other.y)
 			else:
 				return cmp(self.x, other.x)
-		except:
-			return False
+		return False
 
 	def __sub__(self, other):
 		return XYZ(
@@ -517,6 +516,8 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 		return False
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject(ob, 0, 1)
+	# mesh.transform(ob.matrix)
+	loc = ob.getLocation('worldspace')
 	images = map_images(mesh)
 	maps = {}
 	for i in images:
@@ -551,7 +552,7 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 			m.bb_max = bb.max
 			m.update()
 		else:
-			if max_scale == None:
+			if not max_scale:
 				max_scale = XYZ() + m.scale
 			else:
 				if max_scale.x < m.scale.x:
@@ -563,9 +564,9 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 	for m in maps.itervalues():
 		if 'primstar' not in m.image.properties:
 			m.image.properties['primstar'] = {}
-		m.image.properties['primstar']['loc_x'] = m.center.x
-		m.image.properties['primstar']['loc_y'] = m.center.y
-		m.image.properties['primstar']['loc_z'] = m.center.z
+		m.image.properties['primstar']['loc_x'] = m.center.x + loc[0]
+		m.image.properties['primstar']['loc_y'] = m.center.y + loc[1]
+		m.image.properties['primstar']['loc_z'] = m.center.z + loc[2]
 		if len(maps) > 1:
 			m.image.properties['primstar']['scale_x'] = max_scale.x / m.scale.x
 			m.image.properties['primstar']['scale_y'] = max_scale.y / m.scale.y
@@ -900,10 +901,11 @@ def lod_size(width, height, lod):
 	y_faces = verts // x_faces
 	return int(x_faces), int(y_faces)
 
-def map_images(mesh, layer='sculptie'):
+def map_images(mesh, layer='sculptie', layer2=None):
 	'''Returns the list of images assigned to the 'sculptie' UV layer.'''
 	debug(40, "sculpty.map_images(%s, %s)"%(mesh.name, layer))
 	images = []
+	images2 = []
 	if layer in mesh.getUVLayerNames():
 		currentUV = mesh.activeUVLayer
 		mesh.activeUVLayer = layer
@@ -911,7 +913,13 @@ def map_images(mesh, layer='sculptie'):
 			if f.image != None:
 				if f.image not in images:
 					images.append(f.image)
+					if layer2 != None:
+						mesh.activeUVLayer = layer2
+						images2.append(f.image)
+						mesh.activeUVLayer = layer
 		mesh.activeUVLayer = currentUV
+	if layer2:
+		return images, images2
 	return images
 
 def map_pixels(width, height, levels=[3,2,1,0]):
@@ -1019,7 +1027,7 @@ def map_type(image):
 		return "CYLINDER"
 	return "PLANE"
 
-def new_from_map(image):
+def new_from_map(image, view=True):
 	'''Returns a new sculptie object created from the sculpt map image.'''
 	debug(10, "sculpty.new_from_map(%s)"%(image.name))
 	Blender.Window.WaitCursor(1)
@@ -1057,7 +1065,7 @@ def new_from_map(image):
 	update_from_map(mesh, image)
 	try:
 		quat = None
-		if Blender.Get('add_view_align'):
+		if Blender.Get('add_view_align') and view:
 			quat = Blender.Mathutils.Quaternion(Blender.Window.GetViewQuat())
 			if quat:
 				mat = quat.toMatrix()
@@ -1071,8 +1079,13 @@ def new_from_map(image):
 		y = image.properties['primstar']['size_y']
 		z = image.properties['primstar']['size_z']
 		ob.setSize(x, y, z)
+		x = image.properties['primstar']['loc_x']
+		y = image.properties['primstar']['loc_y']
+		z = image.properties['primstar']['loc_z']
+		loc = ob.getLocation('worldspace')
+		ob.setLocation(loc[0] + x, loc[1] + y, loc[2] + z)
 	except:
-		pass
+		raise
 	if in_editmode:
 		Blender.Window.EditMode(1)
 	Blender.Window.WaitCursor(0)

@@ -51,9 +51,9 @@ def main():
 			pass
 	image = Blender.Image.GetCurrent()
 	if image:
-		ob = new_from_map( image )
+		ob = new_from_map(image, False)
 	else:
-		Blender.Draw.PupBlock( "Can't add Sculptie", ["No current image"] )
+		Blender.Draw.PupBlock("Can't add Sculptie", ["No current image"])
 	if in_editmode:
 		Blender.Window.EditMode(1)
 	Blender.Redraw()
