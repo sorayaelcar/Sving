@@ -132,12 +132,12 @@ class RGBRange:
 
 class BoundingBox:
 	'''class for calculating the bounding box for post modifier stack meshes'''
-	def __init__(self, ob = None):
+	def __init__(self, ob=None, local=False):
 		self.rgb = RGBRange()
 		self._dmin = XYZ(0.0, 0.0, 0.0)
 		self._dmax = XYZ(0.0, 0.0, 0.0)
 		if ob != None:
-			self.min, self.max = get_bounding_box(ob)
+			self.min, self.max = get_bounding_box(ob, local)
 			self._default = XYZ(False, False, False)
 			self._dirty = XYZ(False, False, False)
 		else:
@@ -516,7 +516,7 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 		return False
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject(ob, 0, 1)
-	# mesh.transform(ob.matrix)
+	mesh.transform(ob.matrix)
 	loc = ob.getLocation('worldspace')
 	images = map_images(mesh)
 	maps = {}
@@ -564,16 +564,16 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 	for m in maps.itervalues():
 		if 'primstar' not in m.image.properties:
 			m.image.properties['primstar'] = {}
-		m.image.properties['primstar']['loc_x'] = m.center.x + loc[0]
-		m.image.properties['primstar']['loc_y'] = m.center.y + loc[1]
-		m.image.properties['primstar']['loc_z'] = m.center.z + loc[2]
+		m.image.properties['primstar']['loc_x'] = m.center.x
+		m.image.properties['primstar']['loc_y'] = m.center.y
+		m.image.properties['primstar']['loc_z'] = m.center.z
 		if len(maps) > 1:
 			m.image.properties['primstar']['scale_x'] = max_scale.x / m.scale.x
 			m.image.properties['primstar']['scale_y'] = max_scale.y / m.scale.y
 			m.image.properties['primstar']['scale_z'] = max_scale.z / m.scale.z
-			m.image.properties['primstar']['size_x'] = max_scale.x * ob.size[0]
-			m.image.properties['primstar']['size_y'] =  max_scale.y * ob.size[1]
-			m.image.properties['primstar']['size_z'] = max_scale.z * ob.size[2]
+			m.image.properties['primstar']['size_x'] = max_scale.x
+			m.image.properties['primstar']['size_y'] = max_scale.y
+			m.image.properties['primstar']['size_z'] = max_scale.z
 			m.bb_min = m.center - max_scale * 0.5
 			m.bb_max = m.center + max_scale * 0.5
 			m.scale = max_scale
@@ -581,9 +581,9 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 			m.image.properties['primstar']['scale_x'] = bb.scale.x / m.scale.x
 			m.image.properties['primstar']['scale_y'] = bb.scale.y / m.scale.y
 			m.image.properties['primstar']['scale_z'] = bb.scale.z / m.scale.z
-			m.image.properties['primstar']['size_x'] = bb.scale.x * ob.size[0]
-			m.image.properties['primstar']['size_y'] =  bb.scale.y * ob.size[1]
-			m.image.properties['primstar']['size_z'] = bb.scale.z * ob.size[2]
+			m.image.properties['primstar']['size_x'] = m.scale.x
+			m.image.properties['primstar']['size_y'] = m.scale.y
+			m.image.properties['primstar']['size_z'] = m.scale.z
 		m.bake(bb.rgb)
 	mesh.activeUVLayer = currentUV
 	return True
@@ -852,11 +852,13 @@ def flip_pixels(pixels):
 	m = max(pixels)
 	return [m - p for p in pixels]
 
-def get_bounding_box(obj):
+def get_bounding_box(obj, local=False):
 	'''Returns the post modifier stack bounding box for the object'''
 	debug(40, "sculpty.get_bounding_box(%s)"%(obj.name))
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject(obj, 0, 1)
+	if not local:
+		mesh.transform(obj.matrix)
 	min_x = mesh.verts[0].co.x
 	max_x = min_x
 	min_y = mesh.verts[0].co.y
@@ -1257,7 +1259,7 @@ def set_center(ob, offset=XYZ(0.0, 0.0, 0.0)):
 	children = obChildren(ob)
 	for c in children:
 		c.clrParent(2,1)
-	bb = BoundingBox(ob)
+	bb = BoundingBox(ob, True)
 	offset += bb.center
 	mesh = ob.getData()
 	mat = ob.getMatrix()
