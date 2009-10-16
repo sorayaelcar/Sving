@@ -46,6 +46,24 @@ import Blender
 from primstar.primitive import get_prims
 
 #***********************************************
+# Globals
+#***********************************************
+
+PRIM_NAME = "Primstar"
+
+#***********************************************
+# Classes
+#***********************************************
+
+class UniqueList(list):
+	def append(self, item):
+		if item not in self:
+			list.append(self, item)
+	def extend(self, items):
+		for item in items:
+			self.append(item)
+
+#***********************************************
 # Templates
 #***********************************************
 
@@ -193,12 +211,27 @@ PRIM_REZ = """addPrim( prim )
 }
 """
 
-PRIM_TEST = """		if ( llGetInventoryType( %(prim)s ) != INVENTORY_OBJECT )
+PRIM_TEST = """		if ( llGetInventoryType( "%(prim)s" ) != INVENTORY_OBJECT )
 		{
-			llOwnerSay( "Please add a prim called \\"" + %(prim)s + "\\" to my contents" );
+			llOwnerSay( "Please add a prim called "%(prim)s" to my contents" );
 			state needs_something;
 		}
 """
+
+LINK_PARAMS = """PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s", PRIM_SCULPT_TYPE_%(sculpt_type)s, PRIM_SIZE, %(size)s, PRIM_ROTATION, %(rotation)s"""
+
+PRIM_LOCATION = """PRIM_POSITION, %(position)s"""
+
+TEXTURE = """PRIM_TEXTURE, %(face)s, "%(name)s", %(repeat)s, %(offset)s, %(rotation)s"""
+
+
+def collect_textures(prim):
+	textures = UniqueList([prim.sculpt_map.name])
+	for t in prim.textures:
+		textures.append(t.image.name)
+	for c in prim.children:
+		textures.extend(collect_textures(c))
+	return textures
 
 def export_lsl( filename ):
 	Blender.Window.WaitCursor(1)
@@ -214,13 +247,37 @@ def export_lsl( filename ):
 
 def prim2dict(prim):
 	d = {}
+	d['prim'] = PRIM_NAME
 	d['name'] = prim.name
-	d['location'] = "< %(x).5f, %(y).5f, %(z).5f >"%prim.size
+	d['position'] = "< %(x).5f, %(y).5f, %(z).5f >"%prim.location
+	d['rotation'] = "< %.5f, %.5f, %.5f, %.5f >"%prim.rotation
+	d['size'] = "< %(x).5f, %(y).5f, %(z).5f >"%prim.size
+	d['sculpt_map'] = prim.sculpt_map.name
+	return d
+
+def texture2dict(texture):
+	d= {}
+	d['name'] = texture.image.name
+	d['offset'] = "< %(x).5f, %(y).5f, %(z).5f >"%texture.offset
+	d['repeat'] = "< %(x).5f, %(y).5f, %(z).5f >"%texture.repeat
+	d['rotation'] = "%.5f"%texture.rotation
+	if texture.face == -1:
+		d['face'] = "ALL_SIDES"
+	else:
+		d['face'] = str(texture.face)
 	return d
 
 def save_prim(prim, basepath):
-	print "Save not implemented: %s"%(prim.name)
+	d={}
+	if prim.children:
+		d['multi'] = 'TRUE'
+	else:
+		d['multi'] = 'FALSE'
+	d['textures'] = str(collect_textures(prim)).replace("'", "\"")
 	print prim2dict(prim)
+	for t in prim.textures:
+		print TEXTURE%texture2dict(t)
+	print d
 
 #***********************************************
 # register callback
