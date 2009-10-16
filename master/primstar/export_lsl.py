@@ -85,14 +85,11 @@ integer isKey(key in)
 	if(in) return 2;
 	return (in == NULL_KEY);
 }
-
 %(functions)s
-
 default
 {
 	state_entry()
-	{
-%(setup)s
+	{%(setup)s
 		tI = llGetListLength( textures );
 		while ( tI ){
 			if ( isKey( tS = llList2String( textures, tI = ~-tI ) ) == 0 )
@@ -127,9 +124,7 @@ default
 		}
 	}
 }
-
 %(states)s
-
 state needs_something
 {
 	on_rez( integer num)
@@ -155,7 +150,8 @@ state needs_something
 }
 """
 
-STATE_MULTI = """state ready
+STATE_MULTI = """
+state ready
 {
 	state_entry()
 	{
@@ -212,18 +208,19 @@ LINK_LSL = """if ( tI == %(link_num)i )
 			}
 			else """
 
-PRIM_REZ = """addPrim( prim )
+PRIM_REZ = """
+addPrim( prim )
 {
 	llRezObject(prim, myPos, ZERO_VECTOR, ZERO_ROTATION, 0 );
 }
 """
 
-PRIM_TEST = """		if ( llGetInventoryType( "%(prim)s" ) != INVENTORY_OBJECT )
+PRIM_TEST = """
+		if ( llGetInventoryType( "%(prim)s" ) != INVENTORY_OBJECT )
 		{
 			llOwnerSay( "Please add a prim called \\"%(prim)s\\" to my contents" );
 			state needs_something;
-		}
-"""
+		}"""
 
 PRIM_PARAMS = """PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s", PRIM_SCULPT_TYPE_%(sculpt_type)s, PRIM_SIZE, %(size)s, PRIM_ROTATION, %(rotation)s"""
 
