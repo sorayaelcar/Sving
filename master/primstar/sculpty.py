@@ -516,7 +516,7 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 		return False
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject(ob, 0, 1)
-	mesh.transform(ob.matrix)
+	mesh.transform(remove_rotation(ob.matrix))
 	loc = ob.getLocation('worldspace')
 	images = map_images(mesh)
 	maps = {}
@@ -567,6 +567,9 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 		m.image.properties['primstar']['loc_x'] = m.center.x
 		m.image.properties['primstar']['loc_y'] = m.center.y
 		m.image.properties['primstar']['loc_z'] = m.center.z
+		m.image.properties['primstar']['rot_x'] = ob.rot.x
+		m.image.properties['primstar']['rot_y'] = ob.rot.y
+		m.image.properties['primstar']['rot_z'] = ob.rot.z
 		if len(maps) > 1:
 			m.image.properties['primstar']['scale_x'] = max_scale.x / m.scale.x
 			m.image.properties['primstar']['scale_y'] = max_scale.y / m.scale.y
@@ -852,13 +855,13 @@ def flip_pixels(pixels):
 	m = max(pixels)
 	return [m - p for p in pixels]
 
-def get_bounding_box(obj, local=False):
+def get_bounding_box(ob, local=False):
 	'''Returns the post modifier stack bounding box for the object'''
-	debug(40, "sculpty.get_bounding_box(%s)"%(obj.name))
+	debug(40, "sculpty.get_bounding_box(%s)"%(ob.name))
 	mesh = Blender.Mesh.New()
-	mesh.getFromObject(obj, 0, 1)
+	mesh.getFromObject(ob, 0, 1)
 	if not local:
-		mesh.transform(obj.matrix)
+		mesh.transform(remove_rotation(ob.matrix))
 	min_x = mesh.verts[0].co.x
 	max_x = min_x
 	min_y = mesh.verts[0].co.y
@@ -1086,6 +1089,10 @@ def new_from_map(image, view=True):
 		z = image.properties['primstar']['loc_z']
 		loc = ob.getLocation('worldspace')
 		ob.setLocation(loc[0] + x, loc[1] + y, loc[2] + z)
+		x = image.properties['primstar']['rot_x']
+		y = image.properties['primstar']['rot_y']
+		z = image.properties['primstar']['rot_z']
+		ob.rot = (x, y, z)
 	except:
 		raise
 	if in_editmode:
@@ -1206,6 +1213,12 @@ def open(filename):
 	image.properties['primstar']['size_y'] = 1.0
 	image.properties['primstar']['size_z'] = 1.0
 	return new_from_map(image)
+
+def remove_rotation(matrix):
+	t = Blender.Mathutils.TranslationMatrix(matrix.translationPart())
+	s = matrix.scalePart()
+	m = t * Blender.Mathutils.Matrix([s[0], 0, 0, 0],[0, s[1], 0, 0], [0, 0, s[2], 0], [0, 0, 0, 1.0])
+	return m.resize4x4()
 
 def sculptify(object):
 	if object.type == 'Mesh':
