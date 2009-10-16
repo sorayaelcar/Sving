@@ -212,8 +212,15 @@ def export_lsl( filename ):
 		save_prim( p, basepath )
 	Blender.Window.WaitCursor(0)
 
-def save_root( prim, basepath ):
-	if len(prim.sculpt
+def prim2dict(prim):
+	d = {}
+	d['name'] = prim.name
+	d['location'] = "< %(x).5f, %(y).5f, %(z).5f >"%prim.size
+	return d
+
+def save_prim(prim, basepath):
+	print "Save not implemented: %s"%(prim.name)
+	print prim2dict(prim)
 
 #***********************************************
 # register callback

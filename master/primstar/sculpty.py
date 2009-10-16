@@ -58,6 +58,10 @@ class XYZ:
 		self.y = y
 		self.z = z
 
+	def __getitem__(self, key):
+		# expose for templating
+		return getattr(self, key)
+
 	def __cmp__(self, other):
 		if other.__class__ == XYZ:
 			if self.x == other.x:
