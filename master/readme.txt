@@ -22,7 +22,22 @@ as a separate package)
 
 Open a command prompt in the extracted directory and run the following:
 
+** Linux **
+
 blender -P install.py
+
+** Apple Mac **
+
+<path_to_blender.app>/Contents/MacOS/blender -P install.py
+
+Replace <path_to_blender.app> with the correct path, so the actual command will be
+something like:
+
+/Applications/Blender/blender.app/Contents/MacOS/blender -P install.py
+
+** Windows **
+
+ "c:\Program Files\Blender Foundation\Blender\blender" -P install.py
 
 When Blender has finished loading, you should press CTRL-U to save the user defined scripts directory.
 You can skip this step if you had previously set this directory. It is set to a folder called blender_scripts
