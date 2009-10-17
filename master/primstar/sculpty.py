@@ -923,9 +923,12 @@ def map_images(mesh, layer='sculptie', layer2=None):
 				if f.image not in images:
 					images.append(f.image)
 					if layer2 != None:
-						mesh.activeUVLayer = layer2
-						images2.append(f.image)
-						mesh.activeUVLayer = layer
+						if layer2 in mesh.getUVLayerNames():
+							mesh.activeUVLayer = layer2
+							images2.append(f.image)
+							mesh.activeUVLayer = layer
+						else:
+							images2.append(None)
 		mesh.activeUVLayer = currentUV
 	if layer2:
 		return images, images2
@@ -1098,7 +1101,7 @@ def new_from_map(image, view=True):
 		z = image.properties['primstar']['rot_z']
 		ob.rot = (x, y, z)
 	except:
-		raise
+		pass
 	if in_editmode:
 		Blender.Window.EditMode(1)
 	Blender.Window.WaitCursor(0)

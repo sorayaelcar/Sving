@@ -44,7 +44,7 @@ This script exports Second Life sculpties in lsl + tga files
 
 import Blender
 from primstar.primitive import get_prims
-from primstar.sculpty import map_type
+from primstar.sculpty import map_type, LABEL
 
 #***********************************************
 # Globals
@@ -74,7 +74,15 @@ class UniqueList(list):
 # Templates
 #***********************************************
 
-MAIN_LSL = """multi = %(multi)s;
+# Note: The generated LSL script is licensed under
+# The Creative Commons Attribution 2.0 UK: England & Wales license
+
+MAIN_LSL = """// Created with %(version)s from http://dominodesigns.info
+// http://creativecommons.org/licenses/by/2.0/uk/
+// Do not delete the attribution and license information unless you have
+// purchased a commercial license for Primstar from Domino Designs.
+
+multi = %(multi)s;
 list textures = %(textures)s;
 vector myPos;
 integer tI;
@@ -150,6 +158,63 @@ state needs_something
 }
 """
 
+STATE_SHORT = """
+state_ready
+{
+	state_entry()
+	{
+		list params = [
+			PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s",
+			PRIM_SCULPT_TYPE_%(sculpt_type)s ,
+			PRIM_SIZE, %(size)s, PRIM_ROTATION, %(rotation)s
+		];
+		if (llGetLinkNumber() > 1)
+			params += [PRIM_POSITION, %(position)s ];
+		llSetObjectName( %(name)s );
+		llSetPrimitiveParams(params);
+		if !(is_key("%(sculpt_map)s"))
+		{
+			llRemoveInventory( "%(sculpt_map)s" );
+		}
+		llRemoveInventory( tS = llGetScriptName() );
+		llSetScriptState( tS, FALSE );
+	}
+}
+"""
+
+STATE_SINGLE = """
+state_ready
+{
+	state_entry()
+	{
+		if (is_key("%(texture_image)s")
+		{
+			tK = "%(texture_image)s";
+		}
+		else
+		{
+			tK = llGetInventoryKey( "%(texture_image)s" );
+			llRemoveInventory( "%(texture_image)s" );
+		}
+		list params = [
+			PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s",
+			PRIM_SCULPT_TYPE_%(sculpt_type)s	,PRIM_SIZE, %(size)s,
+			PRIM_ROTATION, %(rotation)s%(textures)s
+		];
+		if (llGetLinkNumber() > 1)
+			params += [PRIM_POSITION, %(position)s ];
+		llSetObjectName( %(name)s );
+		llSetPrimitiveParams(params);
+		if !(is_key("%(sculpt_map)s"))
+		{
+			llRemoveInventory( "%(sculpt_map)s" );
+		}
+		llRemoveInventory( tS = llGetScriptName() );
+		llSetScriptState( tS, FALSE );
+	}
+}
+"""
+
 STATE_MULTI = """
 state ready
 {
@@ -201,9 +266,9 @@ state build
 }
 """
 
-LINK_LSL = """if ( tI == %(link_num)i )
+LINK_LSL = """if ( tI == %(link_num)s )
 			{
-				llSetLinkPrimitiveParams( 2, [ PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s", PRIM_SCULPT_TYPE_%(sculpt_type)s, PRIM_SIZE, %(size)s, PRIM_ROTATION, %(rotation)s, PRIM_POSITION, %(position)s ] );
+				llSetLinkPrimitiveParams( 2, [ PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s", PRIM_SCULPT_TYPE_%(sculpt_type)s, PRIM_SIZE, %(size)s, PRIM_ROTATION, %(rotation)s, PRIM_POSITION, %(position)s%(textures)s ] );
 				addPrim( "%(prim)s" );
 			}
 			else """
@@ -226,7 +291,7 @@ PRIM_PARAMS = """PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s", PRIM_SCULPT_TYPE
 
 PRIM_LOCATION = """PRIM_POSITION, %(position)s"""
 
-TEXTURE = """PRIM_TEXTURE, %(face)s, "%(name)s", %(repeat)s, %(offset)s, %(rotation)s"""
+TEXTURE = """, PRIM_TEXTURE, %(face)s, "%(name)s", %(repeat)s, %(offset)s, %(rotation)s"""
 
 
 def collect_textures(prim):
@@ -273,16 +338,20 @@ def texture2dict(texture):
 def link_lsl(prim, link = 0):
 	link += 1
 	if link > 1:
-		t = LINK_LSL%prim2dict(prim, link)
+		p = prim2dict(prim, link)
+		p['textures'] = ''
+		for t in prim.textures:
+			p['textures'] += TEXTURE%texture2dict(t)
+		lsl = LINK_LSL%p
 	else:
-		t = ''
+		lsl = ''
 	for c in prim.children:
 		tc, link = link_lsl(c, link)
-		t += tc
-	return t, link
+		lsl += tc
+	return lsl, link
 
 def save_linkset(prim, basepath):
-	d={'prim':PRIM_NAME}
+	d={'prim':PRIM_NAME,'version':LABEL}
 	root = prim2dict(prim)
 	if prim.children:
 		d['multi'] = 'TRUE'
@@ -294,9 +363,16 @@ def save_linkset(prim, basepath):
 		d['multi'] = 'FALSE'
 		d['functions'] = ''
 		d['setup'] = ''
-		d['builder'] = ''
+		root['textures'] = ''
+		if prim.textures:
+			for t in prim.textures:
+				root['textures'] += TEXTURE%texture2dict(t)
+			root['texture_image'] = prim.textures[0].image.name
+			d['states'] = STATE_SINGLE%root
+		else:
+			d['states'] = STATE_SHORT%root
 	d['textures'] = str(collect_textures(prim)).replace("'", "\"")
-
+	print d
 	print MAIN_LSL%d
 
 #***********************************************

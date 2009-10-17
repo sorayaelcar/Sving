@@ -360,7 +360,7 @@ static unsigned char file_open_bits[] = {
 		if success:
 			gui.debug(1, 'finished baking: in %.4f sec.' % ((Blender.sys.time()- startTime)))
 		else:
-			gui.debug(1, 'bake failed after %.4f sec.' % ((Blender.sys.time()- startTime)))
+			gui.debug(0, 'bake failed after %.4f sec.' % ((Blender.sys.time()- startTime)))
 		if self.save_settings.get() or self.save_defaults.get():
 			range_min = sculpty.XYZ(self.range_min_r.get(),self.range_min_g.get(),self.range_min_b.get())
 			range_max = sculpty.XYZ(self.range_max_r.get(),self.range_max_g.get(),self.range_max_b.get())

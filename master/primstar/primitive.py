@@ -134,6 +134,8 @@ def uv_corners(mesh, image=None):
 def uv_params(mesh, image=None):
 	'''returns the offset, scale and rotation of the UVTex layout for the sculpt map image'''
 	debug(40, "primitive.uv_params(%s, %s)"%(mesh.name, image.name))
+	if 'UVTex' not in mesh.getUVLayerNames():
+		return XYZ(0.0, 0.0, 0.0), XYZ(1.0, 1.0, 0.0), 0.0
 	bl, tl, br, tr = uv_corners(mesh, image)
 	hv = tl - bl
 	wv = br - bl
