@@ -293,7 +293,6 @@ PRIM_LOCATION = """PRIM_POSITION, %(position)s"""
 
 TEXTURE = """, PRIM_TEXTURE, %(face)s, "%(name)s", %(repeat)s, %(offset)s, %(rotation)s"""
 
-
 def collect_textures(prim):
 	textures = UniqueList([prim.sculpt_map.name])
 	for t in prim.textures:
@@ -301,6 +300,23 @@ def collect_textures(prim):
 	for c in prim.children:
 		textures.extend(collect_textures(c))
 	return textures
+
+def save_textures(prim, path=None):
+	textures = UniqueList([prim.sculpt_map])
+	for t in prim.textures:
+		textures.append(t.image)
+	for c in prim.children:
+		textures.extend(save_textures(c))
+	if not path:
+		return textures
+	for t in textures:
+		old = t.filename
+		fn, ext = Blender.sys.splitext(old)
+		if not ext:
+			ext = ".tga"
+		t.filename = Blender.sys.join(path, t.name + ext)
+		t.save()
+		t.filename = old
 
 def export_lsl( filename ):
 	Blender.Window.WaitCursor(1)
@@ -358,7 +374,10 @@ def save_linkset(prim, basepath):
 		d['functions'] = PRIM_REZ
 		d['setup'] = PRIM_TEST%d
 		builder, link = link_lsl(prim)
-		d['states'] = STATE_MULTI%{'prim':PRIM_NAME, 'builder':builder, 'root_params':PRIM_PARAMS%root + ", " + PRIM_LOCATION%root}
+		root_tex = ''
+		for t in prim.textures:
+			root_tex += TEXTURE%texture2dict(t)
+		d['states'] = STATE_MULTI%{'prim':PRIM_NAME, 'builder':builder, 'root_params':PRIM_PARAMS%root + ", " + PRIM_LOCATION%root + root_tex}
 	else:
 		d['multi'] = 'FALSE'
 		d['functions'] = ''
@@ -372,8 +391,10 @@ def save_linkset(prim, basepath):
 		else:
 			d['states'] = STATE_SHORT%root
 	d['textures'] = str(collect_textures(prim)).replace("'", "\"")
-	print d
-	print MAIN_LSL%d
+	f = open(Blender.sys.join( basepath, prim.name + ".lsl" ), 'w')
+	f.write(MAIN_LSL%d)
+	f.close()
+	save_textures(prim, basepath)
 
 #***********************************************
 # register callback

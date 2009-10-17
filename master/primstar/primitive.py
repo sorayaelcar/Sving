@@ -42,12 +42,6 @@ class Texture:
 		self.rotation = 0.0
 		self.face = 0
 
-	def save_image(self, filename):
-		oldfile = self.image.filename
-		self.image.filename = filename
-		self.image.save()
-		self.image.filename = oldfile
-
 def mesh2Prim(ob, rootprim = None):
 	mesh = ob.getData(False, True)
 	images, textures = map_images(mesh, 'sculptie', 'UVTex')
