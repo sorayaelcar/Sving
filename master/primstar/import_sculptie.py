@@ -62,6 +62,10 @@ def sculptify_scene():
 	for ob in scene.objects:
 		if not sculpty.sculptify(ob):
 			Blender.Draw.PupBlock( "Sculptie Import Error", ["Unable to determine map size", "Please check your UVs"] )
+		else:
+			if ob.type == 'Mesh':
+				ob.sel = True
+				scene.objects.active = ob
 
 #***********************************************
 # load sculptie file
