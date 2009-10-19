@@ -619,8 +619,8 @@ def check_clean(x, y, u, v, clean):
 	'''Returns true if the U, V size with the clean setting aligns to the sculptie points on an X, Y sized image'''
 	xs, ys = map_pixels(x, y, [3])
 	if clean:
-		w = int(pow(2, 1 + ceil(log(u) / log(2))))
-		h = int(pow(2, 1 + ceil(log(v) / log(2))))
+		w = int(pow(2, 1 + ceil(log(u) / log(2))) / 2)
+		h = int(pow(2, 1 + ceil(log(v) / log(2))) / 2)
 	else:
 		w = u
 		h = v
