@@ -313,7 +313,10 @@ def save_textures(prim, path=None):
 		old = t.filename
 		fn, ext = Blender.sys.splitext(old)
 		if not ext:
-			ext = ".tga"
+			if t.packed:
+				ext = ".png"
+			else:
+				ext = ".tga"
 		t.filename = Blender.sys.join(path, t.name + ext)
 		t.save()
 		t.filename = old

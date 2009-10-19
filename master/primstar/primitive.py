@@ -34,6 +34,10 @@ class Prim:
 		self.rotation = (0.0, 0.0, 0.0, 1.0)
 		self.location = XYZ(0.0, 0.0, 0.0)
 
+	def __getitem__(self, key):
+		# expose for templating
+		return getattr(self, key)
+
 class Texture:
 	def __init__(self, image):
 		self.image = image
@@ -41,6 +45,10 @@ class Texture:
 		self.repeat = XYZ(1.0, 1.0, 0.0)
 		self.rotation = 0.0
 		self.face = 0
+
+	def __getitem__(self, key):
+		# expose for templating
+		return getattr(self, key)
 
 def mesh2Prim(ob, rootprim = None):
 	mesh = ob.getData(False, True)

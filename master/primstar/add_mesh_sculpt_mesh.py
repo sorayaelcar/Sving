@@ -74,6 +74,8 @@ default_settings={
 for key, value in default_settings.iteritems():
 	if key not in settings:
 		settings[key] = value
+	elif settings[key] == None:
+		settings[key] = value
 
 #***********************************************
 # classes
