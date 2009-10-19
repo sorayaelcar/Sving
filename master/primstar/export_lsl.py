@@ -82,7 +82,7 @@ MAIN_LSL = """// Created with %(version)s from http://dominodesigns.info
 // Do not delete the attribution and license information unless you have
 // purchased a commercial license for Primstar from Domino Designs.
 
-multi = %(multi)s;
+integer multi = %(multi)s;
 list textures = %(textures)s;
 vector myPos;
 integer tI;
@@ -109,11 +109,11 @@ default
 				}
 			}
 		}
-		if ( multi ):
+		if ( multi )
 		{
 			llRequestPermissions( llGetOwner(), PERMISSION_CHANGE_LINKS );
 		}
-		else:
+		else
 		{
 			state ready;
 		}
@@ -238,6 +238,7 @@ state build
 	{
 		myPos = llGetPos();
 		llSetRot( ZERO_ROTATION );
+		llOwnerSay( "Building" );
 		addPrim( "%(prim)s" );
 	}
 
@@ -251,6 +252,7 @@ state build
 		if ( change & CHANGED_LINK )
 		{
 			tI = ~-llGetNumberOfPrims();
+			llOwnerSay( "Configuring Prim " + (string)tI);
 			%(builder)sif (tI > 0 )
 			{
 				llSetLinkPrimitiveParams( 2, [ %(root_params)s ] );
@@ -274,7 +276,7 @@ LINK_LSL = """if ( tI == %(link_num)s )
 			else """
 
 PRIM_REZ = """
-addPrim( prim )
+addPrim( string prim )
 {
 	llRezObject(prim, myPos, ZERO_VECTOR, ZERO_ROTATION, 0 );
 }

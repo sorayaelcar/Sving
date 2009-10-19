@@ -385,6 +385,8 @@ static unsigned char file_open_bits[] = {
 
 	def redraw(self):
 		self.master.update_idletasks()
+		if gui.platform == 'darwin':
+			self.master.update()
 		Blender.Redraw()
 
 	def set_file(self):
