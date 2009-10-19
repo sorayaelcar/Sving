@@ -97,7 +97,8 @@ integer isKey(key in)
 default
 {
 	state_entry()
-	{%(setup)s
+	{
+		llSetObjectName( "%(name)s" );%(setup)s
 		tI = llGetListLength( textures );
 		while ( tI ){
 			if ( isKey( tS = llList2String( textures, tI = ~-tI ) ) == 0 )
@@ -372,8 +373,10 @@ def link_lsl(prim, link = 0):
 	return lsl, link
 
 def save_linkset(prim, basepath):
-	d={'prim':PRIM_NAME,'version':LABEL}
 	root = prim2dict(prim)
+	d={'prim':PRIM_NAME,
+		'version':LABEL,
+		'name':"Primstar - %s"%root['name']}
 	if prim.children:
 		d['multi'] = 'TRUE'
 		d['functions'] = PRIM_REZ

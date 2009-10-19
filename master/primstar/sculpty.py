@@ -568,29 +568,22 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 	for m in maps.itervalues():
 		if 'primstar' not in m.image.properties:
 			m.image.properties['primstar'] = {}
-		m.image.properties['primstar']['loc_x'] = m.center.x
-		m.image.properties['primstar']['loc_y'] = m.center.y
-		m.image.properties['primstar']['loc_z'] = m.center.z
+		m.image.properties['primstar']['loc_x'] = m.center.x - bb.center.x
+		m.image.properties['primstar']['loc_y'] = m.center.y - bb.center.y
+		m.image.properties['primstar']['loc_z'] = m.center.z - bb.center.z
 		m.image.properties['primstar']['rot_x'] = ob.rot.x
 		m.image.properties['primstar']['rot_y'] = ob.rot.y
 		m.image.properties['primstar']['rot_z'] = ob.rot.z
 		if len(maps) > 1:
-			m.image.properties['primstar']['scale_x'] = max_scale.x / m.scale.x
-			m.image.properties['primstar']['scale_y'] = max_scale.y / m.scale.y
-			m.image.properties['primstar']['scale_z'] = max_scale.z / m.scale.z
-			m.image.properties['primstar']['size_x'] = max_scale.x
-			m.image.properties['primstar']['size_y'] = max_scale.y
-			m.image.properties['primstar']['size_z'] = max_scale.z
 			m.bb_min = m.center - max_scale * 0.5
 			m.bb_max = m.center + max_scale * 0.5
 			m.scale = max_scale
-		else:
-			m.image.properties['primstar']['scale_x'] = bb.scale.x / m.scale.x
-			m.image.properties['primstar']['scale_y'] = bb.scale.y / m.scale.y
-			m.image.properties['primstar']['scale_z'] = bb.scale.z / m.scale.z
-			m.image.properties['primstar']['size_x'] = m.scale.x
-			m.image.properties['primstar']['size_y'] = m.scale.y
-			m.image.properties['primstar']['size_z'] = m.scale.z
+		m.image.properties['primstar']['scale_x'] = bb.scale.x / m.scale.x
+		m.image.properties['primstar']['scale_y'] = bb.scale.y / m.scale.y
+		m.image.properties['primstar']['scale_z'] = bb.scale.z / m.scale.z
+		m.image.properties['primstar']['size_x'] = m.scale.x
+		m.image.properties['primstar']['size_y'] = m.scale.y
+		m.image.properties['primstar']['size_z'] = m.scale.z
 		m.bake(bb.rgb)
 	mesh.activeUVLayer = currentUV
 	return True
