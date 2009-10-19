@@ -34,7 +34,7 @@ lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
 # constants
 #***********************************************
 
-LABEL = 'Primstar 0.9.16'
+LABEL = 'Primstar 0.9.17'
 DRAW_ADJUST = 1.0 / 512.0
 
 #***********************************************
