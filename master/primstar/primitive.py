@@ -20,7 +20,7 @@
 # --------------------------------------------------------------------------
 
 import Blender
-from primstar.sculpty import XYZ, map_images, obChildren, active, map_type
+from primstar.sculpty import XYZ, map_images, obChildren, active, map_type, BoundingBox
 from primstar.gui import debug
 from math import atan2
 
@@ -53,7 +53,7 @@ class Texture:
 def mesh2Prim(ob, rootprim = None):
 	mesh = ob.getData(False, True)
 	images, textures = map_images(mesh, 'sculptie', 'UVTex')
-	size = XYZ(ob.size[0], ob.size[1], ob.size[2])
+	bb = BoundingBox(ob)
 	r = ob.getMatrix().rotationPart().invert().toQuat()
 	rotation = (r[1], r[2], r[3], r[0])
 	l = ob.getLocation('worldspace')
@@ -69,13 +69,16 @@ def mesh2Prim(ob, rootprim = None):
 			newprim.textures.append(newtex)
 		newprim.rotation = rotation
 		newprim.size = XYZ(
-				image.properties['primstar']['scale_x'] * size.x,
-				image.properties['primstar']['scale_y'] * size.y,
-				image.properties['primstar']['scale_z'] * size.z)
+				image.properties['primstar']['scale_x'] * bb.scale.x,
+				image.properties['primstar']['scale_y'] * bb.scale.y,
+				image.properties['primstar']['scale_z'] * bb.scale.z)
+		xf = newprim.size.x / image.properties['primstar']['size_x']
+		yf = newprim.size.y / image.properties['primstar']['size_y']
+		zf = newprim.size.z / image.properties['primstar']['size_z']
 		newprim.location = XYZ(
-			image.properties['primstar']['loc_x'],
-			image.properties['primstar']['loc_y'],
-			image.properties['primstar']['loc_z'])
+			image.properties['primstar']['loc_x'] * xf,
+			image.properties['primstar']['loc_y'] * yf,
+			image.properties['primstar']['loc_z'] * zf)
 		if rootprim == None:
 			rootprim = newprim
 		else:

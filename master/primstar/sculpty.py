@@ -575,12 +575,16 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 		m.image.properties['primstar']['rot_y'] = ob.rot.y
 		m.image.properties['primstar']['rot_z'] = ob.rot.z
 		if len(maps) > 1:
+			m.image.properties['primstar']['scale_x'] = max_scale.x / bb.scale.x
+			m.image.properties['primstar']['scale_y'] = max_scale.y / bb.scale.y
+			m.image.properties['primstar']['scale_z'] = max_scale.z / bb.scale.z
 			m.bb_min = m.center - max_scale * 0.5
 			m.bb_max = m.center + max_scale * 0.5
 			m.scale = max_scale
-		m.image.properties['primstar']['scale_x'] = bb.scale.x / m.scale.x
-		m.image.properties['primstar']['scale_y'] = bb.scale.y / m.scale.y
-		m.image.properties['primstar']['scale_z'] = bb.scale.z / m.scale.z
+		else:
+			m.image.properties['primstar']['scale_x'] = bb.scale.x / m.scale.x
+			m.image.properties['primstar']['scale_y'] = bb.scale.y / m.scale.y
+			m.image.properties['primstar']['scale_z'] = bb.scale.z / m.scale.z
 		m.image.properties['primstar']['size_x'] = m.scale.x
 		m.image.properties['primstar']['size_y'] = m.scale.y
 		m.image.properties['primstar']['size_z'] = m.scale.z

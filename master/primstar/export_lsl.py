@@ -358,8 +358,7 @@ def texture2dict(texture):
 	return d
 
 def link_lsl(prim, link = 0):
-	link += 1
-	if link > 1:
+	if link > 0:
 		p = prim2dict(prim, link)
 		p['textures'] = ''
 		for t in prim.textures:
@@ -367,6 +366,7 @@ def link_lsl(prim, link = 0):
 		lsl = LINK_LSL%p
 	else:
 		lsl = ''
+	link += 1
 	for c in prim.children:
 		tc, link = link_lsl(c, link)
 		lsl += tc
