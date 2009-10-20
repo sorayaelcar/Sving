@@ -88,6 +88,7 @@ vector myPos;
 integer tI;
 string tS;
 key tK;
+key crate = "bcf02ab6-1cf8-fc38-0a50-94f9cf1c6c8b";
 
 integer isKey(key in)
 {
@@ -99,7 +100,8 @@ default
 {
 	state_entry()
 	{
-		llSetObjectName( "%(name)s" );%(setup)s
+		llSetObjectName( "%(name)s" );
+		llSetPrimitiveParams( [ PRIM_TEXTURE, ALL_SIDES, crate, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_SIZE, <1.0, 1.0, 1.0>] );%(setup)s
 		tI = llGetListLength( textures );
 		while ( tI ){
 			if ( isKey( tS = llList2String( textures, tI = ~-tI ) ) == 0 )
