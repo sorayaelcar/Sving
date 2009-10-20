@@ -87,6 +87,7 @@ list textures = %(textures)s;
 vector myPos;
 integer tI;
 string tS;
+key tK;
 
 integer isKey(key in)
 {
@@ -160,7 +161,7 @@ state needs_something
 """
 
 STATE_SHORT = """
-state_ready
+state ready
 {
 	state_entry()
 	{
@@ -171,9 +172,9 @@ state_ready
 		];
 		if (llGetLinkNumber() > 1)
 			params += [PRIM_POSITION, %(position)s ];
-		llSetObjectName( %(name)s );
+		llSetObjectName( "%(name)s" );
 		llSetPrimitiveParams(params);
-		if !(is_key("%(sculpt_map)s"))
+		if (!isKey("%(sculpt_map)s"))
 		{
 			llRemoveInventory( "%(sculpt_map)s" );
 		}
@@ -184,11 +185,11 @@ state_ready
 """
 
 STATE_SINGLE = """
-state_ready
+state ready
 {
 	state_entry()
 	{
-		if (is_key("%(texture_image)s")
+		if (isKey("%(texture_image)s"))
 		{
 			tK = "%(texture_image)s";
 		}
@@ -199,14 +200,14 @@ state_ready
 		}
 		list params = [
 			PRIM_TYPE, PRIM_TYPE_SCULPT, "%(sculpt_map)s",
-			PRIM_SCULPT_TYPE_%(sculpt_type)s	,PRIM_SIZE, %(size)s,
+			PRIM_SCULPT_TYPE_%(sculpt_type)s ,PRIM_SIZE, %(size)s,
 			PRIM_ROTATION, %(rotation)s%(textures)s
 		];
 		if (llGetLinkNumber() > 1)
 			params += [PRIM_POSITION, %(position)s ];
-		llSetObjectName( %(name)s );
+		llSetObjectName( "%(name)s" );
 		llSetPrimitiveParams(params);
-		if !(is_key("%(sculpt_map)s"))
+		if (!isKey("%(sculpt_map)s"))
 		{
 			llRemoveInventory( "%(sculpt_map)s" );
 		}
@@ -296,10 +297,15 @@ PRIM_LOCATION = """PRIM_POSITION, %(position)s"""
 
 TEXTURE = """, PRIM_TEXTURE, %(face)s, "%(name)s", %(repeat)s, %(offset)s, %(rotation)s"""
 
+def clean_name(name):
+	while name[-4:].lower() in ['.tga','.png','.jpg','.bmp']:
+		name = name[:-4]
+	return name
+
 def collect_textures(prim):
-	textures = UniqueList([prim.sculpt_map.name])
+	textures = UniqueList([clean_name(prim.sculpt_map.name)])
 	for t in prim.textures:
-		textures.append(t.image.name)
+		textures.append(clean_name(t.image.name))
 	for c in prim.children:
 		textures.extend(collect_textures(c))
 	return textures
@@ -320,7 +326,7 @@ def save_textures(prim, path=None):
 				ext = ".png"
 			else:
 				ext = ".tga"
-		t.filename = Blender.sys.join(path, t.name + ext)
+		t.filename = Blender.sys.join(path, clean_name(t.name) + ext)
 		t.save()
 		t.filename = old
 
@@ -338,16 +344,16 @@ def export_lsl( filename ):
 
 def prim2dict(prim, link=0):
 	return {'prim':PRIM_NAME,
-		'name':prim.name,
+		'name':clean_name(prim.name),
 		'position':"< %(x).5f, %(y).5f, %(z).5f >"%prim.location,
 		'rotation':"< %.5f, %.5f, %.5f, %.5f >"%prim.rotation,
 		'size':"< %(x).5f, %(y).5f, %(z).5f >"%prim.size,
-		'sculpt_map':prim.sculpt_map.name,
+		'sculpt_map':clean_name(prim.sculpt_map.name),
 		'link_num':link,
 		'sculpt_type':map_type(prim.sculpt_map)}
 
 def texture2dict(texture):
-	d= {'name':texture.image.name,
+	d= {'name':clean_name(texture.image.name),
 		'offset':"< %(x).5f, %(y).5f, %(z).5f >"%texture.offset,
 		'repeat':"< %(x).5f, %(y).5f, %(z).5f >"%texture.repeat,
 		'rotation':"%.5f"%texture.rotation}
@@ -394,12 +400,12 @@ def save_linkset(prim, basepath):
 		if prim.textures:
 			for t in prim.textures:
 				root['textures'] += TEXTURE%texture2dict(t)
-			root['texture_image'] = prim.textures[0].image.name
+			root['texture_image'] = clean_name(prim.textures[0].image.name)
 			d['states'] = STATE_SINGLE%root
 		else:
 			d['states'] = STATE_SHORT%root
 	d['textures'] = str(collect_textures(prim)).replace("'", "\"")
-	f = open(Blender.sys.join( basepath, prim.name + ".lsl" ), 'w')
+	f = open(Blender.sys.join( basepath, clean_name(prim.name) + ".lsl" ), 'w')
 	f.write(MAIN_LSL%d)
 	f.close()
 	save_textures(prim, basepath)
