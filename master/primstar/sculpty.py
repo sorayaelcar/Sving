@@ -140,8 +140,9 @@ class BoundingBox:
 		self.rgb = RGBRange()
 		self._dmin = XYZ(0.0, 0.0, 0.0)
 		self._dmax = XYZ(0.0, 0.0, 0.0)
+		self.local = local
 		if ob != None:
-			self.min, self.max = get_bounding_box(ob, local)
+			self.min, self.max = get_bounding_box(ob, self.local)
 			self._default = XYZ(False, False, False)
 			self._dirty = XYZ(False, False, False)
 		else:
@@ -157,7 +158,7 @@ class BoundingBox:
 
 	def add(self, ob):
 		'''Expands box to contain object (if neccessary).'''
-		minimum, maximum = get_bounding_box(ob)
+		minimum, maximum = get_bounding_box(ob, self.local)
 		if self._dirty.x:
 			if self._default.x:
 				self._default.x = False
@@ -237,21 +238,29 @@ class BoundingBox:
 		vmax = max(tmax.x, tmax.y, tmax.z)
 		s.min = self.center + XYZ(vmin, vmin, vmin)
 		s.max = self.center + XYZ(vmax, vmax, vmax)
+		s.local = self.local
 		s.update()
 		return s
 
 	def centered(self):
 		'''Returns a centered version of the bounding box'''
 		s = BoundingBox()
-		tmin = self.min - self.center
-		tmax = self.max - self.center
+		tmin = self.local_min()
+		tmax = self.local_max()
 		offset = XYZ(max(abs(tmin.x), abs(tmax.x)),
 				max(abs(tmin.y), abs(tmax.y)),
 				max(abs(tmin.z), abs(tmax.z)))
 		s.min = self.center - offset
 		s.max = self.center + offset
+		s.local = self.local
 		s.update()
 		return s
+
+	def local_min(self):
+		return self.min - self.center
+
+	def local_max(self):
+		return self.max - self.center
 
 	def xyz_to_rgb(self, loc):
 		'''converts a location in the bounding box to rgb sculpt map values'''
@@ -557,8 +566,8 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 	for m in maps.itervalues():
 		m.update_map()
 		if len(maps) == 1:
-			m.bb_min = bb.min
-			m.bb_max = bb.max
+			m.bb_min = m.center + bb.local_min()
+			m.bb_max = m.center + bb.local_max()
 			m.update()
 		else:
 			if not max_scale:
@@ -573,9 +582,9 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 	for m in maps.itervalues():
 		if 'primstar' not in m.image.properties:
 			m.image.properties['primstar'] = {}
-		m.image.properties['primstar']['loc_x'] = m.center.x - bb.center.x
-		m.image.properties['primstar']['loc_y'] = m.center.y - bb.center.y
-		m.image.properties['primstar']['loc_z'] = m.center.z - bb.center.z
+		m.image.properties['primstar']['loc_x'] = m.center.x
+		m.image.properties['primstar']['loc_y'] = m.center.y
+		m.image.properties['primstar']['loc_z'] = m.center.z
 		m.image.properties['primstar']['rot_x'] = ob.rot.x
 		m.image.properties['primstar']['rot_y'] = ob.rot.y
 		m.image.properties['primstar']['rot_z'] = ob.rot.z
@@ -587,6 +596,9 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 			m.bb_max = m.center + max_scale * 0.5
 			m.scale = max_scale
 		else:
+			m.image.properties['primstar']['loc_x'] = bb.center.x
+			m.image.properties['primstar']['loc_y'] = bb.center.y
+			m.image.properties['primstar']['loc_z'] = bb.center.z
 			m.image.properties['primstar']['scale_x'] = bb.scale.x / m.scale.x
 			m.image.properties['primstar']['scale_y'] = bb.scale.y / m.scale.y
 			m.image.properties['primstar']['scale_z'] = bb.scale.z / m.scale.z

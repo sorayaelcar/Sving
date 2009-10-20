@@ -311,7 +311,7 @@ static unsigned char file_open_bits[] = {
 		if editmode: Blender.Window.EditMode(0)
 		self.master.configure(cursor="clock")
 		# prepare for bake, set centers and create bounding box
-		bb = sculpty.BoundingBox()
+		bb = sculpty.BoundingBox(local=True)
 		bb.rgb.min = sculpty.XYZ(self.range_min_r.get(),self.range_min_g.get(),self.range_min_b.get())
 		bb.rgb.max = sculpty.XYZ(self.range_max_r.get(),self.range_max_g.get(),self.range_max_b.get())
 		bb.rgb.update()

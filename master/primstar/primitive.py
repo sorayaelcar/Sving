@@ -76,9 +76,9 @@ def mesh2Prim(ob, rootprim = None):
 		yf = newprim.size.y / image.properties['primstar']['size_y']
 		zf = newprim.size.z / image.properties['primstar']['size_z']
 		newprim.location = XYZ(
-			image.properties['primstar']['loc_x'] * xf,
-			image.properties['primstar']['loc_y'] * yf,
-			image.properties['primstar']['loc_z'] * zf)
+			image.properties['primstar']['loc_x'],
+			image.properties['primstar']['loc_y'],
+			image.properties['primstar']['loc_z'])
 		if rootprim == None:
 			rootprim = newprim
 		else:
