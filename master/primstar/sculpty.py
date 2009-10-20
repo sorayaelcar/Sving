@@ -536,6 +536,7 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 	mesh.getFromObject(ob, 0, 1)
 	mesh.transform(remove_rotation(ob.matrix))
 	loc = ob.getLocation('worldspace')
+	obb = BoundingBox(ob)
 	images = map_images(mesh)
 	maps = {}
 	for i in images:
@@ -582,13 +583,13 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 	for m in maps.itervalues():
 		if 'primstar' not in m.image.properties:
 			m.image.properties['primstar'] = {}
-		m.image.properties['primstar']['loc_x'] = m.center.x
-		m.image.properties['primstar']['loc_y'] = m.center.y
-		m.image.properties['primstar']['loc_z'] = m.center.z
 		m.image.properties['primstar']['rot_x'] = ob.rot.x
 		m.image.properties['primstar']['rot_y'] = ob.rot.y
 		m.image.properties['primstar']['rot_z'] = ob.rot.z
 		if len(maps) > 1:
+			m.image.properties['primstar']['loc_x'] = m.center.x - obb.center.x
+			m.image.properties['primstar']['loc_y'] = m.center.y - obb.center.y
+			m.image.properties['primstar']['loc_z'] = m.center.z - obb.center.z
 			m.image.properties['primstar']['scale_x'] = max_scale.x / bb.scale.x
 			m.image.properties['primstar']['scale_y'] = max_scale.y / bb.scale.y
 			m.image.properties['primstar']['scale_z'] = max_scale.z / bb.scale.z
