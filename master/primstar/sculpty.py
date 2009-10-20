@@ -239,12 +239,13 @@ class BoundingBox:
 	def centered(self):
 		'''Returns a centered version of the bounding box'''
 		s = BoundingBox()
-		s.min.x = min(-self.max.x, self.min.x)
-		s.max.x = max(self.max.x, -self.min.x)
-		s.min.y = min(-self.max.y, self.min.y)
-		s.max.y = max(self.max.y, -self.min.y)
-		s.min.z = min(-self.max.z, self.min.z)
-		s.max.z = max(self.max.z, -self.min.z)
+		tmin = self.min - self.center
+		tmax = self.max - self.center
+		offset = XYZ(max(abs(tmin.x), abs(tmax.x)),
+				max(abs(tmin.y), abs(tmax.y)),
+				max(abs(tmin.z), abs(tmax.z)))
+		s.min = self.center - offset
+		s.max = self.center + offset
 		s.update()
 		return s
 
