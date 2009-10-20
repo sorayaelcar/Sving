@@ -231,8 +231,12 @@ class BoundingBox:
 	def normalised(self):
 		'''Returns a normalised version of the bounding box'''
 		s = BoundingBox()
-		s.min.x = s.min.y = s.min.z = min(self.min.x, self.min.y, self.min.z)
-		s.max.x = s.max.y = s.max.z = max(self.max.x, self.max.y, self.max.z)
+		tmin = self.min - self.center
+		tmax = self.max - self.center
+		vmin = min(tmin.x, tmin.y, tmin.z)
+		vmax = max(tmax.x, tmax.y, tmax.z)
+		s.min = self.center + XYZ(vmin, vmin, vmin)
+		s.max = self.center + XYZ(vmax, vmax, vmax)
 		s.update()
 		return s
 
