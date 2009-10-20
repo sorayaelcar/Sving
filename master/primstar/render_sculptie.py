@@ -357,6 +357,8 @@ static unsigned char file_open_bits[] = {
 							sculpty.clear_alpha(image)
 						elif a == 3:
 							sculpty.set_alpha(image, alpha_image)
+					if image.packed:
+						image.pack()
 		Blender.Redraw()
 		if editmode: Blender.Window.EditMode(1)
 		if success:
