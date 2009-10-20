@@ -599,9 +599,9 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 			m.image.properties['primstar']['loc_x'] = bb.center.x
 			m.image.properties['primstar']['loc_y'] = bb.center.y
 			m.image.properties['primstar']['loc_z'] = bb.center.z
-			m.image.properties['primstar']['scale_x'] = bb.scale.x / m.scale.x
-			m.image.properties['primstar']['scale_y'] = bb.scale.y / m.scale.y
-			m.image.properties['primstar']['scale_z'] = bb.scale.z / m.scale.z
+			m.image.properties['primstar']['scale_x'] = m.scale.x / bb.scale.x
+			m.image.properties['primstar']['scale_y'] = m.scale.y / bb.scale.y
+			m.image.properties['primstar']['scale_z'] = m.scale.z / bb.scale.z
 		m.image.properties['primstar']['size_x'] = m.scale.x
 		m.image.properties['primstar']['size_y'] = m.scale.y
 		m.image.properties['primstar']['size_z'] = m.scale.z
@@ -878,7 +878,13 @@ def get_bounding_box(ob, local=False):
 	debug(40, "sculpty.get_bounding_box(%s)"%(ob.name))
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject(ob, 0, 1)
-	if not local:
+	if local:
+		scale = ob.matrix.scalePart()
+		mesh.transform(Blender.Mathutils.Matrix([scale[0],0,0,0],
+				[0,scale[1],0,0],
+				[0,0,scale[2],0],
+				[0,0,0,1.0]))
+	else:
 		mesh.transform(remove_rotation(ob.matrix))
 	min_x = mesh.verts[0].co.x
 	max_x = min_x
