@@ -231,20 +231,19 @@ class BoundingBox:
 
 	def normalised(self):
 		'''Returns a normalised version of the bounding box'''
-		s = BoundingBox()
-		tmin = self.min - self.center
-		tmax = self.max - self.center
+		s = BoundingBox(local=self.local)
+		tmin = self.local_min()
+		tmax = self.local_max()
 		vmin = min(tmin.x, tmin.y, tmin.z)
 		vmax = max(tmax.x, tmax.y, tmax.z)
 		s.min = self.center + XYZ(vmin, vmin, vmin)
 		s.max = self.center + XYZ(vmax, vmax, vmax)
-		s.local = self.local
 		s.update()
 		return s
 
 	def centered(self):
 		'''Returns a centered version of the bounding box'''
-		s = BoundingBox()
+		s = BoundingBox(local=self.local)
 		tmin = self.local_min()
 		tmax = self.local_max()
 		offset = XYZ(max(abs(tmin.x), abs(tmax.x)),
@@ -252,7 +251,6 @@ class BoundingBox:
 				max(abs(tmin.z), abs(tmax.z)))
 		s.min = self.center - offset
 		s.max = self.center + offset
-		s.local = self.local
 		s.update()
 		return s
 
@@ -535,7 +533,6 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 	mesh = Blender.Mesh.New()
 	mesh.getFromObject(ob, 0, 1)
 	mesh.transform(remove_rotation(ob.matrix))
-	loc = ob.getLocation('worldspace')
 	obb = BoundingBox(ob)
 	images = map_images(mesh)
 	maps = {}
@@ -596,16 +593,20 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 			m.bb_min = m.center - max_scale * 0.5
 			m.bb_max = m.center + max_scale * 0.5
 			m.scale = max_scale
+			m.image.properties['primstar']['size_x'] = m.scale.x
+			m.image.properties['primstar']['size_y'] = m.scale.y
+			m.image.properties['primstar']['size_z'] = m.scale.z
 		else:
-			m.image.properties['primstar']['loc_x'] = bb.center.x
-			m.image.properties['primstar']['loc_y'] = bb.center.y
-			m.image.properties['primstar']['loc_z'] = bb.center.z
-			m.image.properties['primstar']['scale_x'] = m.scale.x / bb.scale.x
-			m.image.properties['primstar']['scale_y'] = m.scale.y / bb.scale.y
-			m.image.properties['primstar']['scale_z'] = m.scale.z / bb.scale.z
-		m.image.properties['primstar']['size_x'] = m.scale.x
-		m.image.properties['primstar']['size_y'] = m.scale.y
-		m.image.properties['primstar']['size_z'] = m.scale.z
+			print m.center, bb.center, obb.center
+			m.image.properties['primstar']['loc_x'] = 0
+			m.image.properties['primstar']['loc_y'] = 0
+			m.image.properties['primstar']['loc_z'] = 0
+			m.image.properties['primstar']['scale_x'] = bb.scale.x / obb.scale.x
+			m.image.properties['primstar']['scale_y'] = bb.scale.y / obb.scale.y
+			m.image.properties['primstar']['scale_z'] = bb.scale.z / obb.scale.z
+			m.image.properties['primstar']['size_x'] = bb.scale.x
+			m.image.properties['primstar']['size_y'] = bb.scale.y
+			m.image.properties['primstar']['size_z'] = bb.scale.z
 		m.bake(bb.rgb)
 	mesh.activeUVLayer = currentUV
 	return True
