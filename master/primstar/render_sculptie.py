@@ -310,6 +310,7 @@ static unsigned char file_open_bits[] = {
 		editmode  = Blender.Window.EditMode()
 		if editmode: Blender.Window.EditMode(0)
 		self.master.configure(cursor="clock")
+		self.redraw()
 		# prepare for bake, set centers and create bounding box
 		bb = sculpty.BoundingBox(local=True)
 		bb.rgb.min = sculpty.XYZ(self.range_min_r.get(),self.range_min_g.get(),self.range_min_b.get())
@@ -323,10 +324,10 @@ static unsigned char file_open_bits[] = {
 					#center new
 					sculpty.set_center( ob )
 				bb.add( ob )
-				if self.keep_scale.get():
-					bb = bb.normalised()
-				if self.keep_center.get():
-					bb = bb.centered()
+		if self.keep_scale.get():
+			bb = bb.normalised()
+		if self.keep_center.get():
+			bb = bb.centered()
 		# Good to go, do the bake
 		success = False
 		image = None

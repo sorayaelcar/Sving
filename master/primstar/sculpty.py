@@ -34,7 +34,7 @@ lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
 # constants
 #***********************************************
 
-LABEL = 'Primstar 0.9.19'
+LABEL = 'Primstar 0.9.20'
 DRAW_ADJUST = 1.0 / 512.0
 
 #***********************************************
@@ -93,6 +93,9 @@ class XYZ:
 			self.y * scalar,
 			self.z * scalar
 		)
+
+	def __neg__(self):
+		return self * -1.0
 
 	def __div__(self, scalar):
 		return XYZ(
@@ -232,25 +235,37 @@ class BoundingBox:
 	def normalised(self):
 		'''Returns a normalised version of the bounding box'''
 		s = BoundingBox(local=self.local)
-		tmin = self.local_min()
-		tmax = self.local_max()
-		vmin = min(tmin.x, tmin.y, tmin.z)
-		vmax = max(tmax.x, tmax.y, tmax.z)
-		s.min = self.center + XYZ(vmin, vmin, vmin)
-		s.max = self.center + XYZ(vmax, vmax, vmax)
+		if self.local:
+			vmin = min(self.min.x, self.min.y, self.min.z)
+			vmax = max(self.max.x, self.max.y, self.max.z)
+			s.min = XYZ(vmin, vmin, vmin)
+			s.max = XYZ(vmax, vmax, vmax)
+		else:
+			tmin = self.local_min()
+			tmax = self.local_max()
+			vmin = min(tmin.x, tmin.y, tmin.z)
+			vmax = max(tmax.x, tmax.y, tmax.z)
+			s.min = self.center + XYZ(vmin, vmin, vmin)
+			s.max = self.center + XYZ(vmax, vmax, vmax)
 		s.update()
 		return s
 
 	def centered(self):
 		'''Returns a centered version of the bounding box'''
 		s = BoundingBox(local=self.local)
-		tmin = self.local_min()
-		tmax = self.local_max()
-		offset = XYZ(max(abs(tmin.x), abs(tmax.x)),
-				max(abs(tmin.y), abs(tmax.y)),
-				max(abs(tmin.z), abs(tmax.z)))
-		s.min = self.center - offset
-		s.max = self.center + offset
+		if self.local:
+			s.max = XYZ(max(abs(self.min.x), abs(self.max.x)),
+					max(abs(self.min.y), abs(self.max.y)),
+					max(abs(self.min.z), abs(self.max.z)))
+			s.min = - s.max
+		else:
+			tmin = self.local_min()
+			tmax = self.local_max()
+			offset = XYZ(max(abs(tmin.x), abs(tmax.x)),
+					max(abs(tmin.y), abs(tmax.y)),
+					max(abs(tmin.z), abs(tmax.z)))
+			s.min = self.center - offset
+			s.max = self.center + offset
 		s.update()
 		return s
 
@@ -564,8 +579,10 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 	for m in maps.itervalues():
 		m.update_map()
 		if len(maps) == 1:
-			m.bb_min = m.center + bb.local_min()
-			m.bb_max = m.center + bb.local_max()
+			loc = remove_rotation(ob.matrix).translationPart()
+			offset = m.center - XYZ(loc[0], loc[1], loc[2])
+			m.bb_min = m.center + bb.min - offset
+			m.bb_max = m.center + bb.max - offset
 			m.update()
 		else:
 			if not max_scale:
@@ -597,7 +614,6 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
 			m.image.properties['primstar']['size_y'] = m.scale.y
 			m.image.properties['primstar']['size_z'] = m.scale.z
 		else:
-			print m.center, bb.center, obb.center
 			m.image.properties['primstar']['loc_x'] = 0
 			m.image.properties['primstar']['loc_y'] = 0
 			m.image.properties['primstar']['loc_z'] = 0
