@@ -191,6 +191,7 @@ class ModalRoot(Tkinter.Tk):
 		if platform == "win32":
 			self.attributes("-topmost", 1)
 			self.bind('<FocusOut>', self.focus_out_handler)
+		self.focus_force()
 
 	def destroy_handler(self, event):
 		self.grab_release()
