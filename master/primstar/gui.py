@@ -222,12 +222,17 @@ class ModalRoot(Tkinter.Tk):
 			self.quit()
 
 	def deiconify(self):
+		Blender.Redraw()
 		Tkinter.Tk.deiconify(self)
 		if self.grab_status() == None:
 			if platform == "win32":
 				self.grab_set()
 			else:
 				self.grab_set_global()
+
+	def withdraw(self):
+		Tkinter.Tk.withdraw(self)
+		Blender.Redraw()
 
 class BitmapImage(Tkinter.BitmapImage):
 	def __init__(self, data=None, **kw):
