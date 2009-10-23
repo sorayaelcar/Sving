@@ -20,13 +20,13 @@
 # --------------------------------------------------------------------------
 
 import Blender
-from sys import platform
+from sys import platform, stderr
 import Tkinter
 from binascii import hexlify
 
 def debug(num, msg, script="gui"):
 	if Blender.Get('rt') >= num:
-		print "debug %s %03d -"%(script, num), msg
+		print >>stderr, "debug %s %03d -"%(script, num), msg
 
 def hex_color(theme_color):
 	return "#" + hexlify("".join([chr(i) for i in theme_color[:-1]]))
@@ -175,7 +175,8 @@ class ModalRoot(Tkinter.Tk):
 	def __init__(self, **kw):
 		self._init=False
 		Tkinter.Tk.__init__(self)
-		self.overrideredirect(True)
+		if platform != "darwin":
+			self.overrideredirect(True)
 		theme.config(self, kw)
 		# event handling
 		px, py = self.winfo_pointerxy()
@@ -192,6 +193,7 @@ class ModalRoot(Tkinter.Tk):
 			self.bind('<FocusOut>', self.focus_out_handler)
 
 	def destroy_handler(self, event):
+		self.grab_release()
 		self.quit()
 
 	def enter_handler(self, event):
@@ -354,6 +356,7 @@ def main():
 		root.destroy()
 	except:
 		if root:
+			root.quit()
 			root.destroy()
 		raise
 

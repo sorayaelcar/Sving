@@ -441,6 +441,8 @@ def main():
 		root.destroy()
 	except:
 		if root:
+			root.grab_release()
+			root.quit()
 			root.destroy()
 		raise
 	gui.debug(1, "ended in %.4f sec."%(Blender.sys.time() - start_time), SCRIPT)
