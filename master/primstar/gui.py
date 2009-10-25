@@ -21,6 +21,7 @@
 
 import Blender
 from sys import platform, stderr
+from os import system
 import Tkinter
 from binascii import hexlify
 
@@ -233,6 +234,11 @@ class ModalRoot(Tkinter.Tk):
 	def withdraw(self):
 		Tkinter.Tk.withdraw(self)
 		Blender.Redraw()
+
+	def destroy(self):
+		if platform == "darwin":
+			system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Blender" to true' ''')
+		Tkinter.Tk.destroy(self)
 
 class BitmapImage(Tkinter.BitmapImage):
 	def __init__(self, data=None, **kw):
