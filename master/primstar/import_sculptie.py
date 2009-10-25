@@ -59,12 +59,11 @@ def import_obj(filename):
 
 def sculptify_scene():
 	scene = Blender.Scene.GetCurrent()
-	for ob in scene.objects:
+	for ob in scene.objects.selected:
 		if not sculpty.sculptify(ob):
 			Blender.Draw.PupBlock( "Sculptie Import Error", ["Unable to determine map size", "Please check your UVs"] )
 		else:
 			if ob.type == 'Mesh':
-				ob.sel = True
 				scene.objects.active = ob
 
 #***********************************************
@@ -76,6 +75,9 @@ def load_sculptie(filename):
 	Blender.SaveUndoState( "Import Sculptie" )
 	print "--------------------------------"
 	print 'Importing "%s"' % filename
+	scene = Blender.Scene.GetCurrent()
+	for ob in scene.objects.selected:
+		ob.sel = False
 	in_editmode = Blender.Window.EditMode()
 	# MUST leave edit mode before changing an active mesh:
 	if in_editmode:
