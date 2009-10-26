@@ -874,17 +874,17 @@ def finalise(image):
 	u_pixels, v_pixels = map_pixels(image.size[0], image.size[1])
 	u_pixels.append(image.size[0])
 	v_pixels.append(image.size[1])
-	for x in u_pixels[:-1]:
-		for y in v_pixels[:-1]:
+	for x in u_pixels[1:-1]:
+		for y in v_pixels[1:-1]:
 			c = image.getPixelI(x, y)
 			if c[3] == 0:
 				continue
-			if x + 1 not in u_pixels:
-				image.setPixelI(x + 1, y, c)
-				if y + 1 not in v_pixels:
-					image.setPixelI(x + 1, y + 1, c)
-			if y + 1 not in v_pixels:
-				image.setPixelI(x, y + 1, c)
+			if x - 1 not in u_pixels:
+				image.setPixelI(x - 1, y, c)
+				if y - 1 not in v_pixels:
+					image.setPixelI(x - 1, y - 1, c)
+			if y - 1 not in v_pixels:
+				image.setPixelI(x, y - 1, c)
 
 def flip_pixels(pixels):
 	'''Converts a list of pixels on a sculptie map to their mirror positions.'''
