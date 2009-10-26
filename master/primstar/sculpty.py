@@ -27,6 +27,7 @@ import Blender
 import bpy
 import os
 from math import sin, cos, pi, sqrt, log, ceil, atan2, radians
+from primstar.version import LABEL
 
 lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
 
@@ -34,7 +35,6 @@ lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
 # constants
 #***********************************************
 
-LABEL = 'Primstar 0.9.21'
 DRAW_ADJUST = 1.0 / 512.0
 
 #***********************************************

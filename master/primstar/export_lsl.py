@@ -44,7 +44,8 @@ This script exports Second Life sculpties in lsl + tga files
 
 import Blender
 from primstar.primitive import get_prims
-from primstar.sculpty import map_type, LABEL
+from primstar.sculpty import map_type
+from primstar.version import LABEL
 
 #***********************************************
 # Globals
