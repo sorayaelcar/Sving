@@ -192,7 +192,10 @@ class ModalRoot(Tkinter.Tk):
 		if platform == "win32":
 			self.attributes("-topmost", 1)
 			self.bind('<FocusOut>', self.focus_out_handler)
-		self.focus_force()
+		if platform == "darwin":
+			self.focus_set()
+		else:
+			self.focus_force()
 
 	def destroy_handler(self, event):
 		self.grab_release()
@@ -234,11 +237,6 @@ class ModalRoot(Tkinter.Tk):
 	def withdraw(self):
 		Tkinter.Tk.withdraw(self)
 		Blender.Redraw()
-
-	def destroy(self):
-		if platform == "darwin":
-			system('''/usr/bin/osascript -e 'tell app "Finder" to set frontmost of process "Blender" to true' ''')
-		Tkinter.Tk.destroy(self)
 
 class BitmapImage(Tkinter.BitmapImage):
 	def __init__(self, data=None, **kw):

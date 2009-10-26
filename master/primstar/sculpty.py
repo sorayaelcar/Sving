@@ -1301,9 +1301,11 @@ def set_alpha(image, alpha):
 	'''Sets the alpha channel of the sculpt map image to the alpha image'''
 	debug(30, "sculpty.set_alpha(%s, %s)"%(image.name, alpha.name))
 	for x in range(image.size[0]):
+		u = int(x * alpha.size[0] / image.size[0])
 		for y in range(image.size[1]):
+			v = int(x * alpha.size[1] / image.size[1])
 			c1 = image.getPixelI(x, y)
-			c2 = alpha.getPixelI(x, y)
+			c2 = alpha.getPixelI(u, v)
 			c1[3]= c2[1]
 			image.setPixelI(x, y, c1)
 

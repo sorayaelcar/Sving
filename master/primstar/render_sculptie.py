@@ -408,6 +408,8 @@ static unsigned char file_open_bits[] = {
 		self.alpha_filename = filename
 		if not filename:
 			self.alpha.set(2)
+		else:
+			self.alpha.set(3)
 		self.update_file()
 
 	def set_alpha(self):
