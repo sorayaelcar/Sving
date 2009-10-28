@@ -309,7 +309,7 @@ static unsigned char file_open_bits[] = {
 		startTime = Blender.sys.time()  #for timing purposes
 		editmode  = Blender.Window.EditMode()
 		if editmode: Blender.Window.EditMode(0)
-		self.master.configure(cursor="clock")
+		self.master.configure(cursor="watch")
 		self.redraw()
 		# prepare for bake, set centers and create bounding box
 		bb = sculpty.BoundingBox(local=True)
