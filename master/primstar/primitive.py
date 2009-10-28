@@ -100,7 +100,11 @@ def get_prims():
 		# collect prims
 		if ob.parent != None:
 			continue
-		rootprim = ob2Prim(ob)
+		try:
+			rootprim = ob2Prim(ob)
+		except KeyError:
+			Blender.Draw.PupBlock( "LSL Export error", ["A selected sculpt mesh", "has not been baked"] )
+			return None
 		if rootprim != None:
 			prims.append(rootprim)
 	return prims

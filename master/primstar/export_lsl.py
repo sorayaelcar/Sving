@@ -336,6 +336,9 @@ def save_textures(prim, path=None):
 def export_lsl( filename ):
 	Blender.Window.WaitCursor(1)
 	prims = get_prims()
+	if prims == None:
+		Blender.Window.WaitCursor(0)
+		return
 	if prims == []:
 		Blender.Window.WaitCursor(0)
 		Blender.Draw.PupBlock( "Nothing to do", ["No root prims are selected", " for export"] )
