@@ -1,1 +1,1 @@
-LABEL = 'Primstar 0.9.22'
+LABEL = 'Primstar 0.9.23'
