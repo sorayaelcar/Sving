@@ -292,14 +292,14 @@ static unsigned char file_open_bits[] = {
 				textvariable=self.info_text,
 				justify=LEFT)
 		self.lod_display.pack()
-		self.update_info()
-		create_button = gui.Button(build_frame,
+		self.create_button = gui.Button(build_frame,
 				text="Build",
 				image=self.cube_icon,
 				compound=LEFT,
 				command=self.add,
 				default=ACTIVE)
-		create_button.pack(fill=BOTH, expand=True, anchor=SE, pady=5)
+		self.create_button.pack(fill=BOTH, expand=True, anchor=SE, pady=5)
+		self.update_info()
 
 		# ==========================================
 		# Save settings frame
@@ -408,6 +408,7 @@ static unsigned char file_open_bits[] = {
 				self.radius_input.config(state=DISABLED)
 		self.x_faces_input.config(to=256)
 		self.y_faces_input.config(to=256)
+		self.update_info()
 		self.redraw()
 
 	def redraw(self):
@@ -433,16 +434,17 @@ static unsigned char file_open_bits[] = {
 			self.clean_lods_input.configure(state=DISABLED)
 		else:
 			self.clean_lods_input.configure(state=NORMAL)
-		if self.levels.get() == 0:
-			if self.x_faces.get() < 4:
+		if self.shape_name.get() not in ['Plane', 'Hemi']:
+			if self.x_faces.get() < 3:
 				clean_s = False
-			if self.y_faces.get() < 4:
+				self.create_button.configure(state=DISABLED)
+			if self.y_faces.get() < 3:
 				clean_t = False
-		if self.levels.get() == 1:
-			if self.x_faces.get() < 2:
-				clean_s = False
-			if self.y_faces.get() < 2:
-				clean_t = False
+				self.create_button.configure(state=DISABLED)
+			elif self.x_faces.get() > 2:
+				self.create_button.configure(state=NORMAL)
+		else:
+			self.create_button.configure(state=NORMAL)
 		if clean_s and clean_t:
 			self.levels_input.configure(
 					background=gui.hex_color(gui.theme.ui.textfield),
@@ -562,7 +564,7 @@ static unsigned char file_open_bits[] = {
 		except RuntimeError:
 			#todo tkinter this
 			#Blender.Draw.PupBlock("Unable to create sculptie", ["Please decrease face counts","or subdivision levels"])
-			pass
+			raise
 		Blender.Window.WaitCursor(0)
 		self.master.quit() # self.master.destroy() makes blender crash occasionally (thread problems)
 
