@@ -26,8 +26,9 @@
 import Blender
 import bpy
 import os
-from math import sin, cos, pi, sqrt, log, ceil, atan2, radians
+from math import sin, cos, pi, sqrt, log, ceil
 from primstar.version import LABEL
+from sys import stderr
 
 lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
 

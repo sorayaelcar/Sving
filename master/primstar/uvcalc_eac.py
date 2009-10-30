@@ -78,7 +78,7 @@ def main():
         obList += [ob]
     del objects
     if not obList:
-        Draw.PupMenu('Error: no selected mesh objects')
+        Blender.Draw.PupMenu('Error: no selected mesh objects')
         return
     editmode = Blender.Window.EditMode()
     if editmode:

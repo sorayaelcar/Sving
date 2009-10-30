@@ -20,8 +20,7 @@
 # --------------------------------------------------------------------------
 
 import Blender
-from primstar.sculpty import XYZ, map_images, obChildren,\
-        active, map_type, BoundingBox
+from primstar.sculpty import XYZ, map_images, obChildren, active, BoundingBox
 from primstar.gui import debug
 from math import atan2
 

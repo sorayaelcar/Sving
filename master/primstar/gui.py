@@ -21,7 +21,6 @@
 
 import Blender
 from sys import platform, stderr
-from os import system
 import Tkinter
 from binascii import hexlify
 
