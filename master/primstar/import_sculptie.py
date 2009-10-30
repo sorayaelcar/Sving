@@ -48,66 +48,77 @@ from primstar import sculpty
 from colladaImEx.translator import Translator
 from import_obj import load_obj
 
+
 def import_collada(filename):
-	t = Translator(True, '0.3.161', False, filename, False, False, False, False, True,
-			False, False, True, False, False, False, False, True, False)
-	sculptify_scene()
+    t = Translator(True, '0.3.161', False, filename,
+            False, False, False, False, True, False, False, True,
+            False, False, False, False, True, False)
+    sculptify_scene()
+
 
 def import_obj(filename):
-	load_obj(filename)
-	sculptify_scene()
+    load_obj(filename)
+    sculptify_scene()
+
 
 def sculptify_scene():
-	scene = Blender.Scene.GetCurrent()
-	for ob in scene.objects.selected:
-		if not sculpty.sculptify(ob):
-			Blender.Draw.PupBlock( "Sculptie Import Error", ["Unable to determine map size", "Please check your UVs"] )
-		else:
-			if ob.type == 'Mesh':
-				scene.objects.active = ob
+    scene = Blender.Scene.GetCurrent()
+    for ob in scene.objects.selected:
+        if not sculpty.sculptify(ob):
+            Blender.Draw.PupBlock("Sculptie Import Error",
+                    ["Unable to determine map size", "Please check your UVs"])
+        else:
+            if ob.type == 'Mesh':
+                scene.objects.active = ob
 
 #***********************************************
 # load sculptie file
 #***********************************************
 
+
 def load_sculptie(filename):
-	time1 = Blender.sys.time()
-	Blender.SaveUndoState( "Import Sculptie" )
-	print "--------------------------------"
-	print 'Importing "%s"' % filename
-	scene = Blender.Scene.GetCurrent()
-	for ob in scene.objects.selected:
-		ob.sel = False
-	in_editmode = Blender.Window.EditMode()
-	# MUST leave edit mode before changing an active mesh:
-	if in_editmode:
-		Blender.Window.EditMode(0)
-	else:
-		try:
-			in_editmode = Blender.Get('add_editmode')
-		except:
-			pass
-	f, e = Blender.sys.splitext(filename)
-	e = e.lower()
-	if e == '.dae':
-		import_collada(filename)
-	elif e == '.obj':
-		import_obj(filename)
-	else:
-		try:
-			ob = sculpty.open( filename )
-		except:
-			Blender.Draw.PupBlock( "Sculptie Import Error", ["Unsupported file type", "Use .dae or an image file"] )
-	if in_editmode:
-		Blender.Window.EditMode(1)
-	Blender.Redraw()
-	print 'finished importing: "%s" in %.4f sec.' % (filename, (Blender.sys.time()-time1))
+    time1 = Blender.sys.time()
+    Blender.SaveUndoState("Import Sculptie")
+    print "--------------------------------"
+    print 'Importing "%s"' % filename
+    scene = Blender.Scene.GetCurrent()
+    for ob in scene.objects.selected:
+        ob.sel = False
+    in_editmode = Blender.Window.EditMode()
+    # MUST leave edit mode before changing an active mesh:
+    if in_editmode:
+        Blender.Window.EditMode(0)
+    else:
+        try:
+            in_editmode = Blender.Get('add_editmode')
+        except:
+            pass
+    f, e = Blender.sys.splitext(filename)
+    e = e.lower()
+    if e == '.dae':
+        import_collada(filename)
+    elif e == '.obj':
+        import_obj(filename)
+    else:
+        try:
+            ob = sculpty.open(filename)
+        except:
+            Blender.Draw.PupBlock("Sculptie Import Error",
+                    ["Unsupported file type", "Use .dae or an image file"])
+    if in_editmode:
+        Blender.Window.EditMode(1)
+    Blender.Redraw()
+    print 'finished importing: "%s" in %.4f sec.' % (
+            filename, (Blender.sys.time() - time1))
 
 #***********************************************
 # register callback
 #***********************************************
+
+
 def my_callback(filename):
-	load_sculptie(filename)
+    load_sculptie(filename)
+
 
 if __name__ == '__main__':
-	Blender.Window.FileSelector(my_callback, "Import Sculptie")
+    Blender.Window.FileSelector(my_callback, "Import Sculptie")

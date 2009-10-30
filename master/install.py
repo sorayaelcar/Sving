@@ -26,60 +26,62 @@ import os
 from distutils import dir_util
 
 try:
-	import Blender
-	import bpy
+    import Blender
+    import bpy
 except:
-	try:
-		from Tkinter import *
-		from tkMessageBox import *
-		showerror( 'Primstar Installer','Please run from command line with \'blender -P install.py\'')
-	except:
-		print 'Please run from command line with \'blender -P install.py\''
-	sys.exit()
+    try:
+        from Tkinter import *
+        from tkMessageBox import *
+        showerror('Primstar Installer',
+            'Please run from command line with \'blender -P install.py\'')
+    except:
+        print 'Please run from command line with \'blender -P install.py\''
+    sys.exit()
 
 remove_files = [
-		'add_mesh_sculpt_mesh.py',
-		'add_mesh_gui_test.py',
-		'export_lsl.py',
-		'image_sculptie_finalise.py',
-		'image_sculptie_lod.py',
-		'import_sculptie.py',
-		'mesh_update_sculptie.py',
-		'render_sculptie.py',
-		'sculpty.py',
-		'uvcalc_eac.py',
-		'add_mesh_sculpt_mesh.pyc',
-		'add_mesh_gui_test.pyc',
-		'export_lsl.pyc',
-		'image_sculptie_finalise.pyc',
-		'image_sculptie_lod.pyc',
-		'import_sculptie.pyc',
-		'mesh_update_sculptie.pyc',
-		'render_sculptie.pyc',
-		'sculpty.pyc',
-		'uvcalc_eac.pyc',
-		'primstar/import_collada_as_sculptie.py',
-		'primstar/add_mesh_test_gui.py']
+        'add_mesh_sculpt_mesh.py',
+        'add_mesh_gui_test.py',
+        'export_lsl.py',
+        'image_sculptie_finalise.py',
+        'image_sculptie_lod.py',
+        'import_sculptie.py',
+        'mesh_update_sculptie.py',
+        'render_sculptie.py',
+        'sculpty.py',
+        'uvcalc_eac.py',
+        'add_mesh_sculpt_mesh.pyc',
+        'add_mesh_gui_test.pyc',
+        'export_lsl.pyc',
+        'image_sculptie_finalise.pyc',
+        'image_sculptie_lod.pyc',
+        'import_sculptie.pyc',
+        'mesh_update_sculptie.pyc',
+        'render_sculptie.pyc',
+        'sculpty.pyc',
+        'uvcalc_eac.pyc',
+        'primstar/import_collada_as_sculptie.py',
+        'primstar/add_mesh_test_gui.py']
 
 script_path = bpy.config.userScriptsDir
 
 message = ["Primstar has been", "successfully installed."]
 
 if not script_path:
-	bpy.config.userScriptsDir = os.path.expanduser(os.path.join('~','blender_scripts'))
-	script_path = bpy.config.userScriptsDir
-	if not os.path.exists(script_path):
-		os.mkdir(script_path)
-	message.extend(["Please press CTRL-u", "to save the settings",
-			"after closing this message"])
+    bpy.config.userScriptsDir = os.path.expanduser(os.path.join('~',
+        'blender_scripts'))
+    script_path = bpy.config.userScriptsDir
+    if not os.path.exists(script_path):
+        os.mkdir(script_path)
+    message.extend(["Please press CTRL-u", "to save the settings",
+            "after closing this message"])
 else:
-	#cleanup old style installs
-	for f in remove_files:
-		t = os.path.join(script_path, f)
-		if os.path.exists(t):
-			os.remove(t)
-bpydata_path = os.path.join(script_path,"bpydata")
+    #cleanup old style installs
+    for f in remove_files:
+        t = os.path.join(script_path, f)
+        if os.path.exists(t):
+            os.remove(t)
+bpydata_path = os.path.join(script_path, "bpydata")
 if not os.path.exists(bpydata_path):
-	os.mkdir(bpydata_path)
+    os.mkdir(bpydata_path)
 dir_util.copy_tree('primstar', os.path.join(script_path, 'primstar'), update=1)
-Blender.Draw.PupBlock( "Installation Complete", message )
+Blender.Draw.PupBlock("Installation Complete", message)

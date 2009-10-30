@@ -39,12 +39,13 @@ This script bakes a sculptie LOD helper to the active image
 import Blender
 from primstar.sculpty import bake_lod
 
+
 def main():
-	image = Blender.Image.GetCurrent()
-	if image:
-		bake_lod( image )
-	else:
-		Blender.Draw.PupBlock( "Sculptie Bake Error", ["No current image"] )
+    image = Blender.Image.GetCurrent()
+    if image:
+        bake_lod(image)
+    else:
+        Blender.Draw.PupBlock("Sculptie Bake Error", ["No current image"])
 
 if __name__ == '__main__':
-	main()
+    main()

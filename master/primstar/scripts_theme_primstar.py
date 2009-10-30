@@ -11,8 +11,8 @@ __author__ = "Domino Marama"
 __version__ = "2.46"
 __url__ = ["http://dominodesigns.info"]
 __bpydoc__ = """\
-This installs the theme used in the Primstar documentation, remember to save defaults
-after installing.
+This installs the theme used in the Primstar documentation,
+remember to save defaults after installing.
 """
 
 # ***** BEGIN GPL LICENSE BLOCK *****

@@ -57,24 +57,26 @@ from primstar.sculpty import update_from_map
 # Import modules
 #***********************************************
 
-def main( filename ):
-	image = Blender.Image.Load( filename )
-	editmode = Blender.Window.EditMode()
-	if editmode: Blender.Window.EditMode(0)
-	Blender.Window.WaitCursor(1)
-	ob = Blender.Scene.GetCurrent().getActiveObject()
-	if ob.type == 'Mesh':
-		mesh = ob.getData( False, True)
-		if "sculptie" in mesh.getUVLayerNames():
-			update_from_map( mesh, image )
-		else:
-			Blender.Draw.PupBlock( "Sculptie Error", ["Mesh has no 'sculptie' UV Layer"] )
-	Blender.Window.WaitCursor(0)
-	Blender.Window.EditMode( editmode )
+
+def main(filename):
+    image = Blender.Image.Load(filename)
+    editmode = Blender.Window.EditMode()
+    if editmode:
+        Blender.Window.EditMode(0)
+    Blender.Window.WaitCursor(1)
+    ob = Blender.Scene.GetCurrent().getActiveObject()
+    if ob.type == 'Mesh':
+        mesh = ob.getData(False, True)
+        if "sculptie" in mesh.getUVLayerNames():
+            update_from_map(mesh, image)
+        else:
+            Blender.Draw.PupBlock("Sculptie Error",
+                ["Mesh has no 'sculptie' UV Layer"])
+    Blender.Window.WaitCursor(0)
+    Blender.Window.EditMode(editmode)
 
 #***********************************************
 # Request image file
 #***********************************************
 
-Blender.Window.FileSelector( main, 'Select Sculptie Map', '.tga' )
-
+Blender.Window.FileSelector(main, 'Select Sculptie Map', '.tga')

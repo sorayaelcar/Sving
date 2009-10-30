@@ -39,24 +39,25 @@ This script imports the active image as a sculptie
 import Blender
 from primstar.sculpty import new_from_map
 
+
 def main():
-	in_editmode = Blender.Window.EditMode()
-	# MUST leave edit mode before changing an active mesh:
-	if in_editmode:
-		Blender.Window.EditMode(0)
-	else:
-		try:
-			in_editmode = Blender.Get('add_editmode')
-		except:
-			pass
-	image = Blender.Image.GetCurrent()
-	if image:
-		ob = new_from_map(image, False)
-	else:
-		Blender.Draw.PupBlock("Can't add Sculptie", ["No current image"])
-	if in_editmode:
-		Blender.Window.EditMode(1)
-	Blender.Redraw()
+    in_editmode = Blender.Window.EditMode()
+    # MUST leave edit mode before changing an active mesh:
+    if in_editmode:
+        Blender.Window.EditMode(0)
+    else:
+        try:
+            in_editmode = Blender.Get('add_editmode')
+        except:
+            pass
+    image = Blender.Image.GetCurrent()
+    if image:
+        ob = new_from_map(image, False)
+    else:
+        Blender.Draw.PupBlock("Can't add Sculptie", ["No current image"])
+    if in_editmode:
+        Blender.Window.EditMode(1)
+    Blender.Redraw()
 
 if __name__ == '__main__':
-	main()
+    main()

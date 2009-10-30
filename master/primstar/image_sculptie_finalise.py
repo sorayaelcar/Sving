@@ -13,8 +13,8 @@ __bpydoc__ = """\
 
 Finalise sculptie
 
-This script applies final polish to a sculptie. It makes the map mirrorable and allows
-better compression of the image.
+This script applies final polish to a sculptie. It makes the map mirrorable
+and allows better compression of the image.
 """
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
@@ -40,13 +40,14 @@ better compression of the image.
 import Blender
 from primstar.sculpty import finalise, fill_holes
 
+
 def current():
-	image = Blender.Image.GetCurrent()
-	if image:
-		fill_holes(image)
-		finalise(image)
-	else:
-		Blender.Draw.PupBlock("Sculptie Bake Error", ["No current image"])
+    image = Blender.Image.GetCurrent()
+    if image:
+        fill_holes(image)
+        finalise(image)
+    else:
+        Blender.Draw.PupBlock("Sculptie Bake Error", ["No current image"])
 
 if __name__ == '__main__':
-	current()
+    current()
