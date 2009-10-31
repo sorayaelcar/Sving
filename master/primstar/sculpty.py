@@ -849,7 +849,7 @@ def fill_holes(image):
     def getFirstX(y):
         for x in range(image.size[0]):
             c = image.getPixelF(x, y)
-            if c[3] != 0:
+            if c[0] + c[1] + c[2] + c[3] != 0:
                 if x > 0:
                     fill = True
                 return c
@@ -858,7 +858,7 @@ def fill_holes(image):
     def getFirstY(x):
         for y in range(image.size[1]):
             c = image.getPixelF(x, y)
-            if c[3] != 0:
+            if c[0] + c[1] + c[2] + c[3] != 0:
                 if y > 0:
                     fill = True
                 return c
@@ -877,7 +877,7 @@ def fill_holes(image):
             s = 0
             for u in range(1, image.size[0]):
                 nc = image.getPixelF(u, v)
-                if nc[3] == 0:
+                if nc[0] + nc[1] + nc[2] + nc[3] == 0:
                     if not fill:
                         fill = True
                 else:
@@ -911,7 +911,7 @@ def fill_holes(image):
             s = 0
             for v in range(1, image.size[1]):
                 nc = image.getPixelF(u, v)
-                if nc[3] == 0:
+                if nc[0] + nc[1] + nc[2] + nc[3] == 0:
                     if not fill:
                         fill = True
                 else:
