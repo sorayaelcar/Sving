@@ -45,7 +45,7 @@ from Blender import *
 from math import sqrt
 
 
-def scaleUVMap(ob, doRotate):
+def scale_map_uv(ob, doRotate):
     me    = ob.getData(mesh=1)
     faces = me.faces
     # -------------------------------
@@ -96,7 +96,7 @@ def normalise(fco, umin, umax, vmin, vmax, doRotate):
 # is to copy the script content and use the modified version from here.
 # --------------------------------------------------------------------
 
-def uvcalc(ob):
+def add_map_uv(ob):
 
     # print ob, ob.type
     if ob == None or ob.type != 'Mesh':
@@ -109,6 +109,9 @@ def uvcalc(ob):
         Window.EditMode(0)
 
     me = ob.getData(mesh=1)
+    me.sel = 1
+    me.addUVLayer("sculptie")
+    me.activeFace = 0
     me_verts = me.verts
 
     # 0:normal extend, 1:edge length
@@ -287,7 +290,7 @@ def uvcalc(ob):
                         ok= True # keep searching
 
                 face_modes[i] = 2 # dont search again
-    scaleUVMap(ob, 1)
+    scale_map_uv(ob, 1)
     print  Blender.sys.time() - t
 
     if is_editmode:

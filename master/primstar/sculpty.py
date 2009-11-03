@@ -34,7 +34,7 @@ import bpy
 import os
 from math import sin, cos, pi, sqrt, log, ceil
 from primstar.version import LABEL
-from primstar.nurbs import uvcalc
+from primstar.uv_tools import add_map_uv
 from sys import stderr
 
 lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
@@ -1373,24 +1373,23 @@ def sculptify(ob):
         name = ob.getName()
         me = Blender.Mesh.New(name)
         me.getFromObject(ob)
-        me.sel = 1
-        me.addUVLayer("sculptie")
-        me.activeFace = 0
 
         # make a new object, fill it with the just created mesh data
         # and and link it to current scene
-        location = ob.loc
-        rotation = ob.rot
-        size = ob.size
+        #location = ob.loc
+        #rotation = ob.rot
+        #size = ob.size
+        matrix = ob.matrix
         scene.objects.unlink(ob)
-        ob = scene.objects.new(me, objectName)
-        ob.loc = location
-        ob.rot = rotation
-        ob.size = size
+        ob = scene.objects.new(me, name)
+        #ob.loc = location
+        #ob.rot = rotation
+        #ob.size = size
+        ob.setMatrix(matrix)
         ob.select(1)
 
         #Unwrap follow active (quads)
-        uvcalc(ob) # This replaces call to uvcalc_follow_active_coords.extend()
+        add_map_uv(ob) # This replaces call to uvcalc_follow_active_coords.extend()
 
     if ob.type == 'Mesh':
         mesh = ob.getData(False, True)
