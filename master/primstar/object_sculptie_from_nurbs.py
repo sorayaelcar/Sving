@@ -41,6 +41,12 @@ Convert a nurbs surface to a sculpt mesh
 # Import modules
 #***********************************************
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 from primstar.nurbs import uvcalc
 from primstar.sculpty import sculptify

@@ -19,6 +19,12 @@
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 from primstar.sculpty import XYZ, map_images, obChildren, active, BoundingBox
 from primstar.gui import debug

@@ -34,6 +34,12 @@ __version__ = "1.0"
 # Import modules
 #***********************************************
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender, BPyMesh
 from Blender import *
 from math import sqrt

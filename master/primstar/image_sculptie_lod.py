@@ -36,6 +36,12 @@ This script bakes a sculptie LOD helper to the active image
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 from primstar.sculpty import bake_lod
 

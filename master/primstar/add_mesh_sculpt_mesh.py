@@ -38,6 +38,12 @@ for Second Life sculpties.
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 from primstar import sculpty
 import os

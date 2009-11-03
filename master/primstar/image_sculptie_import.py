@@ -36,6 +36,12 @@ This script imports the active image as a sculptie
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 from primstar.sculpty import new_from_map
 

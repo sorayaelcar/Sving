@@ -50,6 +50,12 @@ This script updates a sculptie mesh from a Second Life sculptie image map
 # Import modules
 #***********************************************
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 from primstar.sculpty import update_from_map
 

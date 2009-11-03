@@ -53,6 +53,12 @@ see http://mathworld.wolfram.com/CylindricalEqual-AreaProjection.html
 # Import modules
 #***********************************************
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 import bpy
 from math import atan2, pi, sin

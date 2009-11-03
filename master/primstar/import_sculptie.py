@@ -43,6 +43,12 @@ in obj and Collada 1.4 formats.
 # Import modules
 #***********************************************
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 from primstar import sculpty
 from colladaImEx.translator import Translator

@@ -39,6 +39,12 @@ positions to the image assigned to the 'sculptie' UV layer.
 # ***** END GPL LICENCE BLOCK *****
 
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 import os
 import tkFileDialog

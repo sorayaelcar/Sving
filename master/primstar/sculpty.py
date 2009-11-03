@@ -23,6 +23,12 @@
 # Import modules
 #***********************************************
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 import bpy
 import os

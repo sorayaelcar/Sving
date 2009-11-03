@@ -19,6 +19,12 @@
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 from sys import platform, stderr
 import Tkinter

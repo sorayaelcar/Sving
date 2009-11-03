@@ -37,6 +37,12 @@ and allows better compression of the image.
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
 
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
 import Blender
 from primstar.sculpty import finalise, fill_holes
 
