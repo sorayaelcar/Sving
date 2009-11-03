@@ -42,7 +42,6 @@ Convert a nurbs surface to a sculpt mesh
 #***********************************************
 
 import Blender
-import bpy
 from primstar.nurbs import uvcalc, scaleUVMap
 from primstar.sculpty import sculptify
 
@@ -60,7 +59,7 @@ def convert_from_nurbs(ob):
     objectName = ob.getName()
 
     # make new mesh (reuse the objectName)
-    me = bpy.data.meshes.new(objectName)
+    me = Blender.Mesh.New(objectName)
 
     # fill new mesh with raw data from the active object
     me.getFromObject(ob)
@@ -70,9 +69,7 @@ def convert_from_nurbs(ob):
 
     # Add a new UV Texture.
     # The texture should be equivalent to "Mesh -> UV-unwrap -> Reset"
-    UVName = "sculptie"
-    me.addUVLayer(UVName)
-    me.activeUVLayer = UVName
+    me.addUVLayer("sculptie")
 
     #Set the first face as the active face.
     me.activeFace = 0
@@ -92,7 +89,7 @@ def convert_from_nurbs(ob):
     new_ob.select(1)
 
     #Unwrap follow active (quads)
-    uvcalc() # This replaces call to uvcalc_follow_active_coords.extend()
+    uvcalc(new_ob) # This replaces call to uvcalc_follow_active_coords.extend()
     scaleUVMap(new_ob, 1)
 
     return sculptify(new_ob)

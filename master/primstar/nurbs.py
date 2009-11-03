@@ -34,56 +34,11 @@ __version__ = "1.0"
 # Import modules
 #***********************************************
 
-import Blender, bpy, BPyMesh
+import Blender, BPyMesh
 from Blender import *
 from math import sqrt
 from primstar import sculpty
 
-# --------------------------------------------------------------------------
-def convertNurbs2Sculptie( scn , activeObject ):
-
-    # get selected and thus the active object
-    objectName = activeObject.getName()
-
-    # make new mesh (reuse the objectName)
-    me = bpy.data.meshes.new(objectName)
-
-    # fill new mesh with raw data from the active object
-    me.getFromObject(activeObject)
-
-    #Select all vertices in the active object
-    me.sel = 1
-
-    # Add a new UV Texture.
-    # The texture should be equivalent to "Mesh -> UV-unwrap -> Reset"
-    UVName = "sculptie"
-    me.addUVLayer(UVName)
-    me.activeUVLayer = UVName
-
-    #Set the first face as the active face.
-    me.activeFace=0
-
-
-    # make a new object, fill it with the just created mesh data
-    # and and link it to current scene
-    location = activeObject.loc
-    scn.objects.unlink(activeObject)
-    ob = scn.objects.new(me, objectName)
-    ob.setLocation(location)
-
-    #Make the new object the active object
-    ob.select(1)
-
-    #Unwrap follow active (quads)
-    uvcalc() # This hack to replaces external call to uvcalc_follow_active_coords.extend()
-    scaleUVMap(ob, 1)
-
-    image = Blender.Image.New("nurbs", 64, 64, 32)
-    sculpty.set_map(me, image)
-
-    return ob
-
-fileSelectorName = None
 
 def scaleUVMap(ob, doRotate):
     me    = ob.getData(mesh=1)
@@ -136,9 +91,7 @@ def normalise(fco, umin, umax, vmin, vmax, doRotate):
 # is to copy the script content and use the modified version from here.
 # --------------------------------------------------------------------
 
-def uvcalc():
-    sce = bpy.data.scenes.active
-    ob = sce.objects.active
+def uvcalc(ob):
 
     # print ob, ob.type
     if ob == None or ob.type != 'Mesh':
