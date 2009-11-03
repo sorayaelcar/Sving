@@ -1365,9 +1365,10 @@ def remove_rotation(matrix):
     return m.resize4x4()
 
 
-def sculptify(object):
-    if object.type == 'Mesh':
-        mesh = object.getData(False, True)
+def sculptify(ob):
+    debug(30, "sculpty.sculptify(%s)" % (ob.name))
+    if ob.type == 'Mesh':
+        mesh = ob.getData(False, True)
         if "sculptie" not in mesh.getUVLayerNames():
             mesh.renameUVLayer(mesh.activeUVLayer, "sculptie")
         else:
@@ -1377,24 +1378,49 @@ def sculptify(object):
         x_verts2 = 0
         y_verts = 0
         y_verts2 = 0
-        for f in mesh.faces:
-            f.sel = True
-            for v in f.uv:
-                if v[1] == 0.0:
-                    x_verts += 1
-                elif v[1] == 1.0:
-                    x_verts2 += 1
-                if v[0] == 0.0:
-                    y_verts += 1
-                elif v[0] == 1.0:
-                    y_verts2 += 1
-        if min(max(x_verts, x_verts2), max(y_verts, y_verts2)) < 4:
-            return False # unable to complete
+        islands = []
+        island = None
+        zero_uv = Blender.Mathutils.Vector(0.0, 0.0)
+        faces = [f for f in mesh.faces]
+        if zero_uv not in faces[0].uv:
+            faces.reverse()
+        if zero_uv in faces[0].uv:
+            for f in faces:
+                if zero_uv in f.uv:
+                    if island != None:
+                        islands.append(island)
+                    island = [f.index]
+                else:
+                    island.append(f.index)
+            if island != None:
+                islands.append(island)
         else:
-            s, t, w, h, cs, ct = map_size(max(x_verts, x_verts2) / 2,
-                    max(y_verts, y_verts2) / 2, 0)
-            image = Blender.Image.New(mesh.name, w, h, 32)
-            set_map(mesh, image)
+            islands.append([f.index for f in mesh.faces])
+        for island in islands:
+            for i in island:
+                f = mesh.faces[i]
+                f.sel = True
+                for v in f.uv:
+                    if v[1] == 0.0:
+                        x_verts += 1
+                    elif v[1] == 1.0:
+                        x_verts2 += 1
+                    if v[0] == 0.0:
+                        y_verts += 1
+                    elif v[0] == 1.0:
+                        y_verts2 += 1
+            if min(max(x_verts, x_verts2), max(y_verts, y_verts2)) < 4:
+                debug(35, "Unable to add image to %s x %s mesh" % \
+                    (max(x_verts, x_verts2), max(y_verts, y_verts2)))
+                return False # unable to complete
+            else:
+                s, t, w, h, cs, ct = map_size(max(x_verts, x_verts2) / 2,
+                        max(y_verts, y_verts2) / 2, 0)
+                image = Blender.Image.New(mesh.name, w, h, 32)
+                mesh.sel = False
+                for i in island:
+                    mesh.faces[i].sel = True
+                set_map(mesh, image)
     return True # successful or skipped
 
 
