@@ -54,8 +54,8 @@ def main():
     success = False
     Blender.Window.WaitCursor(1)
     for ob in scene.objects.selected:
-        if active_object.type == "Surf":
-            ob = convertNurbs2Sculptie(scene, active_object)
+        if ob.type == "Surf":
+            new_ob = convertNurbs2Sculptie(scene, ob)
             success = True
     Blender.Window.WaitCursor(0)
     if not success:
