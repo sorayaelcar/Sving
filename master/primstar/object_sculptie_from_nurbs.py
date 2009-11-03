@@ -1,20 +1,19 @@
 #!BPY
 
 """
-Name: 'Nurbs to Sculptie (1.5)'
+Name: 'Nurbs to Sculpt Mesh'
 Blender: 248
 Group: 'Object'
-Tooltip: 'Bake Sculptie Maps from a NURBS'
+Tooltip: 'Convert a nurbs surface to a sculpt mesh'
 """
 
-__author__ = ["Gaia Clary"]
-__url__ = ("http://blog.machinimatrix.org")
+__author__ = ["Gaia Clary", "Domino Marama"]
+__url__ = ("http://blog.machinimatrix.org", "http://dominodesigns.info")
 __version__ = "0.7"
 __bpydoc__ = """\
 
-Bake Sculptie Map from NURBS
+Convert a nurbs surface to a sculpt mesh
 
-Note: This script requires primstar-0.9.23 or newer from Domino Designs!
 """
 
 # ***** BEGIN GPL LICENSE BLOCK *****
@@ -42,8 +41,7 @@ Note: This script requires primstar-0.9.23 or newer from Domino Designs!
 # Import modules
 #***********************************************
 
-import Blender, bpy, BPyMesh
-from Blender import *
+import Blender
 from primstar.nurbs import convertNurbs2Sculptie
 
 #***********************************************
@@ -52,22 +50,18 @@ from primstar.nurbs import convertNurbs2Sculptie
 
 def main():
 
-    #keep current edit-mode and temporary leave it
-    in_editmode = Window.EditMode()
-    Window.EditMode(0)
-
-    # get the current scene
-    scn = bpy.data.scenes.active
-    activeObject = scn.objects.active
-
-    ob = convertNurbs2Sculptie(scn, activeObject)
-
-
-    #restore original edit_mode
-    Window.EditMode(in_editmode)
-
-    #Redraw all windows
-    Blender.Redraw
+    scene = Blender.Scene.GetCurrent()
+    success = False
+    Blender.Window.WaitCursor(1)
+    for ob in scene.objects.selected:
+        if active_object.type == "Surf":
+            ob = convertNurbs2Sculptie(scene, active_object)
+            success = True
+    Blender.Window.WaitCursor(0)
+    if not success:
+        Blender.Draw.PupBlock("Conversion Error",
+                ["No NURBS surfaces","are selected"])
+    Blender.Redraw()
 
 if __name__ == '__main__':
     main()
