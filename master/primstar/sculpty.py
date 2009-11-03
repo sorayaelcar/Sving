@@ -34,6 +34,7 @@ import bpy
 import os
 from math import sin, cos, pi, sqrt, log, ceil
 from primstar.version import LABEL
+from primstar.nurbs import uvcalc
 from sys import stderr
 
 lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
@@ -1367,6 +1368,30 @@ def remove_rotation(matrix):
 
 def sculptify(ob):
     debug(30, "sculpty.sculptify(%s)" % (ob.name))
+    if ob.type == 'Surf':
+        scene = Blender.Scene.GetCurrent()
+        objectName = ob.getName()
+        me = Blender.Mesh.New(objectName)
+        me.getFromObject(ob)
+        me.sel = 1
+        me.addUVLayer("sculptie")
+        me.activeFace = 0
+
+        # make a new object, fill it with the just created mesh data
+        # and and link it to current scene
+        location = ob.loc
+        rotation = ob.rot
+        size = ob.size
+        scene.objects.unlink(ob)
+        ob = scene.objects.new(me, objectName)
+        ob.loc = location
+        ob.rot = rotation
+        ob.size = size
+        ob.select(1)
+
+        #Unwrap follow active (quads)
+        uvcalc(ob) # This replaces call to uvcalc_follow_active_coords.extend()
+
     if ob.type == 'Mesh':
         mesh = ob.getData(False, True)
         if "sculptie" not in mesh.getUVLayerNames():
@@ -1397,9 +1422,12 @@ def sculptify(ob):
         else:
             islands.append([f.index for f in mesh.faces])
         for island in islands:
+            add_image = False
             for i in island:
                 f = mesh.faces[i]
                 f.sel = True
+                if f.image == None:
+                    add_image = True
                 for v in f.uv:
                     if v[1] == 0.0:
                         x_verts += 1
@@ -1416,11 +1444,12 @@ def sculptify(ob):
             else:
                 s, t, w, h, cs, ct = map_size(max(x_verts, x_verts2) / 2,
                         max(y_verts, y_verts2) / 2, 0)
-                image = Blender.Image.New(mesh.name, w, h, 32)
-                mesh.sel = False
-                for i in island:
-                    mesh.faces[i].sel = True
-                set_map(mesh, image)
+                if add_image:
+                    image = Blender.Image.New(mesh.name, w, h, 32)
+                    mesh.sel = False
+                    for i in island:
+                        mesh.faces[i].sel = True
+                    set_map(mesh, image)
     return True # successful or skipped
 
 

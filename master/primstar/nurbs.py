@@ -43,7 +43,6 @@ except:
 import Blender, BPyMesh
 from Blender import *
 from math import sqrt
-from primstar import sculpty
 
 
 def scaleUVMap(ob, doRotate):
