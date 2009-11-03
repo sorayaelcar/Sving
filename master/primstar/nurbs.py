@@ -67,7 +67,7 @@ def convertNurbs2Sculptie( scn , activeObject ):
     # make a new object, fill it with the just created mesh data
     # and and link it to current scene
     location = activeObject.loc
-    scn.unlink(activeObject)
+    scn.objects.unlink(activeObject)
     ob = scn.objects.new(me, objectName)
     ob.setLocation(location)
 

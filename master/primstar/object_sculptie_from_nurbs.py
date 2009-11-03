@@ -42,11 +42,65 @@ Convert a nurbs surface to a sculpt mesh
 #***********************************************
 
 import Blender
-from primstar.nurbs import convertNurbs2Sculptie
+import bpy
+from primstar.nurbs import uvcalc, scaleUVMap
+from primstar.sculpty import sculptify
+
+#***********************************************
+# temp functions, move to sculptie.py when done
+#***********************************************
+
+
+def convert_from_nurbs(ob):
+    if ob.type != "Surf":
+        return False
+    scene = Blender.Scene.GetCurrent()
+
+    # get selected and thus the active object
+    objectName = ob.getName()
+
+    # make new mesh (reuse the objectName)
+    me = bpy.data.meshes.new(objectName)
+
+    # fill new mesh with raw data from the active object
+    me.getFromObject(ob)
+
+    #Select all vertices in the active object
+    me.sel = 1
+
+    # Add a new UV Texture.
+    # The texture should be equivalent to "Mesh -> UV-unwrap -> Reset"
+    UVName = "sculptie"
+    me.addUVLayer(UVName)
+    me.activeUVLayer = UVName
+
+    #Set the first face as the active face.
+    me.activeFace = 0
+
+    # make a new object, fill it with the just created mesh data
+    # and and link it to current scene
+    location = ob.loc
+    rotation = ob.rot
+    size = ob.size
+    scene.objects.unlink(ob)
+    new_ob = scene.objects.new(me, objectName)
+    new_ob.loc = location
+    new_ob.rot = rotation
+    new_ob.size = size
+
+    #Make the new object the active object
+    new_ob.select(1)
+
+    #Unwrap follow active (quads)
+    uvcalc() # This replaces call to uvcalc_follow_active_coords.extend()
+    scaleUVMap(new_ob, 1)
+
+    return sculptify(new_ob)
 
 #***********************************************
 # main
 #***********************************************
+
 
 def main():
 
@@ -54,13 +108,12 @@ def main():
     success = False
     Blender.Window.WaitCursor(1)
     for ob in scene.objects.selected:
-        if ob.type == "Surf":
-            new_ob = convertNurbs2Sculptie(scene, ob)
+        if convert_from_nurbs(ob):
             success = True
     Blender.Window.WaitCursor(0)
     if not success:
         Blender.Draw.PupBlock("Conversion Error",
-                ["No NURBS surfaces","are selected"])
+                ["No NURBS surfaces", "are selected"])
     Blender.Redraw()
 
 if __name__ == '__main__':
