@@ -1370,8 +1370,8 @@ def sculptify(ob):
     debug(30, "sculpty.sculptify(%s)" % (ob.name))
     if ob.type == 'Surf':
         scene = Blender.Scene.GetCurrent()
-        objectName = ob.getName()
-        me = Blender.Mesh.New(objectName)
+        name = ob.getName()
+        me = Blender.Mesh.New(name)
         me.getFromObject(ob)
         me.sel = 1
         me.addUVLayer("sculptie")
@@ -1394,6 +1394,8 @@ def sculptify(ob):
 
     if ob.type == 'Mesh':
         mesh = ob.getData(False, True)
+        if not len(mesh.getUVLayerNames()):
+            return True
         if "sculptie" not in mesh.getUVLayerNames():
             mesh.renameUVLayer(mesh.activeUVLayer, "sculptie")
         else:
@@ -1438,18 +1440,18 @@ def sculptify(ob):
                     elif v[0] == 1.0:
                         y_verts2 += 1
             if min(max(x_verts, x_verts2), max(y_verts, y_verts2)) < 4:
-                debug(35, "Unable to add image to %s x %s mesh" % \
-                    (max(x_verts, x_verts2), max(y_verts, y_verts2)))
-                return False # unable to complete
-            else:
+                if add_image:
+                    debug(35, "Unable to add image to %s x %s mesh" % \
+                        (max(x_verts, x_verts2), max(y_verts, y_verts2)))
+                    return False # unable to complete
+            elif add_image:
                 s, t, w, h, cs, ct = map_size(max(x_verts, x_verts2) / 2,
                         max(y_verts, y_verts2) / 2, 0)
-                if add_image:
-                    image = Blender.Image.New(mesh.name, w, h, 32)
-                    mesh.sel = False
-                    for i in island:
-                        mesh.faces[i].sel = True
-                    set_map(mesh, image)
+                image = Blender.Image.New(mesh.name, w, h, 32)
+                mesh.sel = False
+                for i in island:
+                    mesh.faces[i].sel = True
+                set_map(mesh, image)
     return True # successful or skipped
 
 

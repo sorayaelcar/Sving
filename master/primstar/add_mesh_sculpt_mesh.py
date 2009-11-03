@@ -492,6 +492,9 @@ static unsigned char file_open_bits[] = {
 
     def add(self):
         Blender.Window.WaitCursor(1)
+        editmode = Blender.Window.EditMode()
+        if editmode:
+            Blender.Window.EditMode(0)
         name = self.shape_name.get()
         basename = name.split(os.sep)[-1]
         if self.shape_file:
@@ -585,9 +588,9 @@ static unsigned char file_open_bits[] = {
                     'save': self.save_settings.get()}
                 Blender.Registry.SetKey(REGISTRY, settings,
                         self.save_defaults.get())
-
         except RuntimeError:
             raise
+        Blender.Window.EditMode(editmode)
         Blender.Window.WaitCursor(0)
         self.master.quit()
 
