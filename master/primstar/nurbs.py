@@ -282,6 +282,7 @@ def uvcalc(ob):
                         ok= True # keep searching
 
                 face_modes[i] = 2 # dont search again
+    scaleUVMap(ob, 1)
     print  Blender.sys.time() - t
 
     if is_editmode:

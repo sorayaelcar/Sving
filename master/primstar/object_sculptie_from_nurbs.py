@@ -42,7 +42,7 @@ Convert a nurbs surface to a sculpt mesh
 #***********************************************
 
 import Blender
-from primstar.nurbs import uvcalc, scaleUVMap
+from primstar.nurbs import uvcalc
 from primstar.sculpty import sculptify
 
 #***********************************************
@@ -90,7 +90,6 @@ def convert_from_nurbs(ob):
 
     #Unwrap follow active (quads)
     uvcalc(new_ob) # This replaces call to uvcalc_follow_active_coords.extend()
-    scaleUVMap(new_ob, 1)
 
     return sculptify(new_ob)
 
