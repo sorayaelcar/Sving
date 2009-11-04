@@ -1369,41 +1369,27 @@ def remove_rotation(matrix):
 def sculptify(ob):
     debug(30, "sculpty.sculptify(%s)" % (ob.name))
     if ob.type == 'Surf':
+        # replace nurbs surface object with new mesh object
         scene = Blender.Scene.GetCurrent()
         name = ob.getName()
         me = Blender.Mesh.New(name)
         me.getFromObject(ob)
-
-        # make a new object, fill it with the just created mesh data
-        # and and link it to current scene
-        #location = ob.loc
-        #rotation = ob.rot
-        #size = ob.size
         matrix = ob.matrix
         scene.objects.unlink(ob)
         ob = scene.objects.new(me, name)
-        #ob.loc = location
-        #ob.rot = rotation
-        #ob.size = size
         ob.setMatrix(matrix)
         ob.select(1)
-
-        #Unwrap follow active (quads)
-        add_map_uv(ob) # This replaces call to uvcalc_follow_active_coords.extend()
 
     if ob.type == 'Mesh':
         mesh = ob.getData(False, True)
         if not len(mesh.getUVLayerNames()):
-            return True
+            add_map_uv(ob)
         if "sculptie" not in mesh.getUVLayerNames():
-            mesh.renameUVLayer(mesh.activeUVLayer, "sculptie")
-        else:
-            mesh.activeUVLayer = "sculptie"
+            mesh.renameUVLayer(mesh.getUVLayerNames()[0], "sculptie")
+        mesh.activeUVLayer = "sculptie"
         mesh.update()
         x_verts = 0
-        x_verts2 = 0
         y_verts = 0
-        y_verts2 = 0
         islands = []
         island = None
         zero_uv = Blender.Mathutils.Vector(0.0, 0.0)
@@ -1421,7 +1407,7 @@ def sculptify(ob):
             if island != None:
                 islands.append(island)
         else:
-            islands.append([f.index for f in mesh.faces])
+            islands.append([f.index for f in faces])
         for island in islands:
             add_image = False
             for i in island:
@@ -1429,28 +1415,33 @@ def sculptify(ob):
                 f.sel = True
                 if f.image == None:
                     add_image = True
+                min_u = 1.0
+                min_v = 1.0
+                max_u = 0.0
+                max_v = 0.0
                 for v in f.uv:
                     if v[1] == 0.0:
                         x_verts += 1
-                    elif v[1] == 1.0:
-                        x_verts2 += 1
+                        min_u = min(v[0], min_u)
+                        max_u = max(v[0], max_u)
                     if v[0] == 0.0:
                         y_verts += 1
-                    elif v[0] == 1.0:
-                        y_verts2 += 1
-            if min(max(x_verts, x_verts2), max(y_verts, y_verts2)) < 4:
-                if add_image:
-                    debug(35, "Unable to add image to %s x %s mesh" % \
-                        (max(x_verts, x_verts2), max(y_verts, y_verts2)))
-                    return False # unable to complete
-            elif add_image:
-                s, t, w, h, cs, ct = map_size(max(x_verts, x_verts2) / 2,
-                        max(y_verts, y_verts2) / 2, 0)
-                image = Blender.Image.New(mesh.name, w, h, 32)
-                mesh.sel = False
-                for i in island:
-                    mesh.faces[i].sel = True
-                set_map(mesh, image)
+                        min_v = min(v[1], min_v)
+                        max_v = max(v[1], max_v)
+                x_verts = int(x_verts / (max_u - min_u))
+                y_verts = int(y_verts / (max_v - min_v))
+                if min(x_verts, y_verts) < 4:
+                    if add_image:
+                        debug(35, "Unable to add image to %s x %s mesh" % \
+                            (x_verts, y_verts))
+                        return True # unable to complete
+                elif add_image:
+                    s, t, w, h, cs, ct = map_size(x_verts // 2, y_verts // 2, 0)
+                    image = Blender.Image.New(mesh.name, w, h, 32)
+                    mesh.sel = False
+                    for i in island:
+                        mesh.faces[i].sel = True
+                    set_map(mesh, image)
     return True # successful or skipped
 
 
