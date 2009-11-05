@@ -1371,6 +1371,7 @@ def remove_rotation(matrix):
 
 def sculptify(ob):
     debug(30, "sculpty.sculptify(%s)" % (ob.name))
+    clean_lods = True
     if ob.type == 'Surf':
         # replace nurbs surface object with new mesh object
         scene = Blender.Scene.GetCurrent()
@@ -1382,6 +1383,7 @@ def sculptify(ob):
         ob = scene.objects.new(me, name)
         ob.setMatrix(matrix)
         ob.select(1)
+        clean_lods = False
 
     if ob.type == 'Mesh':
         mesh = ob.getData(False, True)
@@ -1425,6 +1427,11 @@ def sculptify(ob):
                         x_verts += 1
                     if v[0] == 0.0:
                         y_verts += 1
+            for m in ob.modifiers:
+                if m.type == Blender.Modifier.Types.SUBSURF:
+                    p = pow(2, m[Blender.Modifier.Settings.RENDLEVELS])
+                    x_verts *= p
+                    y_verts *= p
             if min(x_verts, y_verts) < 4:
                 if add_image:
                     debug(35, "Unable to add image to %s x %s mesh" % \
@@ -1437,7 +1444,7 @@ def sculptify(ob):
                 image = Blender.Image.New(mesh.name, w, h, 32)
                 bake_lod(image)
                 set_map(mesh, image)
-                if x_verts < w and y_verts < h:
+                if clean_lods and x_verts < w and y_verts < h:
                     snap_to_pixels(ob.getData(mesh=1),
                             x_verts == s and y_verts == t,
                             image)
