@@ -61,7 +61,6 @@ except:
 
 import Blender
 import bpy
-from math import atan2, pi, sin
 from primstar.uv_tools import eac_unwrap
 
 #***********************************************

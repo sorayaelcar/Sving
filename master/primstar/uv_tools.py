@@ -118,6 +118,7 @@ def add_map_uv(ob):
         eac_unwrap(ob, True)
     Blender.Window.EditMode(edit_mode)
 
+
 def eac_unwrap(ob, all_faces=False):
     if ob.type == 'Mesh':
         mesh = ob.getData(mesh=1)
@@ -152,6 +153,7 @@ def eac_unwrap(ob, all_faces=False):
                     if uvmap[n][0] > high_u:
                         uvmap[n][0] = 1.0 - uvmap[n][0]
             f.uv = uvmap
+
 
 def snap_to_pixels(mesh, pow_two=False, image=None):
     editmode = Blender.Window.EditMode()
