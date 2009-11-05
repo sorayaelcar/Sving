@@ -60,6 +60,7 @@ def main():
     scene = Blender.Scene.GetCurrent()
     success = False
     Blender.Window.WaitCursor(1)
+    Blender.SaveUndoState("Sculptify")
     for ob in scene.objects.selected:
         if sculptify(ob):
             success = True
