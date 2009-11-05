@@ -1428,8 +1428,14 @@ def sculptify(ob):
                         y_verts += 1
                         min_v = min(v[1], min_v)
                         max_v = max(v[1], max_v)
-                x_verts = int(x_verts / (max_u - min_u))
-                y_verts = int(y_verts / (max_v - min_v))
+                try:
+                    x_verts = int(x_verts / (max_u - min_u))
+                except:
+                    pass # div by 0
+                try:
+                    y_verts = int(y_verts / (max_v - min_v))
+                except:
+                    pass # div by 0
                 if min(x_verts, y_verts) < 4:
                     if add_image:
                         debug(35, "Unable to add image to %s x %s mesh" % \
