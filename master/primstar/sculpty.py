@@ -1387,12 +1387,11 @@ def sculptify(ob):
         mesh = ob.getData(False, True)
         if not len(mesh.getUVLayerNames()):
             add_map_uv(ob)
+            Blender.Redraw()
         if "sculptie" not in mesh.getUVLayerNames():
             mesh.renameUVLayer(mesh.getUVLayerNames()[0], "sculptie")
         mesh.activeUVLayer = "sculptie"
         mesh.update()
-        x_verts = 0
-        y_verts = 0
         islands = []
         island = None
         zero_uv = Blender.Mathutils.Vector(0.0, 0.0)
@@ -1413,50 +1412,35 @@ def sculptify(ob):
             islands.append([f.index for f in faces])
         for island in islands:
             add_image = False
+            x_verts = 0
+            y_verts = 0
+            mesh.sel = False
             for i in island:
                 f = mesh.faces[i]
                 f.sel = True
                 if f.image == None:
                     add_image = True
-                min_u = 1.0
-                min_v = 1.0
-                max_u = 0.0
-                max_v = 0.0
                 for v in f.uv:
                     if v[1] == 0.0:
                         x_verts += 1
-                        min_u = min(v[0], min_u)
-                        max_u = max(v[0], max_u)
                     if v[0] == 0.0:
                         y_verts += 1
-                        min_v = min(v[1], min_v)
-                        max_v = max(v[1], max_v)
-                try:
-                    x_verts = int(x_verts / (max_u - min_u))
-                except:
-                    pass # div by 0
-                try:
-                    y_verts = int(y_verts / (max_v - min_v))
-                except:
-                    pass # div by 0
-                if min(x_verts, y_verts) < 4:
-                    if add_image:
-                        debug(35, "Unable to add image to %s x %s mesh" % \
-                            (x_verts, y_verts))
-                        return True # unable to complete
-                elif add_image:
-                    x_verts = x_verts // 2
-                    y_verts = y_verts // 2
-                    s, t, w, h, cs, ct = map_size(x_verts, y_verts, 0)
-                    image = Blender.Image.New(mesh.name, w, h, 32)
-                    mesh.sel = False
-                    for i in island:
-                        mesh.faces[i].sel = True
-                    set_map(mesh, image)
-                    if x_verts < w and y_verts < h:
-                        snap_to_pixels(ob.getData(mesh=1),
-                                x_verts == s and y_verts == t,
-                                image)
+            if min(x_verts, y_verts) < 4:
+                if add_image:
+                    debug(35, "Unable to add image to %s x %s mesh" % \
+                        (x_verts, y_verts))
+                    return True # unable to complete
+            elif add_image:
+                x_verts = x_verts // 2 + 1
+                y_verts = y_verts // 2 + 1
+                s, t, w, h, cs, ct = map_size(x_verts, y_verts, 0)
+                image = Blender.Image.New(mesh.name, w, h, 32)
+                bake_lod(image)
+                set_map(mesh, image)
+                if x_verts < w and y_verts < h:
+                    snap_to_pixels(ob.getData(mesh=1),
+                            x_verts == s and y_verts == t,
+                            image)
         Blender.Redraw()
     return True # successful or skipped
 
