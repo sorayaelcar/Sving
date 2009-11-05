@@ -34,7 +34,7 @@ import bpy
 import os
 from math import sin, cos, pi, sqrt, log, ceil
 from primstar.version import LABEL
-from primstar.uv_tools import add_map_uv
+from primstar.uv_tools import add_map_uv, snap_to_pixels
 from sys import stderr
 
 lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
@@ -1442,6 +1442,8 @@ def sculptify(ob):
                     for i in island:
                         mesh.faces[i].sel = True
                     set_map(mesh, image)
+                    snap_to_pixels(ob.getData(mesh=1), True, image)
+        Blender.Redraw()
     return True # successful or skipped
 
 

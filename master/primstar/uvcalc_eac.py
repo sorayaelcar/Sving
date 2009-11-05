@@ -90,14 +90,12 @@ def main():
     editmode = Blender.Window.EditMode()
     if editmode:
         Blender.Window.EditMode(0)
-    vq = Blender.Mathutils.Quaternion(Blender.Window.GetViewQuat())
     for ob in obList:
         if ob.type == 'Mesh':
             eac_unwrap(ob)
     print 'EAC Projection time: %.4f' % ((Blender.sys.time() - time1))
     Blender.Window.RedrawAll()
-    if editmode:
-        Blender.Window.EditMode(1)
+    Blender.Window.EditMode(editmode)
 
 if __name__ == '__main__':
     main()

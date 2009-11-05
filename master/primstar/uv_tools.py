@@ -120,7 +120,7 @@ def add_map_uv(ob):
 
 def eac_unwrap(ob, all_faces=False):
     if ob.type == 'Mesh':
-        mesh = ob.getData(False, True)
+        mesh = ob.getData(mesh=1)
         if all_faces:
             face_list = [f for f in mesh.faces]
         else:
@@ -152,3 +152,22 @@ def eac_unwrap(ob, all_faces=False):
                     if uvmap[n][0] > high_u:
                         uvmap[n][0] = 1.0 - uvmap[n][0]
             f.uv = uvmap
+
+def snap_to_pixels(mesh, pow_two=False, image=None):
+    editmode = Blender.Window.EditMode()
+    if editmode:
+        Blender.Window.EditMode(0)
+    for f in mesh.faces:
+        if f.image:
+            if image == None or image == f.image:
+                w = f.image.size[0]
+                h = f.image.size[1]
+                for uv in f.uv:
+                    u = int(uv[0] * w)
+                    v = int(uv[1] * h)
+                    if pow_two:
+                        u = u & 0xFFFE
+                        v = v & 0xFFFE
+                    uv[0] = u / float(w)
+                    uv[1] = v / float(h)
+    Blender.Window.EditMode(editmode)
