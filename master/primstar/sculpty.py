@@ -1107,6 +1107,9 @@ def map_size(x_faces, y_faces, levels):
             h = int(pow(2, levels + 1 + ceil(log(y_faces) / log(2))))
         except OverflowError:
             h = 256
+        while (w * h) > 4096:
+            w = w / 2
+            h = h / 2
         w, h = face_count(w, h, 32, 32)
         s = min(w, x_faces)
         t = min(h, y_faces)
@@ -1442,13 +1445,18 @@ def sculptify(ob):
                             (x_verts, y_verts))
                         return True # unable to complete
                 elif add_image:
-                    s, t, w, h, cs, ct = map_size(x_verts // 2, y_verts // 2, 0)
+                    x_verts = x_verts // 2
+                    y_verts = y_verts // 2
+                    s, t, w, h, cs, ct = map_size(x_verts, y_verts, 0)
                     image = Blender.Image.New(mesh.name, w, h, 32)
                     mesh.sel = False
                     for i in island:
                         mesh.faces[i].sel = True
                     set_map(mesh, image)
-                    snap_to_pixels(ob.getData(mesh=1), True, image)
+                    if x_verts < w and y_verts < h:
+                        snap_to_pixels(ob.getData(mesh=1),
+                                x_verts == s and y_verts == t,
+                                image)
         Blender.Redraw()
     return True # successful or skipped
 
