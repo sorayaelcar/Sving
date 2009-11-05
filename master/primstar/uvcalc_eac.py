@@ -62,6 +62,7 @@ except:
 import Blender
 import bpy
 from math import atan2, pi, sin
+from primstar.uv_tools import eac_unwrap
 
 #***********************************************
 # constants
@@ -92,35 +93,7 @@ def main():
     vq = Blender.Mathutils.Quaternion(Blender.Window.GetViewQuat())
     for ob in obList:
         if ob.type == 'Mesh':
-            mesh = ob.getData(False, True)
-            faceList = [f for f in mesh.faces if f.sel]
-            if not faceList:
-                continue
-            print "Calculating EAC projection for", mesh.name
-            for f in faceList:
-                uvmap = []
-                u_check1 = False
-                u_check2 = False
-                for v in f.verts:
-                    tv = vq * v.co
-                    x = tv.x
-                    y = tv.y
-                    z = tv.z
-                    ax = atan2(x, z)
-                    u = (1.0 + (ax / pi)) / 2.0
-                    ay = sin(atan2(y, z))
-                    v = (1.0 + ay) / 2.0
-                    if u <= low_u:
-                        u_check1 = True
-                    if u >= high_u:
-                        u_check2 = True
-                    uvmap.append(Blender.Mathutils.Vector(u, v))
-                # crude face correction, needs improving
-                if u_check1 and u_check2:
-                    for n in xrange(len(uvmap)):
-                        if uvmap[n][0] > high_u:
-                            uvmap[n][0] = 1.0 - uvmap[n][0]
-                f.uv = uvmap
+            eac_unwrap(ob)
     print 'EAC Projection time: %.4f' % ((Blender.sys.time() - time1))
     Blender.Window.RedrawAll()
     if editmode:
