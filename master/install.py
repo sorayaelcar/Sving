@@ -80,7 +80,7 @@ else:
         t = os.path.join(script_path, f)
         if os.path.exists(t):
             os.remove(t)
-bpydata_path = os.path.join(script_path, "bpydata")
+bpydata_path = os.path.join(script_path, "bpydata/config")
 if not os.path.exists(bpydata_path):
     os.mkdir(bpydata_path)
 dir_util.copy_tree('primstar', os.path.join(script_path, 'primstar'), update=1)
