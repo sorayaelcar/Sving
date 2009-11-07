@@ -8,7 +8,7 @@ Tooltip: 'Export lsl and tga files for Second Life (to dir)'
 """
 
 __author__ = ["Domino Marama"]
-__url__ = ("http://dominodesigns.info")
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/export-sculptie")
 __version__ = "0.90"
 __bpydoc__ = """\
 

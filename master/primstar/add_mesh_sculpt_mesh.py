@@ -7,7 +7,7 @@ Tooltip: 'Add a Second Life sculptie compatible mesh'
 """
 
 __author__ = ["Domino Marama", "Gaia Clary"]
-__url__ = ("http://dominodesigns.info")
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/create-sculptie")
 __version__ = "0.90"
 __bpydoc__ = """\
 

@@ -8,7 +8,7 @@ Tooltip: 'Import Second Life sculptie from image, obj, or Collada 1.4 files'
 """
 
 __author__ = ["Domino Marama"]
-__url__ = ("http://dominodesigns.info")
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/import-sculptie")
 __version__ = "1.00"
 __bpydoc__ = """\
 
