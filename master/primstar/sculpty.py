@@ -1381,10 +1381,10 @@ def sculptify(ob):
         except:
             return
         if me.faces:
-            matrix = ob.matrix
-            ob = scene.objects.new(me, name)
-            ob.setMatrix(matrix)
-            ob.select(1)
+            new_ob = scene.objects.new(me, name)
+            new_ob.setMatrix(ob.matrix)
+            new_ob.select(1)
+            ob.select(0)
 
     if ob.type == 'Mesh':
         mesh = ob.getData(False, True)
