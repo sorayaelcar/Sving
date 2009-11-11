@@ -1371,17 +1371,20 @@ def remove_rotation(matrix):
 
 def sculptify(ob):
     debug(30, "sculpty.sculptify(%s)" % (ob.name))
-    if ob.type == 'Surf':
-        # replace nurbs surface object with new mesh object
+    if ob.type != 'Mesh':
+        # add new mesh object
         scene = Blender.Scene.GetCurrent()
         name = ob.getName()
         me = Blender.Mesh.New(name)
-        me.getFromObject(ob)
-        matrix = ob.matrix
-        scene.objects.unlink(ob)
-        ob = scene.objects.new(me, name)
-        ob.setMatrix(matrix)
-        ob.select(1)
+        try:
+            me.getFromObject(ob)
+        except:
+            return
+        if me.faces:
+            matrix = ob.matrix
+            ob = scene.objects.new(me, name)
+            ob.setMatrix(matrix)
+            ob.select(1)
 
     if ob.type == 'Mesh':
         mesh = ob.getData(False, True)
