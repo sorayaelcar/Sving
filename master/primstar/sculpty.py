@@ -37,7 +37,9 @@ from primstar.version import LABEL
 from primstar.uv_tools import add_map_uv, snap_to_pixels
 from sys import stderr
 
-lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
+lib_dir = os.path.join(bpy.config.textureDir, 'primstar', 'library')
+if not os.path.exists(lib_dir):
+    lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
 
 #***********************************************
 # constants
