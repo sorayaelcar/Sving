@@ -30,16 +30,17 @@ except:
     pass
 
 import Blender
-import bpy
 import os
 from math import sin, cos, pi, sqrt, log, ceil
 from primstar.version import LABEL
 from primstar.uv_tools import add_map_uv, snap_to_pixels
 from sys import stderr
 
-lib_dir = os.path.join(bpy.config.textureDir, 'primstar', 'library')
+lib_dir = os.path.join(Blender.Get('texturesdir'), 'primstar', 'library')
 if not os.path.exists(lib_dir):
-    lib_dir = os.path.join(bpy.config.userScriptsDir, 'primstar', 'library')
+    lib_dir = os.path.join(Blender.Get('uscriptsdir'), 'primstar', 'library')
+    if not os.path.exists(lib_dir):
+        lib_dir = os.path.join(Blender.Get('scriptsdir'), 'primstar', 'library')
 
 #***********************************************
 # constants
