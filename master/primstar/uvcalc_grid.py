@@ -1,24 +1,22 @@
 #!BPY
+
 """
-Name: 'Follow Active (quads)'
-Blender: 242
+Name: 'Quads to Grid'
+Blender: 245
 Group: 'UVCalculation'
-Tooltip: 'Follow from active quads.'
+Tooltip: 'Unwraps quad faces to a normalised grid layout'
 """
-__author__ = "Campbell Barton"
-__url__ = ("blender", "blenderartists.org")
-__version__ = "1.0 2006/02/07"
 
+__author__ = ["Domino Marama"]
+__url__ = ("http://dominodesigns.info")
+__version__ = "0.03"
 __bpydoc__ = """\
-This script sets the UV mapping and image of selected faces from adjacent unselected faces.
-
-for full docs see...
-http://mediawiki.blender.org/index.php/Scripts/Manual/UV_Calculate/Follow_active_quads
+Unwraps quad faces to a normalised grid layout
 """
 
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
-# Script copyright (C) Campbell J Barton
+# Script copyright (C) Domino Designs Limited
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -37,10 +35,21 @@ http://mediawiki.blender.org/index.php/Scripts/Manual/UV_Calculate/Follow_active
 # ***** END GPL LICENCE BLOCK *****
 # --------------------------------------------------------------------------
 
+#***********************************************
+# Import modules
+#***********************************************
 
-from Blender import *
+try:
+    import psyco
+    psyco.full()
+except:
+    pass
+
+import Blender
 import bpy
-import BPyMesh
+
+# temp import from uvcalc_follow_active_coords.py
+# reference for island construction
 
 def extend(EXTEND_MODE,ob):
     if EXTEND_MODE == -1:
@@ -233,22 +242,34 @@ def extend(EXTEND_MODE,ob):
     Window.RedrawAll()
     Window.WaitCursor(0)
 
+#***********************************************
+# create UV map from quad islands
+#***********************************************
 
-def main():
-    sce = bpy.data.scenes.active
-    ob = sce.objects.active
-
-    # print ob, ob.type
-    if ob == None or ob.type != 'Mesh':
-        Draw.PupMenu('ERROR: No mesh object.')
+def grid_unwrap(ob):
+    if ob.type != 'Mesh':
         return
 
 
-
-    # 0:normal extend, 1:edge length
-    EXTEND_MODE = Draw.PupMenu("Use Face Area%t|Loop Average%x2|None%x0")
-    extend(EXTEND_MODE,ob)
+def main():
+    time1 = Blender.sys.time()
+    objects = bpy.data.scenes.active.objects
+    obList = [ob for ob in objects.context if ob.type == 'Mesh']
+    ob = objects.active
+    if ob and ob.sel == 0 and ob.type == 'Mesh':
+        obList += [ob]
+    del objects
+    if not obList:
+        Blender.Draw.PupMenu('Error: no selected mesh objects')
+        return
+    editmode = Blender.Window.EditMode()
+    if editmode:
+        Blender.Window.EditMode(0)
+    for ob in obList:
+            grid_unwrap(ob)
+    print 'Grid Projection time: %.4f' % ((Blender.sys.time() - time1))
+    Blender.Window.RedrawAll()
+    Blender.Window.EditMode(editmode)
 
 if __name__ == '__main__':
     main()
-
