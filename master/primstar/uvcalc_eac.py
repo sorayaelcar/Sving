@@ -16,16 +16,6 @@ selected meshes.
 
 see http://mathworld.wolfram.com/CylindricalEqual-AreaProjection.html
 """
-#Changelog
-#0.03 Domino Marama 2007-11-14
-#- poles now calculated from view
-#- converted to use bpy
-#0.02 Domino Marama 2007-08-30
-#- code cleanup
-#- renamed from Planar Unwrap to EAC Unwrap
-#- added poles selection
-#0.01 Domino Marama 2007-08-10
-#- Initial Version
 
 
 # ***** BEGIN GPL LICENSE BLOCK *****
@@ -62,17 +52,6 @@ except:
 import Blender
 import bpy
 from primstar.uv_tools import eac_unwrap
-
-#***********************************************
-# constants
-#***********************************************
-
-low_u = 0.25
-high_u = 0.75
-
-#***********************************************
-# create UV map from XZ YZ radials
-#***********************************************
 
 
 def main():

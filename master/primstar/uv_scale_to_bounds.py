@@ -1,9 +1,9 @@
 #!BPY
 """
-Name: 'Align to Bounds'
+Name: 'Scale to Bounds'
 Blender: 249
 Group: 'UV'
-Tooltip: 'Align UV points to bounds'
+Tooltip: 'Scales UV Layout to bounds'
 """
 
 __author__ = ["Domino Marama"]
