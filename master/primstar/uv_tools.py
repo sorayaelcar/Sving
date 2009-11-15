@@ -52,37 +52,33 @@ high_u = 0.75
 
 
 def scale_map_uv(ob, doRotate):
-    me = ob.getData(mesh=1)
-    faces = me.faces
+    mesh = ob.getData(mesh=1)
     # -------------------------------
     #determine the size of the uv-map
     # -------------------------------
-    uv = me.faces[0].uv
+    uv = mesh.faces[0].uv
     umin = umax = uv[0][0]
     vmin = vmax = uv[0][1]
 
-    for f in faces:
-        for t in Blender.Geometry.PolyFill([f.uv]):
-            for i in t:
-                if f.uv[i][0] < umin:
-                    umin = f.uv[i][0]
-                if f.uv[i][0] > umax:
-                    umax = f.uv[i][0]
-                if f.uv[i][1] < vmin:
-                    vmin = f.uv[i][1]
-                if f.uv[i][1] > vmax:
-                    vmax = f.uv[i][1]
+    for face in mesh.faces:
+        for uv in face.uv:
+                if uv[0] < umin:
+                    umin = uv[0]
+                if uv[0] > umax:
+                    umax = uv[0]
+                if uv[1] < vmin:
+                    vmin = uv[1]
+                if uv[1] > vmax:
+                    vmax = uv[1]
 
 
     # --------------------------------------------------------------
     #make uv-map rectangular and rotate by -90 degrees
     #I still do not know, where this 90 degree rotation comes from.
     # --------------------------------------------------------------
-    for f in faces:
-        normalise(f.uv[0], umin, umax, vmin, vmax, doRotate)
-        normalise(f.uv[1], umin, umax, vmin, vmax, doRotate)
-        normalise(f.uv[2], umin, umax, vmin, vmax, doRotate)
-        normalise(f.uv[3], umin, umax, vmin, vmax, doRotate)
+    for face in mesh.faces:
+        for uv in face.uv:
+            normalise(uv, umin, umax, vmin, vmax, doRotate)
 
 
 def normalise(fco, umin, umax, vmin, vmax, doRotate):
@@ -97,7 +93,6 @@ def normalise(fco, umin, umax, vmin, vmax, doRotate):
 
 
 def add_map_uv(ob):
-
     if ob == None or ob.type != 'Mesh':
         Blender.Draw.PupMenu('ERROR: No mesh object.')
         return
