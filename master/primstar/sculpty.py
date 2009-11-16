@@ -36,11 +36,16 @@ from primstar.version import LABEL
 from primstar.uv_tools import add_map_uv, snap_to_pixels
 from sys import stderr
 
-lib_dir = os.path.join(Blender.Get('texturesdir'), 'primstar', 'library')
-if not os.path.exists(lib_dir):
-    lib_dir = os.path.join(Blender.Get('uscriptsdir'), 'primstar', 'library')
-    if not os.path.exists(lib_dir):
-        lib_dir = os.path.join(Blender.Get('scriptsdir'), 'primstar', 'library')
+library_dirs = [
+    Blender.Get('texturesdir'),
+    Blender.Get('uscriptsdir'),
+    Blender.Get('scriptsdir')]
+
+for d in library_dirs:
+    if d:
+        lib_dir = os.path.join(d, 'primstar', 'library')
+        if os.path.exists(lib_dir):
+            break
 
 #***********************************************
 # constants
