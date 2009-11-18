@@ -41,6 +41,15 @@ except:
 
 import Blender
 from math import atan2, pi, sin
+# ubuntu doesn't have correct search paths for default scripts
+from os import path
+import sys
+if path.exists(path.expanduser(
+        '~/.blender/scripts/blender/uvcalc_follow_active_coords.py')):
+    p = path.expanduser('~/.blender/scripts/blender')
+    if p not in sys.path:
+        sys.path.append(p)
+# now it does ;)
 from uvcalc_follow_active_coords import extend
 
 #***********************************************

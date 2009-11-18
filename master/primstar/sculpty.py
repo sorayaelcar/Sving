@@ -1351,6 +1351,7 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels=0, \
         for e in mesh.findEdges(seams):
             mesh.edges[e].flag = mesh.edges[e].flag | \
                     Blender.Mesh.EdgeFlags.SEAM
+    mesh.mode = mesh.mode & ~Blender.Mesh.Modes['TWOSIDED']
     return mesh
 
 
