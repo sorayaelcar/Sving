@@ -1115,7 +1115,7 @@ def map_size(x_faces, y_faces, levels):
             h = int(pow(2, levels + 1 + ceil(log(y_faces) / log(2))))
         except OverflowError:
             h = 256
-        while (w * h) > 4096:
+        while (w * h) > 8192:
             w = w / 2
             h = h / 2
         w, h = face_count(w, h, 32, 32)
