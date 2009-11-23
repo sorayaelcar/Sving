@@ -86,7 +86,7 @@ no errors, you should be ready to start making sculpties.
 	
 If the option is missing, select the scripts window and use
 "Scripts - Update Menus" to refresh the menus. If this doesn't work, make sure there is
-a folder "bpydata" in your user scripts directory.
+a folder "bpydata/config" in your user scripts directory.
 
 **** Creating a new Sculptie ****
 
@@ -111,6 +111,8 @@ Viewer 1.21 and later:
 11 x 93 x 0
 
 Viewer 1.23 and later:
+Note: these are currently affected by the lossload upload bug, so stick to final
+sculpt map sizes where width x height is either 4096 or 8192 pixels.
 
 4 x 16 x 0
 4 x 16 x 1, 8 x 32 x 0
@@ -126,12 +128,6 @@ Viewer 1.23 and later:
 8 x 16 x 1, 16 x 32 x 0
 8 x 64 x 0
 
-&fff8 patch (see vwr-9384 discussion for details)
-
-4 x 8 x 0
-4 x 8 x 1, 8 x 16 x 0
-4 x 8 x 2, 8 x 16 x 1, 16 x 32 x 0
-
 After adding the sculpt mesh, you can go to the UV Image Editor and
 select "Image - Bake Sculptie LODs". The blue dots show where SL will
 read the sculpt map, the brighter the blue, the more LODs use that
@@ -140,10 +136,6 @@ the pixel they refer to.
 
 You can specify other values when creating your sculptie, and the
 scripts will find the nearest of these map versions to use.
-
-These should be supported in SL clients when vwr-9384 is in.
-If you want all clients to work with your sculpties, then 8 x 8 x 2 and
-it's alternatives are all that are fully supported.
 
 You can then move the vertice in edit mode or sculpt mode to create
 the desired sculptie shape. When finished you can create (or update)

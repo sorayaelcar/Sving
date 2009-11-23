@@ -80,8 +80,11 @@ else:
         t = os.path.join(script_path, f)
         if os.path.exists(t):
             os.remove(t)
-bpydata_path = os.path.join(script_path, "bpydata/config")
+bpydata_path = os.path.join(script_path, "bpydata")
 if not os.path.exists(bpydata_path):
     os.mkdir(bpydata_path)
+bpyconfig_path = os.path.join(bpydata_path, "config")
+if not os.path.exists(bpyconfig_path):
+    os.mkdir(bpyconfig_path)
 dir_util.copy_tree('primstar', os.path.join(script_path, 'primstar'), update=1)
 Blender.Draw.PupBlock("Installation Complete", message)
