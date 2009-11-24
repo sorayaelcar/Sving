@@ -452,15 +452,16 @@ static unsigned char file_open_bits[] = {
             self.clean_lods_input.configure(
                     background=gui.theme.others['panel'],
                     foreground=gui.theme.defaults['foreground'])
+            pow2 = [2, 4, 8, 16, 32, 64, 128, 256]
+            if self.x_faces.get() in pow2 and self.y_faces.get() in pow2:
+                self.clean_lods_input.configure(state=DISABLED)
+            else:
+                self.clean_lods_input.configure(state=NORMAL)
         else:
             self.clean_lods_input.configure(
                     background=gui.theme.defaults['foreground'],
-                    foreground=gui.theme.others['panel'])
-        pow2 = [2, 4, 8, 16, 32, 64, 128, 256]
-        if self.x_faces.get() in pow2 and self.y_faces.get() in pow2:
-            self.clean_lods_input.configure(state=DISABLED)
-        else:
-            self.clean_lods_input.configure(state=NORMAL)
+                    foreground=gui.theme.others['panel'],
+                    state=NORMAL)
         if self.shape_name.get() not in ['Plane', 'Hemi']:
             if self.x_faces.get() < 3:
                 clean_s = False
