@@ -385,9 +385,16 @@ static unsigned char file_open_bits[] = {
             x_faces, y_faces = sculpty.face_count(x_faces, y_faces, 32, 32)
             self.x_faces_input.config(to=i.size[0] / 2)
             self.y_faces_input.config(to=i.size[1] / 2)
+            levels = 0
+            while levels < 2 and not x_faces % 2 and not y_faces % 2 \
+                    and x_faces > 4 and y_faces > 4:
+                levels += 1
+                x_faces /= 2
+                y_faces /= 2
             self.x_faces.set(x_faces)
             self.y_faces.set(y_faces)
-            self.levels.set(0)
+            self.levels.set(levels)
+            self.update_info()
 
     def set_map_type(self):
         t = self.shape_name.get().split(os.sep)
