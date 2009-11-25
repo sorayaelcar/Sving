@@ -1290,7 +1290,7 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels=0, \
         if clean_s:
             p = int(p) & level_mask
         if p:
-            p = p / w
+            p = p / float(w)
         uvgrid_s.append(p)
     uvgrid_s.append(1.0)
     for i in range(t):
@@ -1298,7 +1298,7 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels=0, \
         if clean_t:
             p = int(p) & level_mask
         if p:
-            p = p / h
+            p = p / float(h)
         uvgrid_t.append(p)
     uvgrid_t.append(1.0)
     verts_s = s + 1 - wrap_x
