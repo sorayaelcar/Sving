@@ -142,10 +142,10 @@ def uv_corners(mesh, image=None):
     mesh.activeUVLayer = 'UVTex'
     for f in faces:
         for i in range(len(f.verts)):
-            v = XYZ(f.uv[i][0], f.uv[i][1], 0.0)
+            v = XYZ(round(f.uv[i][0], 6), round(f.uv[i][1], 6), 0.0)
             max_uv = max(max_uv, v)
             min_uv = min(min_uv, v)
-            v = XYZ(f.uv[i][1], f.uv[i][0], 0.0)
+            v = XYZ(round(f.uv[i][1], 6), round(f.uv[i][0], 6), 0.0)
             max_vu = max(max_vu, v)
             min_vu = min(min_vu, v)
     min_vu = XYZ(min_vu.y, min_vu.x, 0.0)

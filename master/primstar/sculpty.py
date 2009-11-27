@@ -628,10 +628,10 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
                 verts = list(f.v) # support python < 2.6
                 i = verts.index(edges[key]['v1'])
                 maps[f.image.name].edges[key]['uv1'].append(
-                        XYZ(f.uv[i].x, f.uv[i].y, 0.0))
+                        XYZ(round(f.uv[i].x, 6), round(f.uv[i].y, 6), 0.0))
                 i = verts.index(edges[key]['v2'])
                 maps[f.image.name].edges[key]['uv2'].append(
-                        XYZ(f.uv[i].x, f.uv[i].y, 0.0))
+                        XYZ(round(f.uv[i].x, 6), round(f.uv[i].y, 6), 0.0))
     max_scale = None
     for m in maps.itervalues():
         m.update_map()
@@ -1537,7 +1537,8 @@ def update_from_map(mesh, image):
             if f.verts[vi].index in verts:
                 verts.remove(f.verts[vi].index)
                 if f.verts[vi].sel:
-                    u, v = f.uv[vi]
+                    u = round(f.uv[vi].x, 6)
+                    v = round(f.uv[vi].y, 6)
                     u = int(round(u * image.size[0]))
                     v = int(round(v * image.size[1]))
                     if u == image.size[0]:

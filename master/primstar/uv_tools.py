@@ -157,15 +157,15 @@ def snap_to_pixels(mesh, pow_two=False, image=None):
     for f in mesh.faces:
         if f.image:
             if image == None or image == f.image:
-                w = f.image.size[0]
-                h = f.image.size[1]
+                w, h = f.image.size
                 for i in range(len(f.uv)):
                     if f.uvSel[i]:
-                        u = int(f.uv[i][0] * w)
-                        v = int(f.uv[i][1] * h)
+                        u = int(round(f.uv[i][0], 6) * w)
+                        v = int(round(f.uv[i][1], 6) * h)
                         if pow_two:
                             u = u & 0xFFFE
                             v = v & 0xFFFE
                         f.uv[i][0] = u / float(w)
                         f.uv[i][1] = v / float(h)
+    mesh.update()
     Blender.Window.EditMode(editmode)
