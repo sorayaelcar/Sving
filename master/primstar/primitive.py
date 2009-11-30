@@ -84,17 +84,13 @@ def mesh2Prim(ob, rootprim=None):
                 image.properties['primstar']['scale_x'] * bb.scale.x,
                 image.properties['primstar']['scale_y'] * bb.scale.y,
                 image.properties['primstar']['scale_z'] * bb.scale.z)
-        xf = newprim.size.x / image.properties['primstar']['size_x']
-        yf = newprim.size.y / image.properties['primstar']['size_y']
-        zf = newprim.size.z / image.properties['primstar']['size_z']
-        newprim.location = XYZ(
+        newprim.location = location + XYZ(
             image.properties['primstar']['loc_x'],
             image.properties['primstar']['loc_y'],
             image.properties['primstar']['loc_z'])
         if rootprim == None:
             rootprim = newprim
         else:
-            newprim.location -= rootprim.location
             rootprim.children.append(newprim)
     return rootprim
 
