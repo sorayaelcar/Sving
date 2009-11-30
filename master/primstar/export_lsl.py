@@ -110,10 +110,12 @@ default
     state_entry()
     {
         llSetObjectName( "%(name)s" );
-        llSetPrimitiveParams( [ PRIM_TEXTURE, ALL_SIDES, crate, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0, PRIM_SIZE, <1.0, 1.0, 1.0>] );%(setup)s
+        llSetPrimitiveParams( [ PRIM_TEXTURE, ALL_SIDES, crate, <1.0, 1.0, 0.0>, <0.0, 0.0, 0.0>, 0.0 ] );%(setup)s
         tI = llGetListLength( textures );
         while ( tI ){
-            if ( isKey( tS = llList2String( textures, tI = ~-tI ) ) == 0 )
+            tI = tI - 1;
+            tS = llList2String( textures, tI );
+            if ( isKey( tS ) == 0 )
             {
                 if ( llGetInventoryType( tS ) != INVENTORY_TEXTURE )
                 {
@@ -264,7 +266,7 @@ state build
     {
         if ( change & CHANGED_LINK )
         {
-            tI = ~-llGetNumberOfPrims();
+            tI = llGetNumberOfPrims() - 1;
             llOwnerSay( "Configuring Prim " + (string)tI);
             %(builder)sif (tI > 0 )
             {
