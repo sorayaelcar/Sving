@@ -152,7 +152,8 @@ static unsigned char file_open_bits[] = {
                 justify=RIGHT,
                 font=('Helvetica', 9, 'bold'))
         t.pack(side=LEFT)
-        self.shape_name = StringVar(self.master, settings['shape_name'])
+        self.shape_name = StringVar(self.master)
+        self.shape_name.set(settings['shape_name'])
         self.shape_file = settings['shape_file']
         self.map_type = gui.Button(shape_frame,
                 textvariable=self.shape_name,
@@ -183,7 +184,8 @@ static unsigned char file_open_bits[] = {
             text="X Faces",
             justify=RIGHT)
         t.pack(side=LEFT)
-        self.x_faces = IntVar(self.master, settings['x_faces'])
+        self.x_faces = IntVar(self.master)
+        self.x_faces.set(settings['x_faces'])
         self.x_faces_input = gui.Spinbox(fx,
                 textvariable=self.x_faces,
                 from_=1,
@@ -198,7 +200,8 @@ static unsigned char file_open_bits[] = {
                 text="Y Faces",
                 justify=RIGHT)
         t.pack(side=LEFT)
-        self.y_faces = IntVar(self.master, settings['y_faces'])
+        self.y_faces = IntVar(self.master)
+        self.y_faces.set(settings['y_faces'])
         self.y_faces_input = gui.Spinbox(fy,
                 textvariable=self.y_faces,
                 from_=1,
@@ -213,7 +216,8 @@ static unsigned char file_open_bits[] = {
                 text="Radius",
                 justify=RIGHT)
         t.pack(side=LEFT)
-        self.radius = DoubleVar(self.master, settings['radius'])
+        self.radius = DoubleVar(self.master)
+        self.radius.set(settings['radius'])
         self.radius_input = gui.Spinbox(fr,
                 textvariable=self.radius,
                 from_=0.05,
@@ -222,7 +226,8 @@ static unsigned char file_open_bits[] = {
                 format="%4.3f",
                 width=5)
         self.radius_input.pack(side=RIGHT)
-        self.clean_lods = BooleanVar(self.master, settings['clean_lods'])
+        self.clean_lods = BooleanVar(self.master)
+        self.clean_lods.set(settings['clean_lods'])
         self.clean_lods_input = gui.Checkbutton(f,
                 text="Clean LODs",
                 variable=self.clean_lods,
@@ -238,7 +243,8 @@ static unsigned char file_open_bits[] = {
         fs = gui.LabelFrame(middle_frame,
                 text="Subdivision")
         fs.pack(fill=X)
-        self.levels = IntVar(self.master, settings['levels'])
+        self.levels = IntVar(self.master)
+        self.levels.set(settings['levels'])
         fl = gui.Frame(fs)
         fl.pack()
         t = gui.Label(fl,
@@ -253,7 +259,8 @@ static unsigned char file_open_bits[] = {
                 command=self.update_info)
         self.levels_input.bind('<Key>', self.update_info)
         self.levels_input.pack(side=RIGHT)
-        self.sub_type = IntVar(self.master, settings['sub_type'])
+        self.sub_type = IntVar(self.master)
+        self.sub_type.set(settings['sub_type'])
         r = gui.Frame(fs)
         r.pack(side=LEFT)
         gui.Radiobutton(r,
@@ -264,7 +271,8 @@ static unsigned char file_open_bits[] = {
                 text="Multires",
                 variable=self.sub_type,
                 value=0).pack()
-        self.subdivision = IntVar(self.master, settings['subdivision'])
+        self.subdivision = IntVar(self.master)
+        self.subdivision.set(settings['subdivision'])
         r = gui.Frame(fs)
         r.pack(side=RIGHT)
         gui.Radiobutton(r,
@@ -282,7 +290,8 @@ static unsigned char file_open_bits[] = {
 
         mesh_frame = gui.LabelFrame(middle_frame, text="Mesh Type")
         mesh_frame.pack(fill=X)
-        self.quads = IntVar(self.master, settings['quads'])
+        self.quads = IntVar(self.master)
+        self.quads.set(settings['quads'])
         gui.Radiobutton(mesh_frame,
                 text="Quads",
                 variable=self.quads,
@@ -319,8 +328,10 @@ static unsigned char file_open_bits[] = {
         # Save settings frame
         # ==========================================
 
-        self.save_defaults = BooleanVar(self.master, False)
-        self.save_settings = BooleanVar(self.master, settings['save'])
+        self.save_defaults = BooleanVar(self.master)
+        self.save_defaults.set(False)
+        self.save_settings = BooleanVar(self.master)
+        self.save_settings.set(settings['save'])
         save_frame = gui.Frame(build_frame)
         save_frame.pack(fill=Y)
         t = gui.Checkbutton(save_frame,
