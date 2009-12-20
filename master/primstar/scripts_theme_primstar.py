@@ -8,8 +8,8 @@
 # """
 
 __author__ = "Domino Marama"
-__version__ = "2.46"
-__url__ = ["http://dominodesigns.info"]
+__version__ = "1.0.0"
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/blender-theme")
 __bpydoc__ = """\
 This installs the theme used in the Primstar documentation,
 remember to save defaults after installing.

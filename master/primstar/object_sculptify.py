@@ -8,8 +8,8 @@ Tooltip: 'Converts suitable objects to a sculpt mesh'
 """
 
 __author__ = ["Gaia Clary", "Domino Marama"]
-__url__ = ("http://blog.machinimatrix.org", "http://dominodesigns.info")
-__version__ = "0.7"
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/sculptify", "http://blog.machinimatrix.org")
+__version__ = "1.0.0"
 __bpydoc__ = """\
 
 Convert suitable objects to a sculpt mesh

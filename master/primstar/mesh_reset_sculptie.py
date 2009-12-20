@@ -8,8 +8,8 @@ Tooltip: 'Updates object mesh from it's sculpt map'
 """
 
 __author__ = ["Domino Marama"]
-__url__ = ("http://dominodesigns.info")
-__version__ = "1.0"
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/mesh-reset-sculptie")
+__version__ = "1.0.0"
 __bpydoc__ = """\
 
 Reset Sculpt Mesh

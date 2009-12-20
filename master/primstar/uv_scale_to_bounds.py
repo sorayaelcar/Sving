@@ -7,8 +7,8 @@ Tooltip: 'Scales UV Layout to bounds'
 """
 
 __author__ = ["Domino Marama"]
-__url__ = ("http://dominodesigns.info")
-__version__ = "1.00"
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/scale-to-bounds")
+__version__ = "1.0.0"
 __bpydoc__ = """\
 
 Align to bounds

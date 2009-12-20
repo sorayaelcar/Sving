@@ -8,8 +8,8 @@ Tooltip: 'Updates a mesh with a sculptie UV layer from a .tga map file'
 """
 
 __author__ = ["Domino Marama"]
-__url__ = ("http://dominodesigns.info")
-__version__ = "0.03"
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/update-from-sculptie")
+__version__ = "1.0.0"
 __bpydoc__ = """\
 
 Sculptie Updater

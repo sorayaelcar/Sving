@@ -7,8 +7,8 @@ Tooltip: 'Import this image as a new sculptie'
 """
 
 __author__ = ["Domino Marama"]
-__url__ = ("http://dominodesigns.info")
-__version__ = "1.00"
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/image-import-as-sculptie")
+__version__ = "1.0.0"
 __bpydoc__ = """\
 
 Import as Sculptie

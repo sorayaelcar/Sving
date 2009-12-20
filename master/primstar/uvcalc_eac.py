@@ -8,8 +8,8 @@ Tooltip: 'Equal area cylindrical projection unwrap from object centre and view'
 """
 
 __author__ = ["Domino Marama"]
-__url__ = ("http://dominodesigns.info")
-__version__ = "0.03"
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/equal-area-cylinder-unwrap")
+__version__ = "1.0.0"
 __bpydoc__ = """\
 This script uses an equal area cylindrical projection to unwrap the
 selected meshes.

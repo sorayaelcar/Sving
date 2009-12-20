@@ -7,8 +7,8 @@ Tooltip: 'Tweak sculpt map for mirroring'
 """
 
 __author__ = ["Domino Marama"]
-__url__ = ("http://dominodesigns.info")
-__version__ = "1.00"
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/finalise-sculptie")
+__version__ = "1.0.0"
 __bpydoc__ = """\
 
 Finalise sculptie

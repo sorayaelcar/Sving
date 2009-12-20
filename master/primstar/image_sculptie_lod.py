@@ -7,8 +7,8 @@ Tooltip: 'Bake a sculptie LOD to image'
 """
 
 __author__ = ["Domino Marama"]
-__url__ = ("http://dominodesigns.info")
-__version__ = "1.00"
+__url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/bake-sculptie-lod")
+__version__ = "1.0.0"
 __bpydoc__ = """\
 
 Bake Sculptie LOD

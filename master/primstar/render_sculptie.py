@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/bake-sculptie")
-__version__ = "0.90"
+__version__ = "1.0.0"
 __bpydoc__ = """\
 
 Bake Sculptie Map
