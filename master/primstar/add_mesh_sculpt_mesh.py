@@ -627,7 +627,8 @@ def main():
         app = GuiApp(root)
         app.redraw()
         root.mainloop()
-        root.destroy()
+        if gui.platform != "darwin":
+            root.destroy()
     except:
         if root:
             root.grab_release()
