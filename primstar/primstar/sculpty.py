@@ -48,6 +48,12 @@ for d in library_dirs:
             break
 
 #***********************************************
+# constants
+#***********************************************
+
+DRAW_ADJUST = 1.0 / 512.0
+
+#***********************************************
 # helper functions
 #***********************************************
 
@@ -456,15 +462,15 @@ class BakeMap:
                 if self.map[u][v].values:
                     c = self.map[u][v].values[0] - self.bb_min
                     if self.scale.x:
-                        c.x = c.x / self.scale.x
+                        c.x = c.x / self.scale.x + DRAW_ADJUST
                     else:
                         c.x = 0.5
                     if self.scale.y:
-                        c.y = c.y / self.scale.y
+                        c.y = c.y / self.scale.y + DRAW_ADJUST
                     else:
                         c.y = 0.5
                     if self.scale.z:
-                        c.z = c.z / self.scale.z
+                        c.z = c.z / self.scale.z + DRAW_ADJUST
                     else:
                         c.z = 0.5
                     c = rgb.convert(c)
@@ -801,7 +807,7 @@ def draw_line(image, v1, v2, c1, c2, ends=False):
                 if d == deltax:
                     colour = c2
                 else:
-                    colour = c1 + mix * (float(d) / deltax)
+                    colour = c1 + mix * (DRAW_ADJUST + float(d) / deltax)
             else:
                 colour = c1
             if steep:
