@@ -3,7 +3,7 @@
 """
 Name: 'Jass Tutorials Main page'
 Blender: 248
-Group: 'Tutorials'
+Group: 'Help'
 Tooltip: 'machinimatrix step by step tutorials'
 """
 
@@ -15,7 +15,7 @@ This script opens the user's default web browser at the machinimatrix blender tr
 """
 
 # --------------------------------------------------------------------------
-# Machinimatrix tutorials Tutorials Menu -> Tutorials Item
+# Machinimatrix tutorials Help Menu -> Tutorials Item
 # --------------------------------------------------------------------------
 # ***** BEGIN GPL LICENSE BLOCK *****
 #

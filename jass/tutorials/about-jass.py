@@ -3,7 +3,7 @@
 """
 Name: 'About Jass ...'
 Blender: 248
-Group: 'Tutorials'
+Group: 'Help'
 Tooltip: 'The Jass distribution page'
 """
 
@@ -15,7 +15,7 @@ This script opens the user's default web browser at the machinimatrix blender tr
 """
 
 # --------------------------------------------------------------------------
-# Machinimatrix tutorials Tutorials Menu -> Tutorials Item
+# Machinimatrix tutorials Help Menu -> Tutorials Item
 # --------------------------------------------------------------------------
 # ***** BEGIN GPL LICENSE BLOCK *****
 #

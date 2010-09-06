@@ -3,7 +3,7 @@
 """
 Name: '2 - Creating Sculpties step by step (video)'
 Blender: 248
-Group: 'Tutorials'
+Group: 'Help'
 Tooltip: 'machinimatrix tutorial: How to create a sculpted prim'
 """
 
@@ -15,7 +15,7 @@ This script opens the user's default web browser at the machinimatrix blender tr
 """
 
 # --------------------------------------------------------------------------
-# Machinimatrix tutorials Tutorials Menu -> Tutorials Item
+# Machinimatrix tutorials Help Menu -> Tutorials Item
 # --------------------------------------------------------------------------
 # ***** BEGIN GPL LICENSE BLOCK *****
 #
