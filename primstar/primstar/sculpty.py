@@ -31,7 +31,7 @@ except:
 
 import Blender
 import os
-from math import sin, cos, pi, sqrt, log, ceil
+from math import sin, cos, pi, sqrt, log, ceil, floor
 from primstar.version import LABEL
 from primstar.uv_tools import add_map_uv, snap_to_pixels
 from sys import stderr
@@ -139,9 +139,15 @@ class RGBRange:
 
     def convert(self, rgb):
         '''converts float rgb to integers from the range'''
-        return XYZ(int(self.min.x + self.range.x * max(0.0, min(1.0, rgb.x))),
-                int(self.min.y + self.range.y * max(0.0, min(1.0, rgb.y))),
-                int(self.min.z + self.range.z * max(0.0, min(1.0, rgb.z))))
+        #GC: separated the calculations for better understanding
+        #    Added round() before int() to prevent pixel jumps
+        fx = self.min.x + self.range.x * max(0.0, min(1.0, rgb.x))
+        fy = self.min.y + self.range.y * max(0.0, min(1.0, rgb.y))
+        fz = self.min.z + self.range.z * max(0.0, min(1.0, rgb.z))
+        x = int(round(fx))
+        y = int(round(fy))
+        z = int(round(fz))
+        return XYZ(x,y,z)
 
     def update(self):
         '''Call after setting min and max to refresh the scale and center.'''
@@ -275,11 +281,13 @@ class BoundingBox:
     def centered(self):
         '''Returns a centered version of the bounding box'''
         s = BoundingBox(local=self.local)
+        #print "Center: local bbox: ",s 
         if self.local:
             s.max = XYZ(max(abs(self.min.x), abs(self.max.x)),
                     max(abs(self.min.y), abs(self.max.y)),
                     max(abs(self.min.z), abs(self.max.z)))
             s.min = - s.max
+            #print "Center: local: ",s 
         else:
             tmin = self.local_min()
             tmax = self.local_max()
@@ -288,6 +296,7 @@ class BoundingBox:
                     max(abs(tmin.z), abs(tmax.z)))
             s.min = self.center - offset
             s.max = self.center + offset
+            #print "Center: global: ",s 
         s.update()
         return s
 
@@ -546,7 +555,7 @@ def active(ob):
     return False
 
 
-def bake_default(image, sculpt_type, radius=0.25):
+def bake_default(image, sculpt_type, radius=0.25, levels=0):
     '''Bakes a mathematical sculpt map to image
 
     sculpt_type - one of "SPHERE", "TORUS Z", "TORUS X", "CYLINDER",
@@ -565,7 +574,7 @@ def bake_default(image, sculpt_type, radius=0.25):
             profile = float(v) / y
             if v == y - 1:
                 profile = 1.0
-            rgb = uv_to_rgb(sculpt_type, path, profile, radius)
+            rgb = uv_to_rgb(sculpt_type, path, profile, radius, levels)
             image.setPixelF(u, v, (rgb.x, rgb.y, rgb.z, 1.0))
 
 
@@ -593,17 +602,51 @@ def bake_lod(image):
                 image.setPixelF(s, t, c)
 
 
-def bake_object(ob, bb, clear=True, keep_seams=True):
+def bake_object(ob, bb, clear=True, keep_seams=True, keep_center=True, optimise_resolution=True):
     '''Bakes the object's mesh to the specified bounding box.
     Returns False if object is not an active sculptie.
     '''
+    #GC: Changed precision from 6 digits to 12 digits to prevent pixel jumping.
     debug(20, "sculpty.bake_object(%s, %d)" % (ob.name, clear))
     if not active(ob):
         return False
     mesh = Blender.Mesh.New()
+
+    # fak is used for size correction When optimize_resolution is True
+    fak = [ 1.0, 1.0, 1.0 ]
+    
+    #This is the BBox of the Object apfter all modifiers have been applied
+    obb = BoundingBox(ob, local=True)
+
+    if keep_center:
+        # The bbox-size of the object changes such that 
+        # the current object center will be the same as the bbox center
+        print "Keep center of: ", ob.name
+        obb = obb.centered()            
+    else:
+        print "Reset center of: ", ob.name
+
+    if optimise_resolution:
+        print "Optimize baking for: ", ob.name
+        
+        size = ob.getSize()
+        #print "Object size is: ", size
+        dobb = obb.max-obb.min
+        dbb  = bb.max-bb.min
+    
+        fak  = [floor(dbb.x/dobb.x),floor(dbb.y/dobb.y),floor(dbb.z/dobb.z)]
+        if fak[0] == 0: fak[0] = 1
+        if fak[1] == 0: fak[1] = 1
+        if fak[2] == 0: fak[2] = 1
+
+        newSize = (size[0]*fak[0], size[1]*fak[1], size[2]*fak[2])
+        ob.setSize(newSize)
+        #print "Object newSize is: ", newSize
+        # remember to reset the size back to its original later (see below)
+
     mesh.getFromObject(ob, 0, 1)
     mesh.transform(remove_rotation(ob.matrix))
-    obb = BoundingBox(ob)
+
     images = map_images(mesh)
     maps = {}
     for i in images:
@@ -628,10 +671,10 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
                 verts = list(f.v) # support python < 2.6
                 i = verts.index(edges[key]['v1'])
                 maps[f.image.name].edges[key]['uv1'].append(
-                        XYZ(round(f.uv[i].x, 6), round(f.uv[i].y, 6), 0.0))
+                        XYZ(round(f.uv[i].x,12), round(f.uv[i].y, 12), 0.0))
                 i = verts.index(edges[key]['v2'])
                 maps[f.image.name].edges[key]['uv2'].append(
-                        XYZ(round(f.uv[i].x, 6), round(f.uv[i].y, 6), 0.0))
+                        XYZ(round(f.uv[i].x, 12), round(f.uv[i].y, 12), 0.0))
     max_scale = None
     for m in maps.itervalues():
         m.update_map()
@@ -670,9 +713,9 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
             m.bb_min = m.center - max_scale * 0.5
             m.bb_max = m.center + max_scale * 0.5
             m.scale = max_scale
-            m.image.properties['primstar']['size_x'] = m.scale.x
-            m.image.properties['primstar']['size_y'] = m.scale.y
-            m.image.properties['primstar']['size_z'] = m.scale.z
+            m.image.properties['primstar']['size_x'] = m.scale.x / fak[0]
+            m.image.properties['primstar']['size_y'] = m.scale.y / fak[1]
+            m.image.properties['primstar']['size_z'] = m.scale.z / fak[2]
         else:
             m.image.properties['primstar']['loc_x'] = 0
             m.image.properties['primstar']['loc_y'] = 0
@@ -683,11 +726,16 @@ def bake_object(ob, bb, clear=True, keep_seams=True):
                     bb.scale.y / obb.scale.y
             m.image.properties['primstar']['scale_z'] = \
                     bb.scale.z / obb.scale.z
-            m.image.properties['primstar']['size_x'] = bb.scale.x
-            m.image.properties['primstar']['size_y'] = bb.scale.y
-            m.image.properties['primstar']['size_z'] = bb.scale.z
+            m.image.properties['primstar']['size_x'] = bb.scale.x / fak[0]
+            m.image.properties['primstar']['size_y'] = bb.scale.y / fak[1]
+            m.image.properties['primstar']['size_z'] = bb.scale.z / fak[2]
         m.bake(bb.rgb)
     mesh.activeUVLayer = currentUV
+
+    if optimise_resolution:
+        # now set back the object size to its original value
+        ob.setSize(size)
+
     return True
 
 
@@ -1304,10 +1352,20 @@ def new_mesh(name, sculpt_type, x_faces, y_faces, levels=0, \
     verts_s = s + 1 - wrap_x
     verts_t = t + 1 - wrap_y
     for i in range(verts_t):
+
+        # -------------------------------------------------------------------
+        # GC:
+        # The profile is the relative z value in the range from 0 to 1
+        # For spheres the mesh calculation creates 2 poles at z=0 and z=1
+        # But hese poles make trouble when texturing comes into play. Hence
+        # we take care that spheres will not get duplicate vertices at the 
+        # poles and get slightly opened at their poles.
+        # --------------------------------------------------------------------
         profile = float(i) / t
+        
         for k in range(verts_s):
             path = float(k) / s
-            pos = uv_to_rgb(sculpt_type, path, profile, radius)
+            pos = uv_to_rgb(sculpt_type, path, profile, radius, levels)
             vert = Blender.Mathutils.Vector(
                     pos.x - 0.5, pos.y - 0.5, pos.z - 0.5)
             mesh.verts.extend([vert])
@@ -1378,8 +1436,8 @@ def remove_rotation(matrix):
     return m.resize4x4()
 
 
-def sculptify(ob):
-    debug(30, "sculpty.sculptify(%s)" % (ob.name))
+def sculptify(ob, fromObjFile=False):
+    debug(30, "sculpty.sculptify(%s) of type (%s)" % (ob.name,ob.type))
     if ob.type != 'Mesh':
         # add new mesh object
         scene = Blender.Scene.GetCurrent()
@@ -1397,21 +1455,64 @@ def sculptify(ob):
             old_ob.select(0)
 
     if ob.type == 'Mesh':
+
         mesh = ob.getData(False, True)
-        if not len(mesh.getUVLayerNames()):
-            add_map_uv(ob)
+
+        # =========================================================================
+        # GC: If the mesh has got an uv layer named "sculptie", then this object
+        # is already a sculptie and we just have to recreate the "sculptie" uv-layer
+        # No need to rotate the uv-map because the sculptie is already setup such
+        # that rotation is not needed.
+        # NOTE: The original behaviour was:
+        # If the object has uv layers, no uv layer was added, but the first 
+        # available uv layer was renamed to "sculptie"
+        # New behaviour: 
+        #
+        # * If the object has no uv layer at all, it is assumed to be a
+        #   non sculptie object that will be transformed to a sculptie object.
+        #   a rotation of 90 degree is needed for the uv-map.
+        # * If the object has a uv-layer named "sculptie" this layer is removed and 
+        #   recreated. The object is recognized as sculpty. No rotation is performed
+        #   on the uv-map.
+        # * If the object has uv-layers but no layer with name "sculptie" the object
+        #   is NOT recognized as sculptie, a "sculptie" uv map is added and a rotation 
+        #   by 90 degree is performed on the uv-map
+        # ========================================================================
+        if fromObjFile==False:
+            doRotate=1  # preset to do rotate
+            if len(mesh.getUVLayerNames()):
+               # object has uv-layers
+               if "sculptie" in mesh.getUVLayerNames():
+                   # object is a sculptie, no rotation needed
+                   # and uv-map removed.
+                   print "Remove existing sculptie uv-map from Object ", ob.name
+                   doRotate=0
+                   mesh.removeUVLayer("sculptie")
+    
+            print "Add new sculptie uv-map to Object ", ob.name
+            add_map_uv(ob, doRotate)
             Blender.Redraw()
-        if "sculptie" not in mesh.getUVLayerNames():
-            mesh.renameUVLayer(mesh.getUVLayerNames()[0], "sculptie")
+        else:
+            if not len(mesh.getUVLayerNames()):
+                print "Import from file: Add new sculptie uv-map to Object ", ob.name
+                add_map_uv(ob, 1)
+                Blender.Redraw()
+            if "sculptie" not in mesh.getUVLayerNames():
+                print "Import from file: Rename UV-map to 'sculptie' for ", ob.name
+                mesh.renameUVLayer(mesh.getUVLayerNames()[0], "sculptie")
+        
         mesh.activeUVLayer = "sculptie"
         mesh.update()
         islands = []
         island = None
         zero_uv = Blender.Mathutils.Vector(0.0, 0.0)
         faces = [f for f in mesh.faces]
+
         if zero_uv not in faces[0].uv:
+            #print "Faces reverse ..."
             faces.reverse()
         if zero_uv in faces[0].uv:
+            #print "Zero_uv ..."
             for f in faces:
                 if zero_uv in f.uv:
                     if island != None:
@@ -1422,8 +1523,11 @@ def sculptify(ob):
             if island != None:
                 islands.append(island)
         else:
+            #print "Island append ..."
             islands.append([f.index for f in faces])
+
         for island in islands:
+            #print "island process ..."
             add_image = False
             x_verts = 0
             y_verts = 0
@@ -1438,24 +1542,31 @@ def sculptify(ob):
                         x_verts += 1
                     if v[0] == 0.0:
                         y_verts += 1
+            #print "add_image = ", add_image
+            #print "ob.modifiers process ..."
             for m in ob.modifiers:
                 if m.type == Blender.Modifier.Types.SUBSURF:
                     p = pow(2, m[Blender.Modifier.Settings.RENDLEVELS])
                     x_verts *= p
                     y_verts *= p
+            #print "x/y verts process ...: ", x_verts, y_verts
             if min(x_verts, y_verts) < 4:
                 if add_image:
                     debug(35, "Unable to add image to %s x %s mesh" % \
                         (x_verts, y_verts))
                     return True # unable to complete
             elif add_image:
+                #print "add image ..."
                 x_verts = x_verts // 2 + 1
                 y_verts = y_verts // 2 + 1
+                #print "x/y: ", x_verts, y_verts
                 s, t, w, h, cs, ct = map_size(x_verts, y_verts, 0)
+                #print "s, t, w, h, cs, ct:", s, t, w, h, cs, ct
                 image = Blender.Image.New(mesh.name, w, h, 32)
                 bake_lod(image)
                 set_map(mesh, image)
         Blender.Redraw()
+        #print "done ..."
     return True # successful or skipped
 
 
@@ -1480,10 +1591,20 @@ def set_center(ob, offset=XYZ(0.0, 0.0, 0.0)):
     '''
     debug(30, "sculpty.set_center(%s, %s)" % (ob.name, str(offset)))
     children = obChildren(ob)
+    #print "Center object begin +++++++++++++++++++++++++++++++++++++++++"
+
+    #print "Clear parent-child relation for my children"
     for c in children:
+        #print "Clear pc for ", c.name, c.loc
         c.clrParent(2, 1)
+
+    #print "Now determine the BBox"
     bb = BoundingBox(ob, True)
+    #print "bb is ", bb
+
+    #print "current bb.center is", bb.center
     offset += bb.center
+
     mesh = ob.getData()
     mat = ob.getMatrix()
     rot_quat = mat.toQuat()
@@ -1503,11 +1624,14 @@ def set_center(ob, offset=XYZ(0.0, 0.0, 0.0)):
             ob.loc[1] + moved[1] * scale[1],
             ob.loc[2] + moved[2] * scale[2])
     ob.makeParent(children)
+
     for c in children:
         c.loc = (c.loc[0] - moved[0] * scale[0],
             c.loc[1] - moved[1] * scale[1],
             c.loc[2] - moved[2] * scale[2])
+        #print "Redo child ", c.name, c.loc
 
+    #print "object ", ob.name, " now centered ----------------------------------------"
 
 def set_map(mesh, image):
     '''Assigns the image to the selected 'sculptie' uv layer faces.'''
@@ -1554,17 +1678,40 @@ def update_from_map(mesh, image):
     mesh.sel = True
 
 
-def uv_to_rgb(sculpt_type, u, v, radius=0.25):
+def uv_to_rgb(sculpt_type, u, v, radius=0.25, levels=0):
     '''Returns 3D location for the given UV co-ordinates on a
     default sculpt type'''
     debug(90, "sculpty.uv_to_rgb(%s, %f, %f, %f)" % \
             (sculpt_type, u, v, radius))
     a = pi + 2 * pi * u
     if sculpt_type == "SPHERE":
+        # GC:
+        # We have seen that singularities at the poles (duplicate vertices)
+        # also create weird effects when texturing. So the
+        # spheres get tiny little holes at the poles to avoid mathematical
+        # precision problems during texturing. This is not a problem in general,
+        # because SL closes the spheres at the poles automatically.
+        # The correction values for profile have been determined heuristically.
+        #
+        # Another correction concerns the position of the poles when Multires or
+        # Subsurf is turned on. For some reason the poles keep their position
+        # and thus they get pointy and create a lemon like shape. The simplest
+        # correction is to shift the poles into the direction of the sphere center 
+        # by a tiny fraction. The levelCorrection factor has been determined 
+        # heuristically.
+        #
+        # NOTE: Multires/Subsurf levels above 2 create heavily distorted results.
+        # this needs to be checked further. If you need higher levels, the workaround is:
+        # Create a level 2 sculptie, then add levels as needed manually.
+
+        levelCorrection = 1
+        if  v == 1.0 or v == 0.0 :
+            levelCorrection = 0.98**(levels)
+
         ps = sin(pi * v) / 2.0
         r = 0.5 + sin(a) * ps
         g = 0.5 - cos(a) * ps
-        b = 0.5 - cos(pi * v) / 2.0
+        b = 0.5 - levelCorrection * cos(pi * v) / 2.0
     elif sculpt_type == "CYLINDER":
         r = 0.5 + sin(a) / 2.0
         g = 0.5 - cos(a) / 2.0

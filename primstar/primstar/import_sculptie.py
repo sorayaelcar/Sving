@@ -70,7 +70,7 @@ def import_obj(filename):
 def sculptify_scene():
     scene = Blender.Scene.GetCurrent()
     for ob in scene.objects.selected:
-        if not sculpty.sculptify(ob):
+        if not sculpty.sculptify(ob, fromObjFile=True):
             Blender.Draw.PupBlock("Sculptie Import Error",
                     ["Unable to determine map size", "Please check your UVs"])
         else:

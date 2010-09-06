@@ -92,7 +92,7 @@ def normalise(fco, umin, umax, vmin, vmax, doRotate):
         fco[1] = ((y - vmin) / (vmax - vmin))
 
 
-def add_map_uv(ob):
+def add_map_uv(ob, doRotate):
     if ob == None or ob.type != 'Mesh':
         Blender.Draw.PupMenu('ERROR: No mesh object.')
         return
@@ -102,13 +102,15 @@ def add_map_uv(ob):
     if edit_mode:
         Blender.Window.EditMode(0)
 
+    #print "uv_tools.add_map_uv(ob,%s)" % (doRotate)
     me = ob.getData(mesh=1)
     me.sel = 1
     me.addUVLayer("sculptie")
     me.activeFace = 0
+    
     try:
         extend(1, ob)
-        scale_map_uv(ob, 1)
+        scale_map_uv(ob, doRotate)
     except:
         eac_unwrap(ob, True)
     Blender.Window.EditMode(edit_mode)

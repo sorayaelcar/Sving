@@ -50,6 +50,7 @@ def main():
     image = Blender.Image.GetCurrent()
     if image:
         bake_lod(image)
+        image.glFree()
     else:
         Blender.Draw.PupBlock("Sculptie Bake Error", ["No current image"])
 

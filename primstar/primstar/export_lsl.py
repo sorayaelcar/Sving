@@ -363,6 +363,7 @@ def export_lsl(filename):
         return
     basepath = Blender.sys.dirname(filename)
     for p in prims:
+        print "save LSL linkset:", p['name']
         save_linkset(p, basepath)
     Blender.Window.WaitCursor(0)
 
@@ -394,10 +395,12 @@ def link_lsl(prim, link=0):
     if link > 0:
         p = prim2dict(prim, link)
         p['textures'] = ''
+        print "LSL adding child prim: ", p['name']
         for t in prim.textures:
             p['textures'] += TEXTURE % texture2dict(t)
         lsl = LINK_LSL % p
     else:
+        print "LSL adding  root prim: ", prim['name']
         lsl = ''
     link += 1
     for c in prim.children:
@@ -416,6 +419,7 @@ def save_linkset(prim, basepath):
         d['functions'] = PRIM_REZ
         d['setup'] = PRIM_TEST % d
         builder, link = link_lsl(prim)
+        print "Summary: exported Linkset containing ",link, " prims";
         root_tex = ''
         for t in prim.textures:
             root_tex += TEXTURE % texture2dict(t)

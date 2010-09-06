@@ -622,20 +622,16 @@ def main():
     root = None
     start_time = Blender.sys.time()
     gui.debug(1, "started", SCRIPT)
-    try:
-        root = gui.ModalRoot()
-        app = GuiApp(root)
-        app.redraw()
-        root.mainloop()
-        root.destroy()
-    except:
-        if root:
-            root.grab_release()
-            root.quit()
-            root.destroy()
-        raise
+    root = gui.ModalRoot()
+    app = GuiApp(root)
+    app.redraw()
+    root.title("Primstar add mesh")
+    root.mainloop()
+    root.destroy()
+    if gui.platform == "darwin":
+        os.system('''/usr/bin/osascript -e 'tell app "System Events" to activate process "Blender"' ''')
     gui.debug(1, "ended in %.4f sec." % (
-            Blender.sys.time() - start_time), SCRIPT)
+        Blender.sys.time() - start_time), SCRIPT)
 
 if __name__ == '__main__':
     gui.theme = gui.Theme() # refresh theme in case user changed prefs.
