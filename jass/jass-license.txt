@@ -1,4 +1,4 @@
-JASS 2.3 Binary Distribution (standard version)
+JASS 2.3.4 Binary Distribution (PRO)
 
 Created by the Machinimatrix team
 Copyright 2010 Machinimatrix
@@ -6,8 +6,10 @@ Copyright 2010 Machinimatrix
 This installation includes:
 
 - blender Release 2.49b from http://www.blender.org
-- python  Release 2.6.5 from http://www.python.org
+- python  Release 2.6.4 from http://www.python.org
 - primstar-1.0.0 from http://dominodesigns.info
+- Enhancements from http://blog.machinimatrix.org
+  for details see: http://blog.machinimatrix.org/jass-2-2-pro-for-windows/
 
 This software is provided 'as-is', without any express or implied warranty. 
 In no event will the authors and contributors be held liable for any damages 

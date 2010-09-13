@@ -52,13 +52,14 @@ from primstar import sculpty
 from Tkinter import *
 from primstar import gui
 
+
 #***********************************************
 # constants
 #***********************************************
 
 SCRIPT = 'render_sculptie_test'
 REGISTRY = 'PrimstarBake'
-LABEL = '%s - (JASS-2.3 pro) Bake sculpt meshes' % (sculpty.LABEL)
+LABEL = '%s - (JASS-2.3.4 pro) Bake sculpt meshes' % (sculpty.LABEL)
 
 #***********************************************
 # settings
@@ -375,8 +376,9 @@ static unsigned char file_open_bits[] = {
         for ob in scene.objects.selected:
             if sculpty.check(ob):
                 if not self.keep_center.get():
+                    #print "bake(): Set local center of Object ", ob.name, " from ", ob.getLocation()
                     sculpty.set_center(ob)
-                    #print "Set local center of Object ", ob.name, " to ", ob.getLocation()
+                    #print "bake(): Set local center of Object ", ob.name, " to ", ob.getLocation()
                 bb.add(ob)
                 sculptie_count += 1
         if self.keep_scale.get():
@@ -427,6 +429,8 @@ static unsigned char file_open_bits[] = {
                     if image.packed:
                         image.pack()
                     image.glFree()
+
+
         Blender.Redraw()
         if editmode:
             Blender.Window.EditMode(1)

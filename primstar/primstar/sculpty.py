@@ -32,6 +32,8 @@ except:
 import Blender
 import os
 from math import sin, cos, pi, sqrt, log, ceil, floor
+from Blender.Mathutils import Vector
+
 from primstar.version import LABEL
 from primstar.uv_tools import add_map_uv, snap_to_pixels
 from sys import stderr
@@ -602,7 +604,7 @@ def bake_lod(image):
                 image.setPixelF(s, t, c)
 
 
-def bake_object(ob, bb, clear=True, keep_seams=True, keep_center=True, optimise_resolution=True):
+def bake_object(ob, linkset_BBox, clear=True, keep_seams=True, keep_center=True, optimise_resolution=True):
     '''Bakes the object's mesh to the specified bounding box.
     Returns False if object is not an active sculptie.
     '''
@@ -612,38 +614,52 @@ def bake_object(ob, bb, clear=True, keep_seams=True, keep_center=True, optimise_
         return False
     mesh = Blender.Mesh.New()
 
-    # fak is used for size correction When optimize_resolution is True
-    fak = [ 1.0, 1.0, 1.0 ]
+    # biggestMultiple is used for size correction When optimize_resolution is True
+    biggestMultiple = [ 1, 1, 1 ]
     
-    #This is the BBox of the Object apfter all modifiers have been applied
-    obb = BoundingBox(ob, local=True)
+    #This is the BBox of the Object after all modifiers have been applied
+    objectBoundingBox  = BoundingBox(ob, local=True)
+    objectBlenderScale = ob.getSize()
+    
+    #print "======================================================"
+    print "bake_object() Baking object ", ob.name
+    #print "bake_object() BoundingBox: min         = ", objectBoundingBox.min
+    #print "bake_object() BoundingBox: max         = ", objectBoundingBox.max
+    #print "bake_object() Original object Dim      = ", objectBoundingBox.scale
+    #print "bake_object() Original object Scale    = ", objectBlenderScale
+    #print "bake_object() Original object location = ", ob.loc
 
-    if keep_center:
-        # The bbox-size of the object changes such that 
-        # the current object center will be the same as the bbox center
-        print "Keep center of: ", ob.name
-        obb = obb.centered()            
-    else:
-        print "Reset center of: ", ob.name
+    #if keep_center:
+    #    # The bbox-size of the object changes such that 
+    #    # the current object center will be the same as the bbox center
+    #    print "bake_object() Keep center of:        = ", ob.name
+    #    objectBoundingBox = objectBoundingBox.centered()            
+    #else:
+    #    print "bake_object() Reset center for       = ", ob.name
 
     if optimise_resolution:
-        print "Optimize baking for: ", ob.name
+        #print "bake_object() Optimize baking for    = ", ob.name
         
-        size = ob.getSize()
-        #print "Object size is: ", size
-        dobb = obb.max-obb.min
-        dbb  = bb.max-bb.min
+        ObjectDim = objectBoundingBox.scale
+        #print "bake_object() ObjectDim is:          = ", ObjectDim
+        LinkSetDim  = linkset_BBox.max-linkset_BBox.min
+        #print "bake_object() LinkSetDim  is:        = ", LinkSetDim
     
-        fak  = [floor(dbb.x/dobb.x),floor(dbb.y/dobb.y),floor(dbb.z/dobb.z)]
-        if fak[0] == 0: fak[0] = 1
-        if fak[1] == 0: fak[1] = 1
-        if fak[2] == 0: fak[2] = 1
+        biggestMultiple  = [floor(LinkSetDim.x/ObjectDim.x),floor(LinkSetDim.y/ObjectDim.y),floor(LinkSetDim.z/ObjectDim.z)]
+        if biggestMultiple[0] == 0: biggestMultiple[0] = 1
+        if biggestMultiple[1] == 0: biggestMultiple[1] = 1
+        if biggestMultiple[2] == 0: biggestMultiple[2] = 1
+        #print "bake_object() biggestMultiple is:    = ", biggestMultiple
 
-        newSize = (size[0]*fak[0], size[1]*fak[1], size[2]*fak[2])
-        ob.setSize(newSize)
-        #print "Object newSize is: ", newSize
+        # Stretch the Object to the tightest possible multiple of its current scale
+        objectOptimizedScale = (objectBlenderScale[0]*biggestMultiple[0], objectBlenderScale[1]*biggestMultiple[1], objectBlenderScale[2]*biggestMultiple[2])
+        ob.setSize(objectOptimizedScale)
+        #print "bake_object() objectOptimizedScale   = ", objectOptimizedScale
         # remember to reset the size back to its original later (see below)
 
+    # ================================
+    # Now prepare for the actual bake 
+    # ================================       
     mesh.getFromObject(ob, 0, 1)
     mesh.transform(remove_rotation(ob.matrix))
 
@@ -660,6 +676,7 @@ def bake_object(ob, bb, clear=True, keep_seams=True, keep_center=True, optimise_
         'seam': bool((ed.flag & Blender.Mesh.EdgeFlags.SEAM) and keep_seams),
         'v1': ed.v1,
         'v2': ed.v2}) for ed in mesh.edges])
+
     for f in mesh.faces:
         if f.image:
             for key in f.edge_keys:
@@ -671,18 +688,19 @@ def bake_object(ob, bb, clear=True, keep_seams=True, keep_center=True, optimise_
                 verts = list(f.v) # support python < 2.6
                 i = verts.index(edges[key]['v1'])
                 maps[f.image.name].edges[key]['uv1'].append(
-                        XYZ(round(f.uv[i].x,12), round(f.uv[i].y, 12), 0.0))
+                        XYZ(f.uv[i].x, f.uv[i].y, 0.0))
                 i = verts.index(edges[key]['v2'])
                 maps[f.image.name].edges[key]['uv2'].append(
-                        XYZ(round(f.uv[i].x, 12), round(f.uv[i].y, 12), 0.0))
+                        XYZ(f.uv[i].x, f.uv[i].y, 0.0))
+
     max_scale = None
     for m in maps.itervalues():
         m.update_map()
         if len(maps) == 1:
             loc = remove_rotation(ob.matrix).translationPart()
             offset = m.center - XYZ(loc[0], loc[1], loc[2])
-            m.bb_min = m.center + bb.min - offset
-            m.bb_max = m.center + bb.max - offset
+            m.bb_min = m.center + linkset_BBox.min - offset
+            m.bb_max = m.center + linkset_BBox.max - offset
             m.update()
         else:
             if not max_scale:
@@ -694,50 +712,71 @@ def bake_object(ob, bb, clear=True, keep_seams=True, keep_center=True, optimise_
                     max_scale.y = m.scale.y
                 if max_scale.z < m.scale.z:
                     max_scale.z = m.scale.z
+
     for m in maps.itervalues():
         if 'primstar' not in m.image.properties:
             m.image.properties['primstar'] = {}
+        
+        # ======================================================================
+        # Keep the object properties with the image. Needed for later LSL-export
+        # ======================================================================
         m.image.properties['primstar']['rot_x'] = ob.rot.x
         m.image.properties['primstar']['rot_y'] = ob.rot.y
         m.image.properties['primstar']['rot_z'] = ob.rot.z
         if len(maps) > 1:
-            m.image.properties['primstar']['loc_x'] = m.center.x - obb.center.x
-            m.image.properties['primstar']['loc_y'] = m.center.y - obb.center.y
-            m.image.properties['primstar']['loc_z'] = m.center.z - obb.center.z
-            m.image.properties['primstar']['scale_x'] = \
-                    max_scale.x / bb.scale.x
-            m.image.properties['primstar']['scale_y'] = \
-                    max_scale.y / bb.scale.y
-            m.image.properties['primstar']['scale_z'] = \
-                    max_scale.z / bb.scale.z
+            m.image.properties['primstar']['loc_x'] = m.center.x - objectBoundingBox.center.x
+            m.image.properties['primstar']['loc_y'] = m.center.y - objectBoundingBox.center.y
+            m.image.properties['primstar']['loc_z'] = m.center.z - objectBoundingBox.center.z
+            m.image.properties['primstar']['scale_x'] = max_scale.x / linkset_BBox.scale.x
+            m.image.properties['primstar']['scale_y'] = max_scale.y / linkset_BBox.scale.y
+            m.image.properties['primstar']['scale_z'] = max_scale.z / linkset_BBox.scale.z
             m.bb_min = m.center - max_scale * 0.5
             m.bb_max = m.center + max_scale * 0.5
             m.scale = max_scale
-            m.image.properties['primstar']['size_x'] = m.scale.x / fak[0]
-            m.image.properties['primstar']['size_y'] = m.scale.y / fak[1]
-            m.image.properties['primstar']['size_z'] = m.scale.z / fak[2]
+            m.image.properties['primstar']['size_x'] = m.scale.x / biggestMultiple[0]
+            m.image.properties['primstar']['size_y'] = m.scale.y / biggestMultiple[1]
+            m.image.properties['primstar']['size_z'] = m.scale.z / biggestMultiple[2]
+
+            #print "m: in bake: size of ", m.image.name, " : ", m.image.properties['primstar']['size_x'], m.image.properties['primstar']['size_y'], m.image.properties['primstar']['size_z']
+
         else:
-            m.image.properties['primstar']['loc_x'] = 0
-            m.image.properties['primstar']['loc_y'] = 0
-            m.image.properties['primstar']['loc_z'] = 0
-            m.image.properties['primstar']['scale_x'] = \
-                    bb.scale.x / obb.scale.x
-            m.image.properties['primstar']['scale_y'] = \
-                    bb.scale.y / obb.scale.y
-            m.image.properties['primstar']['scale_z'] = \
-                    bb.scale.z / obb.scale.z
-            m.image.properties['primstar']['size_x'] = bb.scale.x / fak[0]
-            m.image.properties['primstar']['size_y'] = bb.scale.y / fak[1]
-            m.image.properties['primstar']['size_z'] = bb.scale.z / fak[2]
-        m.bake(bb.rgb)
+            m.image.properties['primstar']['loc_x']   = linkset_BBox.center.x - objectBoundingBox.center.x
+            m.image.properties['primstar']['loc_y']   = linkset_BBox.center.y - objectBoundingBox.center.y
+            m.image.properties['primstar']['loc_z']   = linkset_BBox.center.z - objectBoundingBox.center.z
+            m.image.properties['primstar']['scale_x'] = linkset_BBox.scale.x / (objectBoundingBox.scale.x * biggestMultiple[0] )
+            m.image.properties['primstar']['scale_y'] = linkset_BBox.scale.y / (objectBoundingBox.scale.y * biggestMultiple[1] )
+            m.image.properties['primstar']['scale_z'] = linkset_BBox.scale.z / (objectBoundingBox.scale.z * biggestMultiple[2] )
+            m.image.properties['primstar']['size_x']  = linkset_BBox.scale.x
+            m.image.properties['primstar']['size_y']  = linkset_BBox.scale.y
+            m.image.properties['primstar']['size_z']  = linkset_BBox.scale.z
+            
+            #print "bake_object() linkset_BBox.scale      = ", linkset_BBox.scale
+            #print "bake_object() objectBoundingBox.scale = ", objectBoundingBox.scale
+            #print "bake_object() scale    (",m.image.name,") = ", m.image.properties['primstar']['scale_x'], m.image.properties['primstar']['scale_y'], m.image.properties['primstar']['scale_z']
+            #print "bake_object() set size (",m.image.name,") = ", m.image.properties['primstar']['size_x'], m.image.properties['primstar']['size_y'], m.image.properties['primstar']['size_z']
+            
+        m.image.properties['primstar']['multiple_x']  = biggestMultiple[0]
+        m.image.properties['primstar']['multiple_y']  = biggestMultiple[1]
+        m.image.properties['primstar']['multiple_z']  = biggestMultiple[2]
+        m.bake(linkset_BBox.rgb)
+        
     mesh.activeUVLayer = currentUV
 
     if optimise_resolution:
         # now set back the object size to its original value
-        ob.setSize(size)
-
+        ob.setSize(objectBlenderScale)
+        
     return True
 
+def dump_images(ob, l="image: "):
+    mesh = Blender.Mesh.New()
+    mesh.getFromObject(ob, 0, 1)
+    mesh.transform(remove_rotation(ob.matrix))
+    images = map_images(mesh)
+    for image in images:
+        if 'primstar' not in image.properties:
+            image.properties['primstar'] = {}
+        #print l, "size of ", image.name, " : ", image.properties['primstar']['size_x'], image.properties['primstar']['size_y'], image.properties['primstar']['size_z']
 
 def bake_preview(image):
     '''Bakes a pseudo 3D representation of the sculpt map image
@@ -1032,7 +1071,8 @@ def get_bounding_box(ob, local=False):
     mesh.getFromObject(ob, 0, 1)
     if local:
         scale = ob.matrix.scalePart()
-        mesh.transform(Blender.Mathutils.Matrix([scale[0], 0, 0, 0],
+        mesh.transform(Blender.Mathutils.Matrix(
+                [scale[0], 0, 0, 0],
                 [0, scale[1], 0, 0],
                 [0, 0, scale[2], 0],
                 [0, 0, 0, 1.0]))
@@ -1271,10 +1311,6 @@ def new_from_map(image, view=True):
     except:
         pass
     try:
-        x = image.properties['primstar']['size_x']
-        y = image.properties['primstar']['size_y']
-        z = image.properties['primstar']['size_z']
-        ob.setSize(x, y, z)
         x = image.properties['primstar']['loc_x']
         y = image.properties['primstar']['loc_y']
         z = image.properties['primstar']['loc_z']
@@ -1284,6 +1320,10 @@ def new_from_map(image, view=True):
         y = image.properties['primstar']['rot_y']
         z = image.properties['primstar']['rot_z']
         ob.rot = (x, y, z)
+        x = image.properties['primstar']['size_x'] / image.properties['primstar']['multiple_x'] 
+        y = image.properties['primstar']['size_y'] / image.properties['primstar']['multiple_y'] 
+        z = image.properties['primstar']['size_z'] / image.properties['primstar']['multiple_z'] 
+        ob.setSize(x, y, z)
     except:
         pass
     if in_editmode:
@@ -1589,49 +1629,87 @@ def set_center(ob, offset=XYZ(0.0, 0.0, 0.0)):
     ob - object to update
     offset - (x, y, z) offset for mesh center
     '''
+
     debug(30, "sculpty.set_center(%s, %s)" % (ob.name, str(offset)))
     children = obChildren(ob)
-    #print "Center object begin +++++++++++++++++++++++++++++++++++++++++"
-
-    #print "Clear parent-child relation for my children"
     for c in children:
         #print "Clear pc for ", c.name, c.loc
         c.clrParent(2, 1)
 
-    #print "Now determine the BBox"
     bb = BoundingBox(ob, True)
-    #print "bb is ", bb
-
-    #print "current bb.center is", bb.center
     offset += bb.center
-
+    
     mesh = ob.getData()
     mat = ob.getMatrix()
+    scale = mat.scalePart()
+
     rot_quat = mat.toQuat()
     rot = rot_quat.toMatrix().resize4x4().invert()
-    trans_mat = Blender.Mathutils.TranslationMatrix(
-            Blender.Mathutils.Vector(
-                    offset.x, offset.y, offset.z) * -1.0) * rot
+
+    offsetVector = Blender.Mathutils.Vector ( offset.x, offset.y, offset.z)
+    scaledOffset = Blender.Mathutils.Vector ( offset.x / scale.x , 
+                                              offset.y / scale.y , 
+                                              offset.z / scale.z )
+
+    trans_mat = Blender.Mathutils.TranslationMatrix( scaledOffset * -1.0) * rot
     mesh.transform(trans_mat)
     rot.invert()
     mesh.transform(rot)
     mesh.update()
-    loc_mat = Blender.Mathutils.TranslationMatrix(
-            Blender.Mathutils.Vector(offset.x, offset.y, offset.z)) * rot
-    moved = loc_mat.translationPart()
-    scale = mat.scalePart()
-    ob.loc = (ob.loc[0] + moved[0] * scale[0],
-            ob.loc[1] + moved[1] * scale[1],
-            ob.loc[2] + moved[2] * scale[2])
+    
+    loc_mat = Blender.Mathutils.TranslationMatrix( offsetVector ) * rot
+    moved   = loc_mat.translationPart()
+
+    ob.loc = (ob.loc[0] + moved[0]  ,
+              ob.loc[1] + moved[1]  ,
+              ob.loc[2] + moved[2]  )
+
     ob.makeParent(children)
 
     for c in children:
         c.loc = (c.loc[0] - moved[0] * scale[0],
             c.loc[1] - moved[1] * scale[1],
             c.loc[2] - moved[2] * scale[2])
-        #print "Redo child ", c.name, c.loc
 
-    #print "object ", ob.name, " now centered ----------------------------------------"
+def setCenterToData(ob, offset=XYZ(0.0, 0.0, 0.0)):
+
+    bb = BoundingBox(ob, True)
+    offset += bb.center
+
+    mesh        = ob.getData(mesh=1)
+    mat         = ob.getMatrix()
+    objectScale = mat.scalePart()
+
+    rot_quat = mat.toQuat()
+    rot = rot_quat.toMatrix().resize4x4().invert()
+    
+
+    offsetVector = Blender.Mathutils.Vector (
+                   offset.x,
+                   offset.y,
+                   offset.z
+                   )
+
+    scaledOffset = Blender.Mathutils.Vector (
+                   offset.x / objectScale.x ,
+                   offset.y / objectScale.y ,
+                   offset.z / objectScale.z 
+                   )
+                        
+                    
+    trans_mat = Blender.Mathutils.TranslationMatrix( scaledOffset * -1.0) * rot
+    mesh.transform(trans_mat)
+    rot.invert()
+    mesh.transform(rot)
+    mesh.update()
+
+
+    loc_mat = Blender.Mathutils.TranslationMatrix( offsetVector ) * rot
+    moved   = loc_mat.translationPart()
+
+    ob.loc = (ob.loc[0] + moved[0]  ,
+              ob.loc[1] + moved[1]  ,
+              ob.loc[2] + moved[2]  )
 
 def set_map(mesh, image):
     '''Assigns the image to the selected 'sculptie' uv layer faces.'''
