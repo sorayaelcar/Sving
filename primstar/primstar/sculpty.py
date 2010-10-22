@@ -679,19 +679,29 @@ def bake_object(ob, linkset_BBox, clear=True, keep_seams=True, keep_center=True,
 
     for f in mesh.faces:
         if f.image:
+
+            w,h = f.image.getSize()
+            width,height = float(w), float(h)
+
+            #print "process image ", f.image, " of size ", width, height
             for key in f.edge_keys:
                 if key not in maps[f.image.name].edges:
                     maps[f.image.name].edges[key] = edges[key].copy()
                     maps[f.image.name].edges[key]['uv1'] = []
                     maps[f.image.name].edges[key]['uv2'] = []
+
                 maps[f.image.name].edges[key]['count'] += 1
+
                 verts = list(f.v) # support python < 2.6
+
                 i = verts.index(edges[key]['v1'])
-                maps[f.image.name].edges[key]['uv1'].append(
-                        XYZ(f.uv[i].x, f.uv[i].y, 0.0))
+                x,y = pixel_aligned_bake(f.uv[i].x, f.uv[i].y, width, height)
+                maps[f.image.name].edges[key]['uv1'].append(XYZ(x, y, 0.0))
+
                 i = verts.index(edges[key]['v2'])
-                maps[f.image.name].edges[key]['uv2'].append(
-                        XYZ(f.uv[i].x, f.uv[i].y, 0.0))
+                x,y = pixel_aligned_bake(f.uv[i].x, f.uv[i].y, width, height)
+                maps[f.image.name].edges[key]['uv2'].append(XYZ(x, y, 0.0))
+
 
     max_scale = None
     for m in maps.itervalues():
@@ -763,10 +773,48 @@ def bake_object(ob, linkset_BBox, clear=True, keep_seams=True, keep_center=True,
     mesh.activeUVLayer = currentUV
 
     if optimise_resolution:
-        # now set back the object size to its original value
+        # now set back the object size to its original value.
+        # IMPORTANT! There seems to be a bug in Blender. Just setting
+        # the object size does not seem sufficient. I have seen that
+        # a subsequet creation of a BoundingBox() for this object does NOT
+        # reflect the last setSize() changes! 
+        # I noticed that the internal object state is correctly readjusted
+        # after i called ob.getMatrix(). Hence a added this call here. Please
+        # do not remove or multi part bakes will get borked!
         ob.setSize(objectBlenderScale)
-        
+        ob.getMatrix()
+
+    #print "bake_object() Baking object ", ob.name, " done!"
+    #print "======================================================"
+
     return True
+
+# ===================================================================
+# GC (04-oct-2010):
+# Method to pixel align UV-coordinates to the current image to bake to.
+# It turned out that the best (most precise) bake results can be achieved
+# When the UV-coordinates exactly match pixel locations. That seems
+# to minimize rounding errors significantly. this method ensures that
+# the baked coordinates are shifted to the nearest image pixel.
+#
+# UV coordinates are in the interval [0,1]
+# width and height are the pixel sizes of the UV map.
+# This method forces the UV coordinates to match pixel coordinates:
+# ===================================================================
+def pixel_aligned_bake(u,v, width, height):
+    
+    # transform from UV space into image space:
+    l = round(width  * u)
+    m = round(height * v)
+
+    # inverse transform to UV space (now pixel aligned)
+    x = l / width
+    y = m / height
+               
+    #print "Processing pixel position: [", u,l,x, "][", v,m,y, "]"
+    
+    return x,y
+
 
 def dump_images(ob, l="image: "):
     mesh = Blender.Mesh.New()
@@ -1067,23 +1115,29 @@ def flip_pixels(pixels):
 def get_bounding_box(ob, local=False):
     '''Returns the post modifier stack bounding box for the object'''
     debug(40, "sculpty.get_bounding_box(%s)" % (ob.name))
+
+    mat  = ob.getMatrix()
     mesh = Blender.Mesh.New()
     mesh.getFromObject(ob, 0, 1)
+    
     if local:
-        scale = ob.matrix.scalePart()
+        scale = mat.scalePart()
         mesh.transform(Blender.Mathutils.Matrix(
                 [scale[0], 0, 0, 0],
                 [0, scale[1], 0, 0],
                 [0, 0, scale[2], 0],
                 [0, 0, 0, 1.0]))
     else:
-        mesh.transform(remove_rotation(ob.matrix))
+        mesh.transform(remove_rotation(mat))
+        
+        
     min_x = mesh.verts[0].co.x
     max_x = min_x
     min_y = mesh.verts[0].co.y
     max_y = min_y
     min_z = mesh.verts[0].co.z
     max_z = min_z
+
     for v in mesh.verts:
         if v.co.x < min_x:
             min_x = v.co.x
@@ -1097,7 +1151,10 @@ def get_bounding_box(ob, local=False):
             min_z = v.co.z
         elif v.co.z > max_z:
             max_z = v.co.z
-    return XYZ(min_x, min_y, min_z), XYZ(max_x, max_y, max_z)
+
+    min = XYZ(min_x, min_y, min_z)
+    max = XYZ(max_x, max_y, max_z)
+    return min, max
 
 
 def lod_info(width, height, format="LOD%(lod)d: %(x_faces)d x %(y_faces)d\n"):
