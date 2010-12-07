@@ -1,7 +1,7 @@
 #!BPY
 
 """
-Name: 'Bake Sculpt Meshes'
+Name: ' Setup&Bake Sculpt Meshes ...'
 Blender: 245
 Group: 'Render'
 Tooltip: 'Bake Sculptie Maps on Active objects'
@@ -59,7 +59,7 @@ from primstar import gui
 
 SCRIPT = 'render_sculptie_test'
 REGISTRY = 'PrimstarBake'
-LABEL = '%s - (JASS-2.3.4 pro) Bake sculpt meshes' % (sculpty.LABEL)
+LABEL = '%s - Bake sculpt meshes' % (sculpty.LABEL)
 
 #***********************************************
 # settings

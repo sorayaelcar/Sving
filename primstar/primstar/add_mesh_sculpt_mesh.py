@@ -1,9 +1,9 @@
 #!BPY
 """
-Name: 'Sculpt Mesh'
+Name: ' SCULPT setup & add ...'
 Blender: 246
 Group: 'AddMesh'
-Tooltip: 'Add a Second Life sculptie compatible mesh'
+Tooltip: 'Second Life sculptie compatible Mesh Generator ...'
 """
 
 __author__ = ["Domino Marama", "Gaia Clary"]
@@ -11,7 +11,7 @@ __url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/create-sculp
 __version__ = "1.0.0"
 __bpydoc__ = """\
 
-Sculpt Mesh
+Sculpt Mesh Generator ...
 
 This script creates an object with a gridded UV map suitable
 for Second Life sculpties.

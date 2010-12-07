@@ -1,7 +1,7 @@
 #!BPY
 
 """
-Name: 'JASS Basic Lib of Sculpts'
+Name: '... JASS Basic Lib of Sculpts ...'
 Blender: 248
 Group: 'AddMesh'
 Tooltip: 'Select Sculptie from library'

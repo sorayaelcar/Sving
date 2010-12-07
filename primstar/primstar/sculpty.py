@@ -340,8 +340,16 @@ class PlotPoint:
 
     def __repr__(self):
         return "PlotPoint(%s, %s, %s)" % \
-                (repr(self.values), repr(self.seam), repr(self.edges))
+                (repr(self.values), repr(self.seam), repr(self.offset))
 
+def create_grid_aligned_color(x,y,z):
+    ix = int(round(x * 256))
+    iy = int(round(y * 256))
+    iz = int(round(z * 256))
+    fx = float(ix) / 256.0
+    fy = float(iy) / 256.0
+    fz = float(iz) / 256.0
+    return XYZ(fx, fy, fz)
 
 class BakeMap:
 
@@ -358,21 +366,39 @@ class BakeMap:
 
     def plot_line(self, v1, v2, col1, col2, seam):
         '''plot a gradient line in the bake buffer'''
+        
+        #print "plot_line begin"
+        #print "Plot v1,v2,col1,col2:", v1, v2, col1.co, col2.co
+        
         c1 = XYZ(col1.co.x, col1.co.y, col1.co.z)
         c2 = XYZ(col2.co.x, col2.co.y, col2.co.z)
+        
+        #print "Plot v1,v2,c1,c2:", v1, v2, c1, c2
+        
         x1 = int(v1.x * self.image.size[0])
         y1 = int(v1.y * self.image.size[1])
         x2 = int(v2.x * self.image.size[0])
         y2 = int(v2.y * self.image.size[1])
+        #print "x1,y1,x2,y2:", x1,y1,"  ", x2,y2
+        
         ox1 = v1.x * self.image.size[0] - x1
         ox2 = v2.x * self.image.size[0] - x2
         oy1 = v1.y * self.image.size[1] - y1
         oy2 = v2.y * self.image.size[1] - y2
+        #print "ox1,oy1,ox2,oy2:", ox1,oy1,"  ", ox2,oy2
+        
+
         o1 = sqrt(ox1 * ox1 + oy1 * oy1)
         o2 = sqrt(ox2 * ox2 + oy2 * oy2)
+        #print "o1,o2:", o1,o2
+
+        # This is a degenerated edge (both endpoints are at the same location):        
         if x1 == x2 and y1 == y2:
+            #if seam:
+            #    print "degen plot point at: ", x1,y1, c1, c2
             self.plot_point(x1, y1, (c1 + c2) / 2, seam, o1 + 0.5 * (o2 - o1))
             return
+            
         steep = abs(y2 - y1) > abs(x2 - x1)
         if steep:
             x1, y1 = y1, x1
@@ -410,13 +436,18 @@ class BakeMap:
                 y = y + ystep
                 error = error + deltax
 
+        #print "plot_line end"
+
     def plot_point(self, x, y, colour, seam, offset):
         '''plot a point in the bake buffer'''
         self.map[x][y].add(colour, seam, offset)
+        #if seam:
+        #    print x, y, colour
 
     def update_map(self):
         '''plot edge buffer into bake buffer and update minimum
         and maximum range'''
+        #print "Update map with ", len(self.edges), " edges..."
         for key, line in self.edges.iteritems():
             seam = line['seam'] or line['count'] == 1
             self.plot_line(line['uv1'][0], line['uv2'][0],
@@ -472,6 +503,7 @@ class BakeMap:
                 v1 = v - (v == self.image.size[1])
                 if self.map[u][v].values:
                     c = self.map[u][v].values[0] - self.bb_min
+                    #print "color1: ", c, "scale:", self.scale
                     if self.scale.x:
                         c.x = c.x / self.scale.x + DRAW_ADJUST
                     else:
@@ -484,8 +516,11 @@ class BakeMap:
                         c.z = c.z / self.scale.z + DRAW_ADJUST
                     else:
                         c.z = 0.5
+                    #print "color2: ", c
                     c = rgb.convert(c)
+                    #print "color3: ", c
                     self.image.setPixelI(u1, v1, (c.x, c.y, c.z, 255))
+                    #print "set pixel: ", u1, v1, c
 
 
 class LibPath:
@@ -676,6 +711,7 @@ def bake_object(ob, linkset_BBox, clear=True, keep_seams=True, keep_center=True,
         'seam': bool((ed.flag & Blender.Mesh.EdgeFlags.SEAM) and keep_seams),
         'v1': ed.v1,
         'v2': ed.v2}) for ed in mesh.edges])
+    #print "mesh edges : ", mesh.edges
 
     for f in mesh.faces:
         if f.image:
@@ -812,6 +848,7 @@ def pixel_aligned_bake(u,v, width, height):
     y = m / height
                
     #print "Processing pixel position: [", u,l,x, "][", v,m,y, "]"
+    #print "pixel: [", l, ",", m, "]"
     
     return x,y
 
@@ -1268,10 +1305,10 @@ def map_size(x_faces, y_faces, levels):
         t = min(h, y_faces)
         w = int(pow(2, levels + 1 + ceil(log(w >> levels) / log(2))))
         h = int(pow(2, levels + 1 + ceil(log(h >> levels) / log(2))))
-        if w == h == 8:
-            # 8 x 8 won't upload
-            w = 16
-            h = 16
+        #if w == h == 8:
+        #    # 8 x 8 won't upload
+        #    w = 16
+        #    h = 16
         cs = True
         ct = True
         if (s << (levels + 1) > w):
@@ -1284,6 +1321,9 @@ def map_size(x_faces, y_faces, levels):
             ct = False
     return s, t, w, h, cs, ct
 
+def dump_image(image):
+    for row in range(0, image.size[1]):
+        print image.getPixelI(0 , row)[:3], image.getPixelI(image.size[0] -1 , row)[:3] 
 
 def map_type(image):
     '''Returns the sculpt type of the sculpt map image'''
@@ -1291,8 +1331,12 @@ def map_type(image):
     poles = True
     xseam = True
     yseam = True
+    print "Determine map type from ", image.name
+    dump_image(image)
+
     p1 = image.getPixelI(0, 0)[:3]
     p2 = image.getPixelI(0, image.size[1] - 1)[:3]
+    
     if p1 != p2:
         yseam = False
     for x in range(1, image.size[0]):
