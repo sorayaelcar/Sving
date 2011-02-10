@@ -26,6 +26,10 @@ Open a command prompt in the extracted directory and run the following:
 
 blender -P install.py
 
+Debian based distros also need to run
+
+sudo touch /usr/share/blender/scripts/blender/__init__.py
+
 ** Apple Mac **
 
 <path_to_blender.app>/Contents/MacOS/blender -P install.py

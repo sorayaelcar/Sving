@@ -84,21 +84,11 @@ def mesh2Prim(ob, rootprim=None):
                 image.properties['primstar']['scale_x'] * bb.scale.x,
                 image.properties['primstar']['scale_y'] * bb.scale.y,
                 image.properties['primstar']['scale_z'] * bb.scale.z)
-         
-        #print "========================================================="
-        linksetSize = (image.properties['primstar']['size_x'], image.properties['primstar']['size_y'], image.properties['primstar']['size_z'])       
-        objectScale = (image.properties['primstar']['scale_x'], image.properties['primstar']['scale_y'], image.properties['primstar']['scale_z'])
-        #print "LSL: linkset size         = ", linksetSize
-        #print "LSL: object scale         = ", objectScale
-        #print "LSL: bbox size from image = ", linksetSize[0]/objectScale[0], linksetSize[1]/objectScale[1], linksetSize[2]/objectScale[2] 
-        #print "LSL: bbox size from object= ", bb.scale.x, bb.scale.y, bb.scale.z
-        #print "LSL: Final size           = ", newprim.size
-        
         newprim.location = location + XYZ(
             image.properties['primstar']['loc_x'],
             image.properties['primstar']['loc_y'],
             image.properties['primstar']['loc_z'])
-        if rootprim == None:
+        if rootprim is None:
             rootprim = newprim
         else:
             rootprim.children.append(newprim)

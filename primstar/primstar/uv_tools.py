@@ -41,7 +41,14 @@ except:
 
 import Blender
 from math import atan2, pi, sin
-from uvcalc_follow_active_coords import extend
+try:
+    from uvcalc_follow_active_coords import extend
+except ImportError:
+    try:
+        from blender.uvcalc_follow_active_coords import extend
+    except ImportError:
+        print """Debian and Ubuntu users should run 'sudo touch /usr/share/blender/scripts/blender/__init__.py' to allow import of Blender scripts"""
+        raise
 
 #***********************************************
 # constants
@@ -71,7 +78,6 @@ def scale_map_uv(ob, doRotate):
                 if uv[1] > vmax:
                     vmax = uv[1]
 
-
     # --------------------------------------------------------------
     #make uv-map rectangular and rotate by -90 degrees
     #I still do not know, where this 90 degree rotation comes from.
@@ -92,8 +98,8 @@ def normalise(fco, umin, umax, vmin, vmax, doRotate):
         fco[1] = ((y - vmin) / (vmax - vmin))
 
 
-def add_map_uv(ob, doRotate):
-    if ob == None or ob.type != 'Mesh':
+def add_map_uv(ob):
+    if ob is None or ob.type != 'Mesh':
         Blender.Draw.PupMenu('ERROR: No mesh object.')
         return
 
@@ -102,15 +108,13 @@ def add_map_uv(ob, doRotate):
     if edit_mode:
         Blender.Window.EditMode(0)
 
-    #print "uv_tools.add_map_uv(ob,%s)" % (doRotate)
     me = ob.getData(mesh=1)
     me.sel = 1
     me.addUVLayer("sculptie")
     me.activeFace = 0
-    
     try:
         extend(1, ob)
-        scale_map_uv(ob, doRotate)
+        scale_map_uv(ob, 1)
     except:
         eac_unwrap(ob, True)
     Blender.Window.EditMode(edit_mode)
@@ -158,7 +162,7 @@ def snap_to_pixels(mesh, pow_two=False, image=None):
         Blender.Window.EditMode(0)
     for f in mesh.faces:
         if f.image:
-            if image == None or image == f.image:
+            if image is None or image == f.image:
                 w, h = f.image.size
                 for i in range(len(f.uv)):
                     if f.uvSel[i]:

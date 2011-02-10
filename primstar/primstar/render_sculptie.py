@@ -1,7 +1,7 @@
 #!BPY
 
 """
-Name: ' Setup&Bake Sculpt Meshes ...'
+Name: 'Bake Sculpt Meshes'
 Blender: 245
 Group: 'Render'
 Tooltip: 'Bake Sculptie Maps on Active objects'
@@ -9,7 +9,7 @@ Tooltip: 'Bake Sculptie Maps on Active objects'
 
 __author__ = ["Domino Marama"]
 __url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/bake-sculptie")
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __bpydoc__ = """\
 
 Bake Sculptie Map
@@ -52,12 +52,11 @@ from primstar import sculpty
 from Tkinter import *
 from primstar import gui
 
-
 #***********************************************
 # constants
 #***********************************************
 
-SCRIPT = 'render_sculptie_test'
+SCRIPT = 'render_sculptie'
 REGISTRY = 'PrimstarBake'
 LABEL = '%s - Bake sculpt meshes' % (sculpty.LABEL)
 
@@ -66,13 +65,12 @@ LABEL = '%s - Bake sculpt meshes' % (sculpty.LABEL)
 #***********************************************
 
 settings = Blender.Registry.GetKey(REGISTRY, True)
-if settings == None:
+if settings is None:
     settings = {}
 default_settings = {
         'keep_center': False,
         'keep_scale': False,
         'keep_seams': True,
-        'optimize_resolution': True,
         'clear': True,
         'fill': True,
         'finalise': True,
@@ -85,7 +83,7 @@ default_settings = {
 for key, value in default_settings.iteritems():
     if key not in settings:
         settings[key] = value
-    elif settings[key] == None:
+    elif settings[key] is None:
         settings[key] = value
 
 #***********************************************
@@ -122,8 +120,6 @@ static unsigned char file_open_bits[] = {
         self.keep_scale.set(settings['keep_scale'])
         self.keep_seams = BooleanVar(self.master)
         self.keep_seams.set(settings['keep_seams'])
-        self.optimize_resolution = BooleanVar(self.master)
-        self.optimize_resolution.set(settings['optimize_resolution'])
         self.clear = BooleanVar(self.master)
         self.clear.set(settings['clear'])
         self.fill = BooleanVar(self.master)
@@ -186,26 +182,6 @@ static unsigned char file_open_bits[] = {
                 text="Keep Seams",
                 variable=self.keep_seams)
         w.pack(anchor=W, expand=True)
-
-        # ===================================================================
-        # The Optimise Resolution option only appears with multi bake objects
-        #====================================================================
-        sculptie_counter = 0
-        scene = Blender.Scene.GetCurrent()
-
-        w = gui.Checkbutton(f,
-                text="Optimize Resolution",
-                variable=self.optimize_resolution)
-        w.pack(anchor=W, expand=True)
-
-        for ob in scene.objects.selected:
-            if sculpty.check(ob):
-                sculptie_counter += 1
-        if sculptie_counter > 1:
-            w.configure(state=NORMAL)
-        else:
-            w.configure(state=DISABLED)
-            
 
         # ==========================================
         # Image settings frame
@@ -353,7 +329,7 @@ static unsigned char file_open_bits[] = {
         w.pack(side=LEFT, fill=BOTH, expand=True, anchor=SE, pady=5)
 
     def bake(self):
-        startTime = Blender.sys.time()  #for timing purposes
+        startTime = Blender.sys.time()  # for timing purposes
         editmode = Blender.Window.EditMode()
         if editmode:
             Blender.Window.EditMode(0)
@@ -372,15 +348,12 @@ static unsigned char file_open_bits[] = {
         bb.rgb.update()
 
         scene = Blender.Scene.GetCurrent()
-        sculptie_count = 0
         for ob in scene.objects.selected:
             if sculpty.check(ob):
                 if not self.keep_center.get():
-                    #print "bake(): Set local center of Object ", ob.name, " from ", ob.getLocation()
+                    #center new
                     sculpty.set_center(ob)
-                    #print "bake(): Set local center of Object ", ob.name, " to ", ob.getLocation()
                 bb.add(ob)
-                sculptie_count += 1
         if self.keep_scale.get():
             bb = bb.normalised()
         if self.keep_center.get():
@@ -391,18 +364,10 @@ static unsigned char file_open_bits[] = {
         a = self.alpha.get()
         if a == 3:
             alpha_image = Blender.Image.Load(self.alpha_filename)
-
-        do_optimize = self.optimize_resolution.get()
-        #print "do_optimize is set to:", do_optimize
-        # Optimization makes only sense when in multi bake mode            
-        if sculptie_count == 1:
-            do_optimize = False
-
-        #print "do_optimize is set to:", do_optimize
         for ob in scene.objects.selected:
             if sculpty.active(ob):
                 if sculpty.bake_object(ob, bb, self.clear.get(),
-                            self.keep_seams.get(), self.keep_center.get(), do_optimize):
+                            self.keep_seams.get()):
                     success = True
                 for image in sculpty.map_images(ob.getData(False, True)):
                     n = Blender.sys.splitext(image.name)
@@ -429,17 +394,18 @@ static unsigned char file_open_bits[] = {
                     if image.packed:
                         image.pack()
                     image.glFree()
-
-
+            else:
+                gui.debug(0, 'Warning: %s is not an active sculptie.' % \
+                        (ob.name), SCRIPT)
         Blender.Redraw()
         if editmode:
             Blender.Window.EditMode(1)
         if success:
             gui.debug(1, 'finished baking: in %.4f sec.' % \
-                    ((Blender.sys.time() - startTime)))
+                    ((Blender.sys.time() - startTime)), SCRIPT)
         else:
             gui.debug(0, 'bake failed after %.4f sec.' % \
-                    ((Blender.sys.time() - startTime)))
+                    ((Blender.sys.time() - startTime)), SCRIPT)
         if self.save_settings.get() or self.save_defaults.get():
             range_min = sculpty.XYZ(
                     self.range_min_r.get(),
@@ -453,7 +419,6 @@ static unsigned char file_open_bits[] = {
                 'keep_center': self.keep_center.get(),
                 'keep_scale': self.keep_scale.get(),
                 'keep_seams': self.keep_seams.get(),
-                'optimize_resolution': self.optimize_resolution.get(),
                 'clear': self.clear.get(),
                 'fill': self.fill.get(),
                 'finalise': self.finalise.get(),
@@ -495,11 +460,11 @@ static unsigned char file_open_bits[] = {
 
     def set_alpha(self):
         if not self.alpha_filename:
-            self.master.mouse_exit += 1 #hack to stop early exit
+            self.master.mouse_exit += 1  # hack to stop early exit
             self.set_file()
 
     def update_file(self):
-        if self.alpha_filename == None:
+        if self.alpha_filename is None:
             self.alpha_file.set("File")
         else:
             if not os.path.exists(self.alpha_filename):
@@ -517,25 +482,17 @@ def main():
     root = None
     start_time = Blender.sys.time()
     gui.debug(1, "started", SCRIPT)
-    try:
-        root = gui.ModalRoot()
-        app = GuiApp(root)
-        app.redraw()
-        root.mainloop()
-        root.destroy()
-        if gui.platform == "darwin":
-            os.system('''/usr/bin/osascript -e 'tell app "System Events" to activate process "Blender"' ''')
-
-    except:
-        if root:
-            root.grab_release()
-            root.quit()
-            root.destroy()
-        raise
-
+    root = gui.ModalRoot()
+    root.title(LABEL)
+    app = GuiApp(root)
+    app.redraw()
+    root.mainloop()
+    root.destroy()
+    if gui.platform == 'darwin':
+        os.system('''/usr/bin/osascript -e 'tell app "System Events" to activate process "Blender"' ''')
     gui.debug(1, "ended in %.4f sec." % \
             (Blender.sys.time() - start_time), SCRIPT)
 
 if __name__ == '__main__':
-    gui.theme = gui.Theme() # refresh theme in case user changed prefs.
+    gui.theme = gui.Theme()  # refresh theme in case user changed prefs.
     main()

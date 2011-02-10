@@ -1,17 +1,17 @@
 #!BPY
 """
-Name: ' SCULPT setup & add ...'
+Name: 'Sculpt Mesh'
 Blender: 246
 Group: 'AddMesh'
-Tooltip: 'Second Life sculptie compatible Mesh Generator ...'
+Tooltip: 'Add a Second Life sculptie compatible mesh'
 """
 
 __author__ = ["Domino Marama", "Gaia Clary"]
 __url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/create-sculptie")
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __bpydoc__ = """\
 
-Sculpt Mesh Generator ...
+Sculpt Mesh
 
 This script creates an object with a gridded UV map suitable
 for Second Life sculpties.
@@ -56,7 +56,7 @@ from primstar import gui
 #***********************************************
 
 LABEL = "%s - Add sculpt mesh" % (sculpty.LABEL)
-SCRIPT = 'add_mesh_gui_test'
+SCRIPT = 'add_mesh_sculpt_mesh'
 REGISTRY = 'PrimstarAdd'
 
 #***********************************************
@@ -64,7 +64,7 @@ REGISTRY = 'PrimstarAdd'
 #***********************************************
 
 settings = Blender.Registry.GetKey(REGISTRY, True)
-if settings == None:
+if settings is None:
     settings = {}
 default_settings = {
         'x_faces': 8,
@@ -81,7 +81,7 @@ default_settings = {
 for key, value in default_settings.iteritems():
     if key not in settings:
         settings[key] = value
-    elif settings[key] == None:
+    elif settings[key] is None:
         settings[key] = value
 
 #***********************************************
@@ -423,7 +423,7 @@ static unsigned char file_open_bits[] = {
         self.sculpt_menu.post(x, y)
 
     def set_shape(self, name, filename=None):
-        gui.debug(40, "set_shape(\"%s\", \"%s\")" % (name, filename))
+        gui.debug(40, "set_shape(\"%s\", \"%s\")" % (name, filename), SCRIPT)
         self.shape_name.set(name)
         self.shape_file = filename
         if filename:
@@ -524,7 +524,7 @@ static unsigned char file_open_bits[] = {
             baseimage = None
         gui.debug(11,
                 "Add sculptie (%s) of type %s" % (name, sculpt_type),
-                "add_mesh_sculpt_mesh")
+                SCRIPT)
         scene = Blender.Scene.GetCurrent()
         for ob in scene.objects:
             ob.sel = False
@@ -623,16 +623,16 @@ def main():
     start_time = Blender.sys.time()
     gui.debug(1, "started", SCRIPT)
     root = gui.ModalRoot()
+    root.title(LABEL)
     app = GuiApp(root)
     app.redraw()
-    root.title("Primstar add mesh")
     root.mainloop()
     root.destroy()
-    if gui.platform == "darwin":
+    if gui.platform == 'darwin':
         os.system('''/usr/bin/osascript -e 'tell app "System Events" to activate process "Blender"' ''')
     gui.debug(1, "ended in %.4f sec." % (
-        Blender.sys.time() - start_time), SCRIPT)
+            Blender.sys.time() - start_time), SCRIPT)
 
 if __name__ == '__main__':
-    gui.theme = gui.Theme() # refresh theme in case user changed prefs.
+    gui.theme = gui.Theme()  # refresh theme in case user changed prefs.
     main()

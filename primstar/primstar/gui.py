@@ -33,7 +33,7 @@ from binascii import hexlify
 
 def debug(num, msg, script="gui"):
     if Blender.Get('rt') >= num:
-        print >> stderr, "debug %s %03d -" % (script, num), msg
+        print >> stderr, '%s %03d -' % (script, num), msg
 
 
 def hex_color(theme_color):
@@ -224,7 +224,7 @@ class ModalRoot(Tkinter.Tk):
         debug(60, "Enter: %s" % str(event.widget))
         if event.widget == self:
             self.mouse_exit = True
-            if self.grab_status() == None:
+            if self.grab_status() is None:
                 if platform == "win32":
                     self.grab_set()
                 else:
@@ -240,7 +240,7 @@ class ModalRoot(Tkinter.Tk):
 
     def click_handler(self, event):
         debug(60, "Left Click: %s" % str(event.widget))
-        if self.winfo_containing(event.x_root, event.y_root) == None:
+        if self.winfo_containing(event.x_root, event.y_root) is None:
             # Linux and Mac quit
             debug(70, "Mouse exit: %s" % str(event.widget))
             self.quit()
@@ -248,7 +248,7 @@ class ModalRoot(Tkinter.Tk):
     def deiconify(self):
         Blender.Redraw()
         Tkinter.Tk.deiconify(self)
-        if self.grab_status() == None:
+        if self.grab_status() is None:
             if platform == "win32":
                 self.grab_set()
             else:

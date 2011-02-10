@@ -52,7 +52,14 @@ except:
 import Blender
 from primstar import sculpty
 from colladaImEx.translator import Translator
-from import_obj import load_obj
+try:
+    from import_obj import load_obj
+except ImportError:
+    try:
+        from blender.import_obj import load_obj
+    except ImportError:
+        print """Debian and Ubuntu users should run 'sudo touch /usr/share/blender/scripts/blender/__init__.py' to allow import of Blender scripts"""
+        raise
 
 
 def import_collada(filename):
@@ -70,7 +77,7 @@ def import_obj(filename):
 def sculptify_scene():
     scene = Blender.Scene.GetCurrent()
     for ob in scene.objects.selected:
-        if not sculpty.sculptify(ob, fromObjFile=True):
+        if not sculpty.sculptify(ob):
             Blender.Draw.PupBlock("Sculptie Import Error",
                     ["Unable to determine map size", "Please check your UVs"])
         else:
