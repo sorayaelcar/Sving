@@ -1,17 +1,17 @@
 #!BPY
 """
-Name: 'Sculpt Mesh'
+Name: 'Sculpt Mesh ...'
 Blender: 246
 Group: 'AddMesh'
-Tooltip: 'Add a Second Life sculptie compatible mesh'
+Tooltip: 'Second Life sculptie compatible Mesh Generator ...'
 """
 
 __author__ = ["Domino Marama", "Gaia Clary"]
 __url__ = ("Online Help, http://dominodesigns.info/manuals/primstar/create-sculptie")
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __bpydoc__ = """\
 
-Sculpt Mesh
+Sculpt Mesh Generator ...
 
 This script creates an object with a gridded UV map suitable
 for Second Life sculpties.
@@ -50,6 +50,7 @@ import os
 from Tkinter import *
 import tkFileDialog
 from primstar import gui
+from primstar.sculpty import create_new_image
 
 #***********************************************
 # constants
@@ -535,7 +536,9 @@ static unsigned char file_open_bits[] = {
                     min(0.5, max(self.radius.get(), 0.05)))
             s, t, w, h, clean_s, clean_t = sculpty.map_size(self.x_faces.get(),
                     self.y_faces.get(), self.levels.get())
-            image = Blender.Image.New(basename, w, h, 32)
+            image = create_new_image(basename, w, h, 32)
+            #print "add_mesh_sculpt_mesh: Packed image", image.getName()
+            
             sculpty.bake_lod(image)
             ob = scene.objects.new(mesh, basename)
             mesh.flipNormals()
@@ -631,7 +634,7 @@ def main():
     if gui.platform == 'darwin':
         os.system('''/usr/bin/osascript -e 'tell app "System Events" to activate process "Blender"' ''')
     gui.debug(1, "ended in %.4f sec." % (
-            Blender.sys.time() - start_time), SCRIPT)
+        Blender.sys.time() - start_time), SCRIPT)
 
 if __name__ == '__main__':
     gui.theme = gui.Theme()  # refresh theme in case user changed prefs.

@@ -1,7 +1,7 @@
 #!BPY
 
 """
-Name: 'Second Life Sculptie (.tga, .obj, .dae)'
+Name: 'Second Life Sculptie (.tga, .png, .obj, .dae)'
 Blender: 246
 Group: 'Import'
 Tooltip: 'Import Second Life sculptie from image, obj, or Collada 1.4 files'
@@ -77,7 +77,7 @@ def import_obj(filename):
 def sculptify_scene():
     scene = Blender.Scene.GetCurrent()
     for ob in scene.objects.selected:
-        if not sculpty.sculptify(ob):
+        if not sculpty.sculptify(ob, fromObjFile=True):
             Blender.Draw.PupBlock("Sculptie Import Error",
                     ["Unable to determine map size", "Please check your UVs"])
         else:
@@ -92,7 +92,7 @@ def sculptify_scene():
 def load_sculptie(filename):
     time1 = Blender.sys.time()
     Blender.SaveUndoState("Import Sculptie")
-    print "--------------------------------"
+    #print "--------------------------------"
     print 'Importing "%s"' % filename
     scene = Blender.Scene.GetCurrent()
     for ob in scene.objects.selected:
@@ -121,7 +121,7 @@ def load_sculptie(filename):
     if in_editmode:
         Blender.Window.EditMode(1)
     Blender.Redraw()
-    print 'finished importing: "%s" in %.4f sec.' % (
+    print 'Loaded Sculptmap "%s" in %.4f sec.' % (
             filename, (Blender.sys.time() - time1))
 
 #***********************************************

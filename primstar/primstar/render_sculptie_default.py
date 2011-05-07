@@ -46,7 +46,6 @@ except:
     pass
 
 import Blender
-
 from primstar.bake_sculpt_mesh_util import BakeApp
 
 

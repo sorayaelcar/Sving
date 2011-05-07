@@ -33,7 +33,7 @@ from binascii import hexlify
 
 def debug(num, msg, script="gui"):
     if Blender.Get('rt') >= num:
-        print >> stderr, '%s %03d -' % (script, num), msg
+        print >> stderr, "debug %s %03d -" % (script, num), msg
 
 
 def hex_color(theme_color):

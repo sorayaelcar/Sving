@@ -48,6 +48,7 @@ try:
 except:
     pass
 
+import os
 import Blender
 from primstar.primitive import get_prims
 from primstar.sculpty import map_type
@@ -58,6 +59,12 @@ from primstar.version import LABEL
 #***********************************************
 
 PRIM_NAME = "Primstar"
+BAKE_REGISTRY = 'PrimstarBake'
+bake_settings = Blender.Registry.GetKey(BAKE_REGISTRY, True)
+if bake_settings is None or bake_settings['alpha'] is None:
+    use_alpha_sculptmaps = True
+else:
+    use_alpha_sculptmaps = (bake_settings['alpha'] != 0)
 
 #***********************************************
 # Classes
@@ -330,6 +337,13 @@ def collect_textures(prim):
 
 
 def save_textures(prim, path=None):
+    # [GC] Nasty trick to preserve alpha for sculptmaps:
+    is_packed = True
+    if use_alpha_sculptmaps and not prim.sculpt_map.packed:
+        #print "Enable nasty trick for alpha preserving"
+        is_packed = False
+        prim.sculpt_map.pack()
+        
     textures = UniqueList([prim.sculpt_map])
     for t in prim.textures:
         textures.append(t.image)
@@ -340,13 +354,19 @@ def save_textures(prim, path=None):
     for t in textures:
         old = t.filename
         fn, ext = Blender.sys.splitext(old)
-        if not ext:
+
+        if not ext or  (ext != 'png' and ext != 'tga' ):
             if t.packed:
                 ext = ".png"
             else:
                 ext = ".tga"
-        t.filename = Blender.sys.join(path, clean_name(t.name) + ext)
+        t.setName(clean_name(t.name) + ext)        
+        t.setFilename(Blender.sys.join(path, t.getName()))
         t.save()
+        t.updateDisplay()
+        print "Saved ", t.getName(), "of depth", t.getDepth(), "to file", t.filename
+        if not is_packed:
+            t.unpack(Blender.UnpackModes.WRITE_ORIGINAL)
         t.filename = old
 
 
@@ -354,17 +374,18 @@ def export_lsl(filename):
     Blender.Window.WaitCursor(1)
     prims = get_prims()
     if prims is None:
-        Blender.Window.WaitCursor(0)
+        #Blender.Window.WaitCursor(0)
         return
     if prims == []:
-        Blender.Window.WaitCursor(0)
+        #Blender.Window.WaitCursor(0)
         Blender.Draw.PupBlock("Nothing to do",
                 ["No root prims are selected", " for export"])
         return
     basepath = Blender.sys.dirname(filename)
     for p in prims:
+        print "save LSL linkset:", p['name']
         save_linkset(p, basepath)
-    Blender.Window.WaitCursor(0)
+    #Blender.Window.WaitCursor(0)
 
 
 def prim2dict(prim, link=0):
@@ -394,10 +415,12 @@ def link_lsl(prim, link=0):
     if link > 0:
         p = prim2dict(prim, link)
         p['textures'] = ''
+        print "LSL adding child prim: ", p['name']
         for t in prim.textures:
             p['textures'] += TEXTURE % texture2dict(t)
         lsl = LINK_LSL % p
     else:
+        print "LSL adding  root prim: ", prim['name']
         lsl = ''
     link += 1
     for c in prim.children:
@@ -416,6 +439,7 @@ def save_linkset(prim, basepath):
         d['functions'] = PRIM_REZ
         d['setup'] = PRIM_TEST % d
         builder, link = link_lsl(prim)
+        print "Summary: exported Linkset containing ",link, " prims";
         root_tex = ''
         for t in prim.textures:
             root_tex += TEXTURE % texture2dict(t)

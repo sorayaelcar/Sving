@@ -64,7 +64,8 @@ def main():
     for ob in scene.objects.selected:
         if sculptify(ob):
             success = True
-    Blender.Window.WaitCursor(0)
+    #Blender.Window.WaitCursor(0)
+    
     if not success:
         Blender.Draw.PupBlock("Conversion Error",
                 ["No suitable objects", "are selected"])

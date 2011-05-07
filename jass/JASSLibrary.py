@@ -1,10 +1,10 @@
 #!BPY
 
 """
-Name: '... JASS Basic Lib of Sculpts ...'
+Name: 'Jass lib ...'
 Blender: 248
 Group: 'AddMesh'
-Tooltip: 'Select Sculptie from library'
+Tooltip: 'Select Object from JASS Object library'
 """
 
 __author__ = ["Gaia Clary"]
@@ -60,76 +60,82 @@ LibraryRelativePath = "/jass/lib/lib-basic.blend"
 
 def main():
 
-	#keep current edit-mode and temporary leave it
-	in_editmode = Window.EditMode()
-	Window.EditMode(0)
-
-	# get the current scene
-	scene = bpy.data.scenes.active
-	
-
-	# Get the script location
-	scriptLocation = bpy.config.userScriptsDir
-	libraryIsOpen = False
-	library = ""
-	if scriptLocation:
-		print "uscriptsdir=", scriptLocation
-	
-		# Load and open the basic sculpties library
-		library  = scriptLocation + LibraryRelativePath
-		try:
-			Library.Open(library)
-			libraryIsOpen = True
-		except:
-			print "JASSLibrary not installed in user scripts dir"
-			pass
-	
-	if libraryIsOpen == False:
-		scriptLocation = Blender.Get(r"scriptsdir") 
-		print "scriptsdir=", scriptLocation
-		# Load and open the basic sculpties library
-		library  = scriptLocation + LibraryRelativePath
-		try:
-			Library.Open(library)
-			libraryIsOpen = True
-		except:
-			print "JASSLibrary not installed in scripts dir"
-			pass
-	
-	if libraryIsOpen == False:
-		Blender.Draw.PupBlock( "Library open Error", ["JASSLibrary not installed"] )
-		return
-	else:
-		print "JASSLibrary loaded from ", library
-
-	# Create the selection menu
-	menuText=LibraryName + "%t"
-	libContent = []
-	for obname in Library.Datablocks("Object"):
-		libContent.append(obname)
-		menuText += "|"+obname
-	menuText += "|"
-
-	# Select and res the selected object
-	itemId = Blender.Draw.PupMenu(menuText)
-	if (itemId != -1):
-		for ob in scene.objects:
-			ob.sel = False
-		libraryObjectName = libContent[itemId-1]
-		print "selected ", libraryObjectName
-		lib = bpy.libraries.load(library)
-		pseudoOb = lib.objects.append(libraryObjectName)
-		ob = scene.objects.link(pseudoOb)
-		ob.setLocation(Window.GetCursorPos())
-		ob.sel = True
-		
-	#restore original edit_mode
-	Window.EditMode(in_editmode)
-
-	#Redraw all windows
-	Blender.Redraw
-
+    #keep current edit-mode and temporary leave it
+    in_editmode = Window.EditMode()
+    Window.EditMode(0)
+    
+    # get the current scene
+    scene = bpy.data.scenes.active
+    
+    
+    # Get the script location
+    scriptLocation = bpy.config.userScriptsDir
+    libraryIsOpen = False
+    library = ""
+    if scriptLocation:
+        #print "uscriptsdir=", scriptLocation
+    
+        # Load and open the basic sculpties library
+        library  = scriptLocation + LibraryRelativePath
+        try:
+            Library.Open(library)
+            libraryIsOpen = True
+        except:
+            #print "JASSLibrary not installed in user scripts dir"
+            pass
+    
+    if libraryIsOpen == False:
+        scriptLocation = Blender.Get(r"scriptsdir") 
+        #print "scriptsdir=", scriptLocation
+        # Load and open the basic sculpties library
+        library  = scriptLocation + LibraryRelativePath
+        try:
+            Library.Open(library)
+            libraryIsOpen = True
+        except:
+            #print "JASSLibrary not installed in scripts dir"
+            pass
+    
+    if libraryIsOpen == False:
+        Blender.Draw.PupBlock( "Library open Error", ["JASSLibrary not installed"] )
+        return
+    #else:
+    #    print "JASSLibrary loaded from ", library
+    
+    # Create the selection menu
+    menuText=LibraryName + "%t"
+    libContent = []
+    for obname in Library.Datablocks("Object"):
+        libContent.append(obname)
+        menuText += "|"+obname
+    menuText += "|"
+    
+    # Select and res the selected object
+    itemId = Blender.Draw.PupMenu(menuText)
+    if (itemId != -1):
+        for ob in scene.objects:
+            ob.sel = False
+        libraryObjectName = libContent[itemId-1]
+        #print "selected ", libraryObjectName
+        lib = bpy.libraries.load(library)
+        pseudoOb = lib.objects.append(libraryObjectName)
+        ob = scene.objects.link(pseudoOb)
+        cpos = Window.GetCursorPos()
+        ob.setLocation(cpos)
+        ob.sel = True
+        ob.Layers = Window.GetActiveLayer()
+        Blender.Window.EditMode(1)
+        Blender.Window.EditMode(0) 
+        print "Added Object from Library:", ob.getName(), "at location", cpos
+        
+        
+    #restore original edit_mode
+    Window.EditMode(in_editmode)
+    
+    #Redraw all windows
+    Blender.Redraw()
+    
 
 if __name__ == '__main__':
-	main()
+    main()
 

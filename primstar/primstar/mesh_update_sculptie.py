@@ -78,7 +78,7 @@ def main(filename):
         else:
             Blender.Draw.PupBlock("Sculptie Error",
                 ["Mesh has no 'sculptie' UV Layer"])
-    Blender.Window.WaitCursor(0)
+    #Blender.Window.WaitCursor(0)
     Blender.Window.EditMode(editmode)
 
 #***********************************************

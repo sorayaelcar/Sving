@@ -60,7 +60,6 @@ def main():
     editmode = Blender.Window.EditMode()
     if editmode:
         Blender.Window.EditMode(0)
-    Blender.Window.WaitCursor(1)
     scene = Blender.Scene.GetCurrent()
     Blender.Window.WaitCursor(1)
     for ob in scene.objects.selected:
@@ -74,7 +73,7 @@ def main():
             else:
                 Blender.Draw.PupBlock("Sculptie Reset Error",
                 ["Can't reset joined sculpt mesh", ob.name])
-    Blender.Window.WaitCursor(0)
+    #Blender.Window.WaitCursor(0)
     Blender.Window.EditMode(editmode)
     Blender.Redraw()
 

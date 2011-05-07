@@ -41,6 +41,6 @@ try: import webbrowser
 except: webbrowser = None
 
 if webbrowser:
-    webbrowser.open('http://blog.machinimatrix.org/jass-2.0/')
+    webbrowser.open('http://blog.machinimatrix.org/jass/')
 else:
     Blender.Draw.PupMenu("Error%t|This script requires a full python installation")

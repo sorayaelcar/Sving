@@ -60,6 +60,49 @@ high_u = 0.75
 
 def scale_map_uv(ob, doRotate):
     mesh = ob.getData(mesh=1)
+    umin,umax,vmin,vmax = get_map_size(mesh)
+
+    # --------------------------------------------------------------
+    #make uv-map rectangular and rotate by -90 degrees
+    #I still do not know, where this 90 degree rotation comes from.
+    # --------------------------------------------------------------
+    for face in mesh.faces:
+        for uv in face.uv:
+            normalise(uv, umin, umax, vmin, vmax, doRotate)
+
+def flip_map_uv(mesh):
+    umin,umax,vmin,vmax = get_map_size(mesh)
+
+    # --------------------------------------------------------------
+    # flip uv-map
+    # --------------------------------------------------------------
+    for face in mesh.faces:
+        #print "Original face", face
+        for uv in face.uv:
+            flip(uv, umin, umax, vmin, vmax)
+        #print "Flipped  face", face
+
+
+def flip(fco, umin, umax, vmin, vmax):
+    x = fco[0]
+    y = fco[1]
+    fco[0] = 1 - ((x - umin) / (umax - umin))
+    fco[1] =     ((y - vmin) / (vmax - vmin))
+    
+    
+
+def normalise(fco, umin, umax, vmin, vmax, doRotate):
+    x = fco[0]
+    y = fco[1]
+    if doRotate == 1:
+        fco[0] = 1 - ((y - vmin) / (vmax - vmin))
+        fco[1] = ((x - umin) / (umax - umin))
+    else:
+        fco[0] = ((x - umin) / (umax - umin))
+        fco[1] = ((y - vmin) / (vmax - vmin))
+
+def get_map_size(mesh):
+
     # -------------------------------
     #determine the size of the uv-map
     # -------------------------------
@@ -77,28 +120,9 @@ def scale_map_uv(ob, doRotate):
                     vmin = uv[1]
                 if uv[1] > vmax:
                     vmax = uv[1]
+    return umin,umax,vmin,vmax
 
-    # --------------------------------------------------------------
-    #make uv-map rectangular and rotate by -90 degrees
-    #I still do not know, where this 90 degree rotation comes from.
-    # --------------------------------------------------------------
-    for face in mesh.faces:
-        for uv in face.uv:
-            normalise(uv, umin, umax, vmin, vmax, doRotate)
-
-
-def normalise(fco, umin, umax, vmin, vmax, doRotate):
-    x = fco[0]
-    y = fco[1]
-    if doRotate == 1:
-        fco[0] = 1 - ((y - vmin) / (vmax - vmin))
-        fco[1] = ((x - umin) / (umax - umin))
-    else:
-        fco[0] = ((x - umin) / (umax - umin))
-        fco[1] = ((y - vmin) / (vmax - vmin))
-
-
-def add_map_uv(ob):
+def add_map_uv(ob, doRotate):
     if ob is None or ob.type != 'Mesh':
         Blender.Draw.PupMenu('ERROR: No mesh object.')
         return
@@ -108,13 +132,15 @@ def add_map_uv(ob):
     if edit_mode:
         Blender.Window.EditMode(0)
 
+    #print "uv_tools.add_map_uv(ob,%s)" % (doRotate)
     me = ob.getData(mesh=1)
     me.sel = 1
     me.addUVLayer("sculptie")
     me.activeFace = 0
+    
     try:
         extend(1, ob)
-        scale_map_uv(ob, 1)
+        scale_map_uv(ob, doRotate)
     except:
         eac_unwrap(ob, True)
     Blender.Window.EditMode(edit_mode)
